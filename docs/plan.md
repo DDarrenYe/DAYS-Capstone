@@ -38,7 +38,7 @@ The reflection check looks for evidence against the three questions and possible
 | App | Next.js 16 App Router, TypeScript and bun. Read the installed Next.js guides before writing code. |
 | UI | Tailwind 4, our existing shadcn/Base UI components and prototype tokens. Use accessible HTML/SVG; add a chart library only if we need it. |
 | Data fetching | The existing TanStack Query provider and query-client helper, with access checked for each user. |
-| Database and sign-in | Supabase Postgres, magic links and Row Level Security (RLS). |
+| Database and sign-in | Drizzle ORM with Supabase Postgres, magic links and Row Level Security (RLS). |
 | Reflection check | A server-only Anthropic client with validated responses and a versioned rubric. Check which model is supported when we build it. |
 | Export | Server-side PDF and spreadsheet-safe CSV. Check the PDF renderer locally and on the hosted app before release. |
 | Hosting | Vercel previews and production, with separate settings and sign-in callback URLs. |
@@ -60,7 +60,7 @@ Reuse the scaffold, UI components and query setup. We don't need another lint se
 | grader_notes / review decisions | Private notes and open/dismissed/added-to-feedback decisions, with the reviewer, time and previous decisions. |
 | usage accounting | Budget reserved before calls, actual token use and limited retries. |
 
-Save or calculate match results for the exact saved or submitted text, with a version attached. The schema task decides the table layout and constraints. These are requirements; the migrations aren't done yet. Choose what happens when a record is deleted instead of adding cascade deletion everywhere.
+Save or calculate match results for the exact saved or submitted text, with a version attached. The schema task decides the table layout and constraints. The table definitions are in `src/db/schema.ts`; Drizzle generates SQL migrations under `supabase/migrations`. See `supabase/README.md` for constraints, inferred types and the migration workflow. Access policies and submission locking are still separate tasks. Choose what happens when a record is deleted instead of adding cascade deletion everywhere.
 
 Check access in both RLS and server code, including views, privileged operations, import and export. Students can only access their own Lane 2 drafts for assignments they're enrolled in. They can't change submitted text. Instructors can only access their courses and can't edit student text. Flags, question results and grader notes are instructor-only. Keep analysis credentials out of browser code. Block Lane 1 logging on the server/database as well as in the UI.
 

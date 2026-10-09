@@ -46,6 +46,12 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      - name: Test server database client
+        run: bun run test
+
+      - name: Check migration snapshots
+        run: bun run db:check
+
   build:
     name: Build
     runs-on: ubuntu-latest

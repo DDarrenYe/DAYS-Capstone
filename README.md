@@ -10,7 +10,7 @@ We have the nine-screen prototype and showcase ready. The app has the Next.js sc
 
 ## Stack
 
-We use Next.js 16 (App Router, TypeScript), Tailwind CSS 4, shadcn/ui with Base UI, Supabase, the Anthropic API, and Vercel. Bun handles packages. Vite+ (`vp`) runs linting and formatting with the Ultracite presets in `vite.config.ts`.
+We use Next.js 16 (App Router, TypeScript), Tailwind CSS 4, shadcn/ui with Base UI, Drizzle ORM with Supabase Postgres/Auth, the Anthropic API, and Vercel. Bun handles packages. Vite+ (`vp`) runs linting and formatting with the Ultracite presets in `vite.config.ts`.
 
 ## Setup
 
@@ -27,10 +27,10 @@ cp .env.example .env.local
 Get this checkout's connection details:
 
 ```bash
-bunx --no-install supabase status --env --output-format text --override-name API_URL=NEXT_PUBLIC_SUPABASE_URL,ANON_KEY=NEXT_PUBLIC_SUPABASE_ANON_KEY,SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY
+bunx --no-install supabase status --env --output-format text --override-name API_URL=NEXT_PUBLIC_SUPABASE_URL,ANON_KEY=NEXT_PUBLIC_SUPABASE_ANON_KEY,SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY,DB_URL=DATABASE_URL
 ```
 
-Copy those three values into `.env.local`, then start the app:
+Copy those four values into `.env.local`, then start the app:
 
 ```bash
 bun dev
@@ -40,7 +40,7 @@ Open http://localhost:3000.
 
 `bun run db:status` shows the local API, database, Studio, and Mailpit URLs. Ports are assigned per checkout and branch, so use the printed URLs rather than assuming default ports. Auth emails stay in Mailpit instead of going to real inboxes. Each teammate has their own database.
 
-`.env.local` is ignored by Git. Keep `SUPABASE_SERVICE_ROLE_KEY` server-only; never prefix it with `NEXT_PUBLIC_` or put it in browser code. The app's Supabase clients, schema, and seed data are implemented in later issues; seeding is disabled until a seed exists.
+`.env.local` is ignored by Git. Keep `SUPABASE_SERVICE_ROLE_KEY` server-only; never prefix it with `NEXT_PUBLIC_` or put it in browser code. `DATABASE_URL` is also server-only. The Drizzle schema, SQL migrations and constraint tests are in place; see [supabase/README.md](supabase/README.md) for the data contract. Supabase Auth clients, access policies and seed data are still separate tasks; seeding is disabled until a seed exists.
 
 Stop the stack with `bun run db:stop`; stopping preserves local data. Database resets and `supabase stack destroy` delete data. Changing branches selects a different stack; stop the current one before switching.
 
@@ -50,20 +50,26 @@ When we decide to deploy, create a hosted Supabase project, apply the committed 
 
 ## Scripts
 
-| Command             | What it does                                    |
-| ------------------- | ----------------------------------------------- |
-| `bun dev`           | Start the dev server                            |
-| `bun run db:start`  | Start local Supabase without Docker             |
-| `bun run db:stop`   | Stop local Supabase, preserving data            |
-| `bun run db:status` | Show local service URLs and keys                |
-| `bun run build`     | Build for production                            |
-| `bun run check`     | Check formatting and lint with `vp check`       |
-| `bun run fix`       | Fix formatting and lint with `vp check --fix`   |
+| Command | What it does |
+| --- | --- |
+| `bun dev` | Start the dev server |
+| `bun run db:start` | Start local Supabase without Docker |
+| `bun run db:stop` | Stop local Supabase, preserving data |
+| `bun run db:status` | Show local service URLs and keys |
+| `bun run db:reset` | Reset this checkout database and apply migrations (deletes data) |
+| `bun run db:test` | Run transactional SQL constraint tests |
+| `bun run db:generate` | Generate SQL migrations from the Drizzle schema |
+| `bun run db:migrate` | Apply pending local SQL migrations |
+| `bun run db:check` | Check Drizzle migration snapshots |
+| `bun run test` | Test the server database client |
+| `bun run build` | Build for production |
+| `bun run check` | Check formatting and lint with `vp check` |
+| `bun run fix` | Fix formatting and lint with `vp check --fix` |
 | `bun run typecheck` | Generate Next.js types, then run `tsc --noEmit` |
 
 ## CI
 
-GitHub Actions runs lint, typecheck, and build in parallel for every PR, push to `main`, and merge queue entry. All three jobs use `.github/actions/setup-bun` to install the Bun version from `package.json`, reuse cached downloads, and install from `bun.lock` without changing it. The build also caches Next.js. New runs cancel older runs for the same branch or PR.
+GitHub Actions runs lint, typecheck, and build in parallel for every PR, push to `main`, and merge queue entry. All three jobs use `.github/actions/setup-bun` to install the Bun version from `package.json`, reuse cached downloads, and install from `bun.lock` without changing it. The typecheck job also runs the server-client tests and checks Drizzle migration snapshots. The build also caches Next.js. New runs cancel older runs for the same branch or PR.
 
 `Verify` passes only when all three jobs pass. A repo admin needs to make it a required check for `main` in branch protection or a ruleset. Until then, failing CI won't block a merge.
 
