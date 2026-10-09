@@ -1,0 +1,84 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "cacheDir": ".turbo/cache",
+  "cacheMaxSize": "1GB",
+  "cacheMaxAge": "14d",
+  "tasks": {
+    "dev:app": {
+      "dependsOn": ["typegen:app"],
+      "with": ["db:start"],
+      "cache": false,
+      "persistent": true,
+      "env": ["PORT", "NODE_ENV", "NEXT_PUBLIC_*", "SUPABASE_SERVICE_ROLE_KEY"]
+    },
+    "db:start": {
+      "cache": false,
+      "env": ["SUPABASE_*"]
+    },
+    "check:app": {
+      "inputs": ["$TURBO_DEFAULT$", "!design/**", "!.env*"],
+      "env": ["!NEXT_PUBLIC_*"],
+      "outputLogs": "new-only"
+    },
+    "typegen:app": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/*.md",
+        "!docs/issue-plan.json",
+        "!design/**/*.html",
+        "!design/**/*.css",
+        "!design/**/*.py",
+        "!design/**/*.png",
+        "!design/**/*.mp4",
+        "!.github/**/*.yml",
+        "!public/**/*.svg",
+        "!supabase/**/*.toml",
+        ".env*"
+      ],
+      "env": ["NODE_ENV", "NEXT_PUBLIC_*", "SUPABASE_SERVICE_ROLE_KEY"],
+      "outputs": [".next/types/**", "next-env.d.ts"],
+      "outputLogs": "new-only"
+    },
+    "typecheck:app": {
+      "dependsOn": ["typegen:app"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/*.md",
+        "!docs/issue-plan.json",
+        "!design/**/*.html",
+        "!design/**/*.css",
+        "!design/**/*.py",
+        "!design/**/*.png",
+        "!design/**/*.mp4",
+        "!.github/**/*.yml",
+        "!public/**/*.svg",
+        "!supabase/**/*.toml",
+        ".env*",
+        ".next/dev/types/**"
+      ],
+      "outputs": ["tsconfig.tsbuildinfo"],
+      "outputLogs": "new-only"
+    },
+    "build:app": {
+      "dependsOn": ["typegen:app"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README.md",
+        "!AGENTS.md",
+        "!docs/**",
+        "!design/**",
+        "!.github/**",
+        "!supabase/**",
+        ".env*"
+      ],
+      "env": ["NODE_ENV", "NEXT_PUBLIC_*", "SUPABASE_SERVICE_ROLE_KEY"],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "!.next/dev/**",
+        "next-env.d.ts"
+      ],
+      "outputLogs": "new-only"
+    }
+  }
+}

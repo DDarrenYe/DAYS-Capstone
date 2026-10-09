@@ -1,5 +1,5 @@
 name: Set up Bun
-description: Set up Bun from package.json, cache downloads, and install dependencies.
+description: Set up Bun from package.json and cache package downloads.
 
 runs:
   using: composite
@@ -16,7 +16,3 @@ runs:
         key: ${{ runner.os }}-${{ runner.arch }}-bun-${{ hashFiles('bun.lock', 'package.json') }}
         restore-keys: |
           ${{ runner.os }}-${{ runner.arch }}-bun-
-
-    - name: Install dependencies
-      shell: bash
-      run: bun install --frozen-lockfile

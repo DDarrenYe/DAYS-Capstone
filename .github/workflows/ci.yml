@@ -24,8 +24,20 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Bun and install dependencies
-        uses: ./.github/actions/setup-bun
+      - parallel:
+          - name: Set up Bun and cache downloads
+            uses: ./.github/actions/setup-bun
+
+          - name: Cache Turborepo tasks
+            uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+            with:
+              path: .turbo/cache
+              key: ${{ runner.os }}-${{ runner.arch }}-turbo-${{ github.job }}-${{ github.sha }}
+              restore-keys: |
+                ${{ runner.os }}-${{ runner.arch }}-turbo-${{ github.job }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: Check formatting and lint
         run: bun run check
@@ -40,8 +52,20 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Bun and install dependencies
-        uses: ./.github/actions/setup-bun
+      - parallel:
+          - name: Set up Bun and cache downloads
+            uses: ./.github/actions/setup-bun
+
+          - name: Cache Turborepo tasks
+            uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+            with:
+              path: .turbo/cache
+              key: ${{ runner.os }}-${{ runner.arch }}-turbo-${{ github.job }}-${{ github.sha }}
+              restore-keys: |
+                ${{ runner.os }}-${{ runner.arch }}-turbo-${{ github.job }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: Typecheck
         run: bun run typecheck
@@ -56,16 +80,28 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Bun and install dependencies
-        uses: ./.github/actions/setup-bun
+      - parallel:
+          - name: Set up Bun and cache downloads
+            uses: ./.github/actions/setup-bun
 
-      - name: Cache Next.js
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: .next/cache
-          key: ${{ runner.os }}-next-${{ hashFiles('bun.lock', 'package.json') }}-${{ hashFiles('src/**', 'public/**', '*config*') }}
-          restore-keys: |
-            ${{ runner.os }}-next-${{ hashFiles('bun.lock', 'package.json') }}-
+          - name: Cache Turborepo tasks
+            uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+            with:
+              path: .turbo/cache
+              key: ${{ runner.os }}-${{ runner.arch }}-turbo-${{ github.job }}-${{ github.sha }}
+              restore-keys: |
+                ${{ runner.os }}-${{ runner.arch }}-turbo-${{ github.job }}-
+
+          - name: Cache Next.js
+            uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+            with:
+              path: .next/cache
+              key: ${{ runner.os }}-next-${{ hashFiles('bun.lock', 'package.json') }}-${{ hashFiles('src/**', 'public/**', '*config*') }}
+              restore-keys: |
+                ${{ runner.os }}-next-${{ hashFiles('bun.lock', 'package.json') }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: Build
         run: bun run build

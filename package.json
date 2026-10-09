@@ -3,15 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "turbo run dev:app",
+    "dev:app": "next dev",
+    "build": "turbo run build:app",
+    "build:app": "next build",
     "start": "next start",
     "db:start": "supabase start --runtime native",
     "db:stop": "supabase stop",
     "db:status": "supabase status",
-    "check": "vp check",
+    "check": "turbo run check:app",
+    "check:app": "vp check",
     "fix": "vp check --fix",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "turbo run typecheck:app",
+    "typecheck:app": "tsc --noEmit",
+    "typegen": "turbo run typegen:app",
+    "typegen:app": "next typegen"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -33,6 +39,7 @@
     "@types/react-dom": "^19",
     "supabase": "2.120.0",
     "tailwindcss": "^4",
+    "turbo": "^2.11.7",
     "typescript": "^5",
     "ultracite": "7.12.4",
     "vite-plus": "^1.1.0"
