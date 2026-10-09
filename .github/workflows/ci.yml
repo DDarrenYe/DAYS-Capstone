@@ -25,7 +25,7 @@ jobs:
           persist-credentials: false
 
       - parallel:
-          - name: Set up Bun and cache downloads
+          - name: Set up Bun
             uses: ./.github/actions/setup-bun
 
           - name: Cache Turborepo tasks
@@ -53,7 +53,7 @@ jobs:
           persist-credentials: false
 
       - parallel:
-          - name: Set up Bun and cache downloads
+          - name: Set up Bun
             uses: ./.github/actions/setup-bun
 
           - name: Cache Turborepo tasks
@@ -81,7 +81,7 @@ jobs:
           persist-credentials: false
 
       - parallel:
-          - name: Set up Bun and cache downloads
+          - name: Set up Bun
             uses: ./.github/actions/setup-bun
 
           - name: Cache Turborepo tasks

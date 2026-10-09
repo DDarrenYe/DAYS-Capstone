@@ -66,7 +66,7 @@ Task inputs are scoped: documentation and mockup assets do not invalidate typech
 
 ## CI
 
-GitHub Actions runs separate `Lint`, `Typecheck`, and `Build` jobs in parallel for every PR, push to `main`, and merge queue entry. Within each job, a native `parallel` step group runs `.github/actions/setup-bun` alongside the Turborepo cache restore. The build job also restores `.next/cache` in that group. Dependency installation waits for the entire group, so lifecycle scripts can use the restored task cache. Each job has its own cache snapshot to avoid competing cache writes. The Next.js cache supports incremental builds after task-cache misses. New runs cancel older runs for the same branch or PR.
+GitHub Actions runs separate `Lint`, `Typecheck`, and `Build` jobs in parallel for every PR, push to `main`, and merge queue entry. Within each job, a native `parallel` step group runs `.github/actions/setup-bun` alongside the Turborepo cache restore. The build job also restores `.next/cache` in that group. Dependency installation waits for the entire group, so lifecycle scripts can use the restored task cache. Bun package downloads are not cached; each job runs a fresh dependency installation. Each job has its own Turbo cache snapshot to avoid competing cache writes. The Next.js cache supports incremental builds after task-cache misses. New runs cancel older runs for the same branch or PR.
 
 `Verify` passes only when all three jobs pass. A repo admin needs to make it a required check for `main` in branch protection or a ruleset. Until then, failing CI won't block a merge.
 
