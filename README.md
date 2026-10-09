@@ -1,8 +1,12 @@
 # AI-Interaction Analytics
 
-INFOMGMT 399 capstone (Proposal 1). Students save the prompt, raw AI output, and their critique each time they use AI for an assignment. Graders can follow these steps in the Process Visualiser, see which text came from the student or AI, check critiques flagged by an LLM, and export a PDF report.
+INFOMGMT 399 capstone (Proposal 1). Students import or paste AI conversations, critique each step against three questions, and submit a final essay. Graders review final-text matches against logged AI answers, reflection-check evidence and their own decisions, then export a PDF or CSV. Unmatched text is not proof of authorship.
 
 Plan: [docs/plan.md](docs/plan.md). Issues: [docs/issue-plan.json](docs/issue-plan.json) and the GitHub tracker. Mockups: [design/mockups](design/mockups), screenshots in [design/screenshots](design/screenshots). Product film (100 s, 1080p60): [design/ai-interaction-analytics-showcase.mp4](design/ai-interaction-analytics-showcase.mp4).
+
+## Current status
+
+The nine-screen static prototype and showcase are complete. The app currently has its Next.js scaffold and shared UI; sign-in, data persistence, import, matching, reflection checks, review decisions and export are still tracked implementation tasks. The task plan maps onto the existing 45 GitHub issues and preserves the completed scaffold task.
 
 ## Stack
 
@@ -85,6 +89,6 @@ Components go in `src/components/ui/`.
 
 The app uses a light sky background, white cards, and paper sheets for documents and AI output. Sticky notes hold comments: yellow for student critiques, pink for reflection-check flags, mint for AI errors caught, and sky for grader notes. AI text is blue; student text is tangerine.
 
-Every critique answers the same three questions used by the reflection check. The main number shown to graders is how much of the final essay the student wrote themselves.
+Every critique answers the same three questions used by the reflection check. The main number shown to graders is how much of the final essay matches none of the logged AI answers; unmatched text is not proof of authorship.
 
 Animations are short: content blurs and rises into view, and notes appear with a spring. See `design/mockups/style.css` for the design tokens mapped to shadcn's CSS variables.
