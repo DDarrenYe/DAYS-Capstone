@@ -10,7 +10,7 @@ We have the nine-screen prototype and showcase ready. The app has the Next.js sc
 
 ## Stack
 
-We use Next.js 16 (App Router, TypeScript), Tailwind CSS 4, shadcn/ui with Base UI, Supabase, the Anthropic API, and Vercel. Bun handles packages. Vite+ (`vp`) runs linting and formatting with the Ultracite presets in `vite.config.ts`.
+We use Next.js 16 (App Router, TypeScript), Tailwind CSS 4, shadcn/ui with Base UI, Drizzle ORM with Supabase Postgres/Auth, the Anthropic API, and Vercel. Bun handles packages. Vite+ (`vp`) runs linting and formatting with the Ultracite presets in `vite.config.ts`.
 
 ## Setup
 
@@ -27,16 +27,16 @@ bun dev
 `bun dev` starts local Supabase and runs Next.js, which generates its own types. On the first run, get this checkout's connection details in another terminal:
 
 ```bash
-bunx --no-install supabase status --env --output-format text --override-name API_URL=NEXT_PUBLIC_SUPABASE_URL,ANON_KEY=NEXT_PUBLIC_SUPABASE_ANON_KEY,SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY
+bunx --no-install supabase status --env --output-format text --override-name API_URL=NEXT_PUBLIC_SUPABASE_URL,ANON_KEY=NEXT_PUBLIC_SUPABASE_ANON_KEY,SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY,DB_URL=DATABASE_URL
 ```
 
-Copy those three values into `.env.local`. Next.js reloads environment files when they change.
+Copy those four values into `.env.local`. Next.js reloads environment files when they change.
 
 Open http://localhost:3000.
 
 `bun run db:status` shows the local API, database, Studio, and Mailpit URLs. Ports are assigned per checkout and branch, so use the printed URLs rather than assuming default ports. Auth emails stay in Mailpit instead of going to real inboxes. Each teammate has their own database.
 
-`.env.local` is ignored by Git. Keep `SUPABASE_SERVICE_ROLE_KEY` server-only; never prefix it with `NEXT_PUBLIC_` or put it in browser code. The app's Supabase clients, schema, and seed data are implemented in later issues; seeding is disabled until a seed exists.
+`.env.local` is ignored by Git. Keep `SUPABASE_SERVICE_ROLE_KEY` server-only; never prefix it with `NEXT_PUBLIC_` or put it in browser code. `DATABASE_URL` is also server-only. The Drizzle schema, SQL migrations and constraint tests are in place; see [supabase/README.md](supabase/README.md) for the data contract. Supabase Auth clients, access policies and seed data are still separate tasks; seeding is disabled until a seed exists.
 
 Stop the stack with `bun run db:stop`; stopping preserves local data. Database resets and `supabase stack destroy` delete data. Changing branches selects a different stack; stop the current one before switching.
 
@@ -46,29 +46,35 @@ When we decide to deploy, create a hosted Supabase project, apply the committed 
 
 ## Scripts
 
-| Command             | What it does                                    |
-| ------------------- | ----------------------------------------------- |
-| `bun dev`           | Generate types and start Supabase + Next.js     |
-| `bun run db:start`  | Start local Supabase without Docker             |
-| `bun run db:stop`   | Stop local Supabase, preserving data            |
-| `bun run db:status` | Show local service URLs and keys                |
-| `bun run build`     | Build for production                            |
-| `bun run check`     | Check formatting and lint with `vp check`       |
-| `bun run fix`       | Fix formatting and lint with `vp check --fix`   |
+| Command | What it does |
+| --- | --- |
+| `bun dev` | Generate types and start Supabase + Next.js |
+| `bun run db:start` | Start local Supabase without Docker |
+| `bun run db:stop` | Stop local Supabase, preserving data |
+| `bun run db:status` | Show local service URLs and keys |
+| `bun run db:reset` | Reset this checkout database and apply migrations (deletes data) |
+| `bun run db:test` | Run transactional SQL constraint tests |
+| `bun run db:generate` | Generate SQL migrations from the Drizzle schema |
+| `bun run db:migrate` | Apply pending local SQL migrations |
+| `bun run db:check` | Check Drizzle migration snapshots |
+| `bun run test` | Run unit tests and migration snapshot checks |
+| `bun run build` | Build for production |
+| `bun run check` | Check formatting and lint with `vp check` |
+| `bun run fix` | Fix formatting and lint with `vp check --fix` |
 | `bun run typecheck` | Generate Next.js types, then run `tsc --noEmit` |
-| `bun run typegen`   | Generate Next.js route types                    |
+| `bun run typegen` | Generate Next.js route types |
 
-Turborepo caches `typegen`, `typecheck`, and `build` in `.turbo/cache`. Lint, typecheck, and build stay separate. Typecheck depends on `typegen`; the typecheck task itself runs only `tsc --noEmit`. Next.js generates types during dev and build, so those tasks do not need a separate typegen step.
+Turborepo caches `typegen`, `typecheck`, `test`, `db:check`, and `build` in `.turbo/cache`. Lint, typecheck, and build stay separate. Typecheck depends on `typegen`; the typecheck task itself runs only `tsc --noEmit`. Next.js generates types during dev and build, so those tasks do not need a separate typegen step.
 
-`bun dev` runs the uncached, persistent Next.js task with `with: ["db:start"]`. `with` starts Supabase alongside Next.js; it does not wait for database readiness. Supabase's start command returns after launching its managed services, so it is uncached but not marked persistent. Stopping `bun dev` stops Next.js; use `bun run db:stop` to stop Supabase while preserving local data. The `:app` scripts are the underlying commands; use the commands above for task dependencies and caching. Start, database commands, `check`, and `fix` run directly without caching.
+`bun dev` runs the uncached, persistent Next.js task with `with: ["db:start"]`. `with` starts Supabase alongside Next.js; it does not wait for database readiness. Supabase's start command returns after launching its managed services, so it is uncached but not marked persistent. Stopping `bun dev` stops Next.js; use `bun run db:stop` to stop Supabase while preserving local data. The `:app` scripts are the underlying commands; use the commands above for task dependencies and caching. `start`, `check`, `fix`, and database commands other than `db:check` run directly without caching.
 
 Task inputs are scoped: documentation and mockup assets do not invalidate typecheck or build; mockups are also excluded from lint, matching the Vite+ configuration. Lint still checks documentation and workflow formatting. TypeScript files stay covered even when added outside `src`. `.env*` files and declared environment variables invalidate only the Next.js tasks. Source, dependency, and relevant config changes invalidate their task caches. When adding environment variables used by Next.js, add server-side variables to the task `env` lists in `turbo.json`; `NEXT_PUBLIC_*` variables are already covered. To bypass the cache, use `bun run build --force` (or `typecheck`). The local cache stays in this checkout to avoid restoring Next.js artifacts with paths from another worktree. `cacheMaxSize: "1GB"` and `cacheMaxAge: "14d"` enable background eviction at the start of each run; the cache can temporarily exceed the size limit between runs. Override these locally with `TURBO_CACHE_MAX_SIZE` and `TURBO_CACHE_MAX_AGE`. Cache hits show a short status instead of replaying old logs. Remote caching isn't configured.
 
 ## CI
 
-GitHub Actions runs separate `Lint`, `Typecheck`, and `Build` jobs in parallel for every PR, push to `main`, and merge queue entry. The lint job sets up Bun and runs `vp check` without a task cache. In the typecheck and build jobs, a native `parallel` step group runs `.github/actions/setup-bun` alongside the Turborepo cache restore. The build job also restores `.next/cache` in that group. Dependency installation waits for the entire group, so lifecycle scripts can use the restored task cache. Bun package downloads are not cached; each job runs a fresh dependency installation. Typecheck and build each have their own Turbo cache snapshot to avoid competing cache writes. The Next.js cache supports incremental builds after task-cache misses. New runs cancel older runs for the same branch or PR.
+GitHub Actions runs separate `Lint`, `Typecheck`, `Test`, and `Build` jobs in parallel for every PR, push to `main`, and merge queue entry. The lint job sets up Bun and runs `vp check` without a task cache. In the typecheck, test and build jobs, a native `parallel` step group runs `.github/actions/setup-bun` alongside the Turborepo cache restore. The build job also restores `.next/cache` in that group. Dependency installation waits for the entire group, so lifecycle scripts can use the restored task cache. Bun package downloads are not cached; each job runs a fresh dependency installation. Typecheck, test and build each have their own Turbo cache snapshot to avoid competing cache writes. The Next.js cache supports incremental builds after task-cache misses. New runs cancel older runs for the same branch or PR. The test job uses Turbo to run the unit tests and migration snapshot checks in parallel.
 
-`Verify` passes only when all three jobs pass. A repo admin needs to make it a required check for `main` in branch protection or a ruleset. Until then, failing CI won't block a merge.
+`Verify` passes only when all four jobs pass. A repo admin needs to make it a required check for `main` in branch protection or a ruleset. Until then, failing CI won't block a merge.
 
 ## Data fetching
 

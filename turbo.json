@@ -8,7 +8,13 @@
       "with": ["db:start"],
       "cache": false,
       "persistent": true,
-      "env": ["PORT", "NODE_ENV", "NEXT_PUBLIC_*", "SUPABASE_SERVICE_ROLE_KEY"]
+      "env": [
+        "PORT",
+        "NODE_ENV",
+        "NEXT_PUBLIC_*",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "DATABASE_URL"
+      ]
     },
     "db:start": {
       "cache": false,
@@ -29,12 +35,25 @@
         "!supabase/**/*.toml",
         ".env*"
       ],
-      "env": ["NODE_ENV", "NEXT_PUBLIC_*", "SUPABASE_SERVICE_ROLE_KEY"],
+      "env": [
+        "NODE_ENV",
+        "NEXT_PUBLIC_*",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "DATABASE_URL"
+      ],
       "outputs": [".next/types/**", "next-env.d.ts", "src/lib/cn-tables.ts"],
       "outputLogs": "new-only"
     },
     "test:app": {
-      "dependsOn": ["typegen:app"]
+      "dependsOn": ["typegen:app"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!design/**",
+        "!**/*.md",
+        "!.github/**",
+        "!.env*"
+      ],
+      "outputLogs": "new-only"
     },
     "typecheck:app": {
       "dependsOn": ["typegen:app"],
@@ -67,7 +86,12 @@
         "!supabase/**",
         ".env*"
       ],
-      "env": ["NODE_ENV", "NEXT_PUBLIC_*", "SUPABASE_SERVICE_ROLE_KEY"],
+      "env": [
+        "NODE_ENV",
+        "NEXT_PUBLIC_*",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "DATABASE_URL"
+      ],
       "outputs": [
         ".next/**",
         "!.next/cache/**",
@@ -75,6 +99,10 @@
         "next-env.d.ts",
         "src/lib/cn-tables.ts"
       ],
+      "outputLogs": "new-only"
+    },
+    "db:check:app": {
+      "inputs": ["drizzle.config.ts", "supabase/migrations/**"],
       "outputLogs": "new-only"
     }
   }
