@@ -41,7 +41,18 @@
         "SUPABASE_SERVICE_ROLE_KEY",
         "DATABASE_URL"
       ],
-      "outputs": [".next/types/**", "next-env.d.ts"],
+      "outputs": [".next/types/**", "next-env.d.ts", "src/lib/cn-tables.ts"],
+      "outputLogs": "new-only"
+    },
+    "test:app": {
+      "dependsOn": ["typegen:app"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!design/**",
+        "!**/*.md",
+        "!.github/**",
+        "!.env*"
+      ],
       "outputLogs": "new-only"
     },
     "typecheck:app": {
@@ -85,17 +96,8 @@
         ".next/**",
         "!.next/cache/**",
         "!.next/dev/**",
-        "next-env.d.ts"
-      ],
-      "outputLogs": "new-only"
-    },
-    "test:app": {
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "!design/**",
-        "!**/*.md",
-        "!.github/**",
-        "!.env*"
+        "next-env.d.ts",
+        "src/lib/cn-tables.ts"
       ],
       "outputLogs": "new-only"
     },

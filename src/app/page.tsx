@@ -1,4 +1,6 @@
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -18,7 +20,18 @@ const Home = () => (
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Button disabled>Sign in (coming soon)</Button>
+        <div className="flex flex-col gap-4">
+          <Button disabled>Sign in (coming soon)</Button>
+          <Link className={buttonVariants()} href="/student">
+            View student shell
+          </Link>
+          <Link
+            className={buttonVariants({ variant: "outline" })}
+            href="/instructor"
+          >
+            View instructor shell
+          </Link>
+        </div>
       </CardContent>
     </Card>
   </main>

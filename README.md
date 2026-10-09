@@ -57,7 +57,7 @@ When we decide to deploy, create a hosted Supabase project, apply the committed 
 | `bun run db:generate` | Generate SQL migrations from the Drizzle schema |
 | `bun run db:migrate` | Apply pending local SQL migrations |
 | `bun run db:check` | Check Drizzle migration snapshots |
-| `bun run test` | Run server-client tests and migration snapshot checks |
+| `bun run test` | Run unit tests and migration snapshot checks |
 | `bun run build` | Build for production |
 | `bun run check` | Check formatting and lint with `vp check` |
 | `bun run fix` | Fix formatting and lint with `vp check --fix` |
@@ -72,7 +72,7 @@ Task inputs are scoped: documentation and mockup assets do not invalidate typech
 
 ## CI
 
-GitHub Actions runs separate `Lint`, `Typecheck`, `Test`, and `Build` jobs in parallel for every PR, push to `main`, and merge queue entry. The lint job sets up Bun and runs `vp check` without a task cache. In the typecheck, test and build jobs, a native `parallel` step group runs `.github/actions/setup-bun` alongside the Turborepo cache restore. The build job also restores `.next/cache` in that group. Dependency installation waits for the entire group, so lifecycle scripts can use the restored task cache. Bun package downloads are not cached; each job runs a fresh dependency installation. Typecheck, test and build each have their own Turbo cache snapshot to avoid competing cache writes. The Next.js cache supports incremental builds after task-cache misses. New runs cancel older runs for the same branch or PR. The test job uses Turbo to run the server-client tests and migration snapshot checks in parallel.
+GitHub Actions runs separate `Lint`, `Typecheck`, `Test`, and `Build` jobs in parallel for every PR, push to `main`, and merge queue entry. The lint job sets up Bun and runs `vp check` without a task cache. In the typecheck, test and build jobs, a native `parallel` step group runs `.github/actions/setup-bun` alongside the Turborepo cache restore. The build job also restores `.next/cache` in that group. Dependency installation waits for the entire group, so lifecycle scripts can use the restored task cache. Bun package downloads are not cached; each job runs a fresh dependency installation. Typecheck, test and build each have their own Turbo cache snapshot to avoid competing cache writes. The Next.js cache supports incremental builds after task-cache misses. New runs cancel older runs for the same branch or PR. The test job uses Turbo to run the unit tests and migration snapshot checks in parallel.
 
 `Verify` passes only when all four jobs pass. A repo admin needs to make it a required check for `main` in branch protection or a ruleset. Until then, failing CI won't block a merge.
 

@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
-import { Providers } from "./providers";
 
-const geistSans = Geist({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-inter",
 });
 
 const geistMono = Geist_Mono({
@@ -23,11 +22,9 @@ export const metadata: Metadata = {
 const RootLayout = ({ children }: LayoutProps<"/">) => (
   <html
     lang="en"
-    className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
   >
-    <body className="flex min-h-full flex-col">
-      <Providers>{children}</Providers>
-    </body>
+    <body className="flex min-h-full flex-col">{children}</body>
   </html>
 );
 

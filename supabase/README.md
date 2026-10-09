@@ -19,7 +19,7 @@ After editing `src/db/schema.ts`, run `bun run db:generate -- --name describe_ch
 
 For triggers or other SQL that Drizzle Kit cannot describe, run `bun run db:generate -- --custom --name describe_change`, then fill in that migration. The single initial migration includes the generated tables plus the Lane 2 guard, stable step IDs, immutable final text and flag-review history. Its step-order unique constraint is deferrable; Drizzle's snapshot records its columns, while the custom SQL supplies the deferrability. Preserve that custom behavior if a later migration replaces the constraint.
 
-`bun run db:check` validates migration snapshots. `bun run test` runs the server-client tests and snapshot checks in parallel through Turbo, without connecting to a database. The client tests cover missing configuration, reuse and typed SQL generation. `bun run db:test` runs the SQL constraint tests against the migrated local database without task caching.
+`bun run db:check` validates migration snapshots. `bun run test` runs the unit tests and snapshot checks in parallel through Turbo, without connecting to a database. The client tests cover missing configuration, reuse and typed SQL generation. `bun run db:test` runs the SQL constraint tests against the migrated local database without task caching.
 
 ## Ownership and relationships
 
