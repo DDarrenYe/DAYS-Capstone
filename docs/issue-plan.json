@@ -97,8 +97,8 @@
       "member": "M2",
       "difficulty": "easy",
       "labels": ["area:data"],
-      "title": "Create the Supabase project and local CLI setup",
-      "body": "Create the hosted Supabase project, install the Supabase CLI, run `supabase init` and `supabase start` locally, and add `.env.example` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Document how to get keys in the README.\n\nDone when: a teammate can run the local stack from the README in under 15 minutes."
+      "title": "Set up local Supabase with the Docker-free CLI runtime",
+      "body": "Defer hosted Supabase creation until deployment. Pin the Supabase CLI, initialize the experimental stack, run `supabase start --runtime native` locally on supported platforms, and add `.env.example` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Document local keys, supported platforms, Docker fallback, and how to stop the stack without deleting data in the README.\n\nDone when: a teammate can run the local stack from the README in under 15 minutes."
     },
     {
       "key": "F3",

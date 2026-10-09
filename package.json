@@ -6,6 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "db:start": "supabase start --runtime native",
+    "db:stop": "supabase stop",
+    "db:status": "supabase status",
     "check": "vp check",
     "fix": "vp check --fix",
     "typecheck": "next typegen && tsc --noEmit"
@@ -28,6 +31,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "supabase": "2.120.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "ultracite": "7.12.4",
