@@ -1,12 +1,10 @@
+- Closes #123
+
+List related issues above. Use `Closes` for a complete fix or `Related to` for partial work. Replace the list with `None` if there is no related issue.
+
 ## Summary
 
 Describe the problem, what changed, and why. For behavior changes, explain the before and after.
-
-## Related issues
-
-List related issues below. Use `Closes` for a complete fix or `Related to` for partial work. Replace the list with `None` if there is no related issue.
-
-- Closes #123
 
 ## Testing
 
