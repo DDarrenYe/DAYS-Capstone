@@ -13,14 +13,18 @@ export const ShellSection = ({
   tone: "yellow" | "sky";
 }) => (
   <>
-    <h1>{title}</h1>
-    <p className="page-subtitle">{description}</p>
+    <h1 className="text-display mt-4.5 font-bold">{title}</h1>
+    <p className="text-body text-subtitle mt-3">{description}</p>
     <Card variant="paper" data-layout="section">
       <CardHeader>{title}</CardHeader>
       <CardContent>
-        <h2>No activity connected yet</h2>
+        <h2 className="text-ink text-panel font-bold">
+          No activity connected yet
+        </h2>
         <p>This shell preview does not connect to assignment activity yet.</p>
-        <Note tone={tone}>{note}</Note>
+        <Note tone={tone} className="my-4 max-w-[400px]">
+          {note}
+        </Note>
       </CardContent>
     </Card>
   </>

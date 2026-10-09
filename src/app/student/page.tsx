@@ -45,13 +45,19 @@ const assignments = [
 
 const StudentPage = () => (
   <>
-    <h1>Assignments</h1>
-    <p className="page-subtitle">
+    <h1 className="text-display mt-4.5 font-bold">Assignments</h1>
+    <p className="text-body text-subtitle mt-3">
       Three tasks this semester. Lane 2 ones keep an AI log.
     </p>
-    <section aria-label="Example assignments" className="assignment-grid">
+    <section
+      aria-label="Example assignments"
+      className="mt-12 grid grid-cols-3 gap-10 max-[1100px]:gap-6 max-[760px]:grid-cols-1 max-[760px]:gap-12"
+    >
       {assignments.map((assignment) => (
-        <article className="assignment-slot" key={assignment.id}>
+        <article
+          className="flex min-w-0 flex-col gap-6 [--paper-rotation:-1.4deg] nth-2:[--paper-rotation:1.2deg] nth-3:[--paper-rotation:-0.8deg]"
+          key={assignment.id}
+        >
           <Card variant="paper" data-layout="assignment">
             <CardHeader>
               <FileText aria-hidden="true" size={22} /> INFOMGMT 399 ·{" "}
@@ -61,24 +67,26 @@ const StudentPage = () => (
               <Badge variant={assignment.id === "lab" ? "neutral" : "ai"}>
                 {assignment.lane}
               </Badge>
-              <h2>
+              <h2 className="text-ink text-panel mt-2.5 font-bold">
                 {assignment.label}:<br />
                 {assignment.title}
               </h2>
-              <p className="due-date">
+              <p className="text-muted-foreground flex items-center gap-2">
                 <Clock aria-hidden="true" size={18} />
                 {assignment.due}
               </p>
-              <p className="logged-steps">{assignment.logged}</p>
-              <p className="assignment-brief">{assignment.brief}</p>
+              <p className="mt-2.5 font-semibold">{assignment.logged}</p>
+              <p className="text-body">{assignment.brief}</p>
               {assignment.id === "reflection" && (
-                <Badge variant="success">
+                <Badge variant="success" className="mt-auto">
                   <Check aria-hidden="true" /> Submitted
                 </Badge>
               )}
             </CardContent>
           </Card>
-          <Note tone={assignment.tone}>{assignment.note}</Note>
+          <Note tone={assignment.tone} placement="assignment">
+            {assignment.note}
+          </Note>
         </article>
       ))}
     </section>
