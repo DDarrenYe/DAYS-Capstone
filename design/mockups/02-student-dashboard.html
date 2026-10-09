@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assignments · AI-Interaction Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+.sheets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 70px; }
+.slot { position: relative; }
+.slot .paper { height: 560px; }
+.slot .body { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+.slot .body > .chip { align-self: flex-start; }
+.slot h2 { font-size: 34px; line-height: 1.2; margin-top: 10px; }
+.due { display: flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 500; }
+.due .ic { width: 18px; height: 18px; }
+.dots { display: flex; gap: 8px; min-height: 10px; margin-top: 10px; }
+.dots i { width: 26px; height: 10px; border-radius: 5px; background: var(--human); }
+.dots i.a { background: var(--ai); }
+.logged { font-weight: 600; }
+.brief { color: var(--body); }
+.act { margin-top: auto; }
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="nav"><div class="logo"><svg viewBox="-56 -56 112 112" aria-hidden="true"><rect x="-56" y="-56" width="112" height="112" rx="30" fill="#099bff" opacity=".18"/><rect x="-50" y="-50" width="100" height="100" rx="27" fill="#099bff"/><circle cx="-19" cy="-2" r="18" fill="#fff"/><circle cx="19" cy="-2" r="18" fill="#fff"/><circle cx="-19" cy="0" r="9" fill="#ff8a3d"/><circle cx="19" cy="0" r="9" fill="#0b4f8a"/><circle cx="-16" cy="-4" r="3" fill="#fff"/><circle cx="22" cy="-4" r="3" fill="#fff"/><path d="M-6 19 L6 19 L0 28 Z" fill="#ffc46b"/></svg>AI-Interaction Analytics</div><div class="tabs"><button class="tab on" type="button">Assignments</button><button class="tab" type="button">My log</button><button class="tab" type="button">Progress</button></div><div class="nav-end"><span class="chip human dot">Student</span><span class="who"><span class="avatar ">JD</span>John Doe</span></div></nav>
+<main class="page">
+
+<div class="head"><div><h1>Assignments</h1><p class="sub">Three tasks this semester. Lane 2 ones keep an AI log.</p></div></div>
+<section class="sheets">
+  <div class="slot">
+  <article class="paper " style="--r:-1.4deg;"><header><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h7 M9 17h5"/></svg>INFOMGMT 399 · Essay 2</header><div class="body"><span class="chip ai dot">Lane 2 · AI allowed</span><h2>Essay 2:<br>The two-lane model</h2><p class="due"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2"/></svg>Due Friday</p><div class="dots"><i class="h"></i><i class="a"></i><i class="h"></i></div>
+    <p class="logged">3 steps logged</p><p class="brief">Argue why universities split assessment into two lanes. Import each AI chat as you go.</p><div class="act"><button class="btn primary sm" type="button">Add steps</button></div></div></article>
+  <div class="sticky  pin" style="--r:5deg;--d:0;right:-16px;top:-46px;width:236px"><p>3 steps so far. Keep logging!</p></div>
+</div>
+  <div class="slot">
+  <article class="paper " style="--r:1.2deg;"><header><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h7 M9 17h5"/></svg>INFOMGMT 399 · Lab 4</header><div class="body"><span class="chip plain dot">Lane 1 · AI restricted</span><h2>Lab 4:<br>Database design</h2><p class="due"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2"/></svg>Due Monday</p><div class="dots"></div>
+    <p class="logged">No AI log needed</p><p class="brief">Design the schema in the supervised lab. No AI, so there is nothing to log.</p><div class="act"><button class="btn ghost sm" type="button">Open</button></div></div></article>
+  <div class="sticky sky pin" style="--r:1deg;--d:1;right:-16px;top:-46px;width:236px"><p>Lane 1: no AI here</p></div>
+</div>
+  <div class="slot">
+  <article class="paper " style="--r:-0.8deg;"><header><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h7 M9 17h5"/></svg>INFOMGMT 399 · Reflection 1</header><div class="body"><span class="chip ai dot">Lane 2 · AI allowed</span><h2>Reflection 1:<br>Using AI critically</h2><p class="due"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2"/></svg>Submitted</p><div class="dots"><i class="h"></i><i class="a"></i><i class="h"></i><i class="a"></i><i class="h"></i><i class="a"></i></div>
+    <p class="logged">6 steps logged</p><p class="brief">Reflect on one time the AI was wrong and how you noticed. Six steps logged.</p><div class="act"><span class="chip ok dot">Submitted</span></div></div></article>
+  <div class="sticky mint pin" style="--r:-3deg;--d:2;right:-16px;top:-46px;width:236px"><p>Submitted. Nice work.</p></div>
+</div>
+</section>
+</main>
+</div>
+<script>
+addEventListener("load", () => setTimeout(() => {
+  for (const svg of document.querySelectorAll("svg.connect")) {
+    const box = svg.getBoundingClientRect();
+    const a = document.querySelector(svg.dataset.from).getClientRects()[0];
+    const b = document.querySelector(svg.dataset.to).getBoundingClientRect();
+    const [ax, ay] = [a.right - box.left + 10, a.top + a.height / 2 - box.top];
+    const top = svg.dataset.side === "top";
+    const [bx, by] = top ? [b.left + b.width / 2 - box.left, b.top - box.top - 10] : [b.left - box.left - 10, b.top + b.height / 2 - box.top];
+    const bend = top ? `${bx} ${by - 140}` : `${bx - 90} ${by}`;
+    svg.querySelector("path").setAttribute("d", `M${ax} ${ay} C${ax + 120} ${ay} ${bend} ${bx} ${by}`);
+    const [from, to] = svg.querySelectorAll("circle");
+    from.setAttribute("cx", ax); from.setAttribute("cy", ay);
+    to.setAttribute("cx", bx); to.setAttribute("cy", by);
+    svg.classList.add("on");
+  }
+}, 1600));
+</script>
+</body>
+</html>

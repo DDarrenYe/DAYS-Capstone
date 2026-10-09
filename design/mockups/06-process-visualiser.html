@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>John Doe · AI-Interaction Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+.id { display: flex; align-items: center; gap: 22px; }
+.name { font-size: 56px; }
+.id .sub { margin-top: 6px; font-size: 21px; }
+.head { align-items: center; }
+.viz { position: relative; display: grid; grid-template-columns: 720px 1fr; gap: 40px; margin-top: 36px; }
+.doc { height: 650px; }
+.status { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: 17px; font-weight: 600; color: var(--ai); }
+.status .ic { width: 18px; height: 18px; stroke-width: 3; }
+.essay { list-style: none; margin: 0; padding: 0; font-size: 17px; line-height: 30px; color: var(--ink-2); }
+.essay li { position: relative; padding-left: 28px; }
+.essay li.ai::before { content: ""; position: absolute; left: -6px; top: 4px; bottom: 4px; width: 4px; border-radius: 2px; background: var(--ai); }
+.essay .tag { position: absolute; left: -18px; top: 4px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--ai); color: var(--surface); font-size: 13px; font-weight: 700; font-style: normal; }
+.essay .lit { box-shadow: 0 0 0 3px var(--ai-soft), 0 0 0 4.5px rgba(9, 155, 255, 0.35); }
+.more { display: grid; gap: 15px; margin-top: 28px; padding-left: 28px; }
+.more i { display: block; width: 92%; height: 9px; border-radius: 5px; background: var(--line); }
+.right { display: flex; flex-direction: column; gap: 24px; }
+.own { padding: 22px 30px; }
+.big { display: flex; align-items: center; gap: 22px; margin: 6px 0 14px; font-size: 20px; font-weight: 600; line-height: 1.3; }
+.big .pct { font-size: 84px; font-weight: 700; letter-spacing: -0.03em; color: var(--human); line-height: 1; }
+.own .share { height: 16px; border-radius: 8px; background: var(--ai); overflow: hidden; }
+.own .share i { display: block; height: 16px; border-radius: 8px; background: var(--human); }
+.legend { display: flex; justify-content: space-between; margin-top: 12px; font-size: 16px; font-weight: 600; }
+.where { position: relative; padding: 26px 30px 22px; }
+.cols { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(9, 1fr); align-items: end; height: 260px; border-bottom: 1.5px solid var(--line); }
+.cols li { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; border-radius: 14px; }
+.cols li.lit { background: var(--subtle); box-shadow: inset 0 0 0 2px var(--ai); }
+.cols i { display: block; width: 34px; border-radius: 9px; background: var(--ai); }
+.cols i.none { background: var(--line); border-radius: 2px; }
+.cols small { position: absolute; bottom: -30px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.cols .depth { position: absolute; bottom: -54px; }
+.cols li.lit small { color: var(--ink-2); }
+.badge { display: grid; place-items: center; width: 36px; height: 32px; margin-bottom: 10px; border-radius: 6px; box-shadow: var(--lift); }
+.badge .ic { width: 18px; height: 18px; stroke-width: 2.6; }
+.badge.mint { background: var(--mint); color: var(--ok); rotate: 4deg; }
+.badge.pink { background: var(--pink); color: var(--flag); rotate: -4deg; }
+.key-row { display: flex; gap: 18px; margin-top: 66px; font-size: 14px; color: var(--body); }
+.note-line { margin-top: 8px; font-size: 14px; }
+.key-row span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { width: 22px; height: 20px; border-radius: 4px; }
+.sw.mint { background: var(--mint); } .sw.pink { background: var(--pink); }
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="nav"><div class="logo"><svg viewBox="-56 -56 112 112" aria-hidden="true"><rect x="-56" y="-56" width="112" height="112" rx="30" fill="#099bff" opacity=".18"/><rect x="-50" y="-50" width="100" height="100" rx="27" fill="#099bff"/><circle cx="-19" cy="-2" r="18" fill="#fff"/><circle cx="19" cy="-2" r="18" fill="#fff"/><circle cx="-19" cy="0" r="9" fill="#ff8a3d"/><circle cx="19" cy="0" r="9" fill="#0b4f8a"/><circle cx="-16" cy="-4" r="3" fill="#fff"/><circle cx="22" cy="-4" r="3" fill="#fff"/><path d="M-6 19 L6 19 L0 28 Z" fill="#ffc46b"/></svg>AI-Interaction Analytics</div><div class="tabs"><button class="tab" type="button">Cohort</button><button class="tab on" type="button">Visualiser</button><button class="tab" type="button">Flags</button><button class="tab" type="button">Reports</button></div><div class="nav-end"><span class="chip ai dot">Grader</span><span class="who"><span class="avatar ai">JD</span>Jane Doe</span></div></nav>
+<main class="page">
+
+<div class="head"><div class="id"><span class="avatar lg">JD</span><div><h1 class="name">John Doe</h1>
+<p class="sub">Essay 2 · final version submitted Friday · nine steps logged</p></div></div>
+<button class="btn ghost sm" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11 M7 10l5 5 5-5 M5 20h14"/></svg>Export PDF</button></div>
+<section class="viz">
+  <article class="paper doc" style="--r:0deg;"><header><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h7 M9 17h5"/></svg>essay2-final.docx · 1,200 words · page 1 of 3</header><div class="body"><p class="status"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Blue lines match a logged AI answer</p>
+    <ol class="essay"><li><span class="">Generative AI now writes fluent essays in seconds, so universities can</span></li><li><span class="">no longer out-design it. Sydney's answer, introduced in 2023, is the</span></li><li class="ai"><i class="tag">3</i><span class="hl-ai lit">two-lane model: secure, supervised assessment in Lane 1, and open use</span></li><li class="ai"><span class="hl-ai lit">of AI in Lane 2, where students are marked on how they use it.</span></li><li><span class="">&nbsp;</span></li><li><span class="">This essay argues that Lane 2 only works if graders can see the thinking</span></li><li><span class="">behind the work. A student who catches a source the AI invented is doing</span></li><li><span class="">exactly the evaluation the model was designed to reward.</span></li><li><span class="">&nbsp;</span></li><li class="ai"><i class="tag">5</i><span class="hl-ai">Most students already use AI tools every week, and staff say that raw</span></li><li class="ai"><span class="hl-ai">chat logs are too long to read across a large cohort.</span></li><li><span class="">A structured log changes that: every prompt, answer and critique becomes</span></li><li class="ai"><i class="tag">9</i><span class="hl-ai">a step, so a grader can audit the process in minutes rather than hours.</span></li></ol><div class="more"><i></i><i></i><i style="width:60%"></i></div></div></article>
+  <div class="right">
+    <div class="card own">
+      <p class="kicker" style="color:var(--human-ink)">Not from logged AI</p>
+      <div class="big"><span class="pct">68%</span><span>of the final essay matches<br>none of John's logged AI answers</span></div>
+      <div class="share"><i style="width:68%"></i></div>
+      <div class="legend"><span style="color:var(--human-ink)">816 unmatched words</span><span class="label-ai">384 match logged AI answers</span></div>
+      <p class="caption note-line">Unmatched text is a prompt for judgement, not proof of authorship.</p>
+    </div>
+    <div class="card where">
+      <h2>Where the AI text came from</h2>
+      <p class="caption">Words of each step's AI answer that made it into the essay</p>
+      <ol class="cols"><li class=""><i style="height:4px" class="none"></i><small>Step 1</small><span class="depth "><b></b><b></b><b class="o"></b></span></li><li class=""><span class="badge mint"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><i style="height:4px" class="none"></i><small>Step 2</small><span class="depth "><b></b><b></b><b></b></span></li><li class="lit"><i style="height:150px" class=""></i><small>Step 3</small><span class="depth "><b></b><b></b><b class="o"></b></span></li><li class=""><span class="badge mint"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><i style="height:4px" class="none"></i><small>Step 4</small><span class="depth "><b></b><b></b><b></b></span></li><li class=""><i style="height:130px" class=""></i><small>Step 5</small><span class="depth "><b></b><b></b><b class="o"></b></span></li><li class=""><span class="badge pink"><svg class="ic" viewBox="0 0 24 24"><path d="M5 21V4h11l-2 4 2 4H5"/></svg></span><i style="height:4px" class="none"></i><small>Step 6</small><span class="depth flag"><b class="o"></b><b class="o"></b><b class="o"></b></span></li><li class=""><span class="badge mint"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><i style="height:64px" class=""></i><small>Step 7</small><span class="depth "><b></b><b></b><b></b></span></li><li class=""><span class="badge pink"><svg class="ic" viewBox="0 0 24 24"><path d="M5 21V4h11l-2 4 2 4H5"/></svg></span><i style="height:4px" class="none"></i><small>Step 8</small><span class="depth flag"><b></b><b class="o"></b><b class="o"></b></span></li><li class=""><i style="height:40px" class=""></i><small>Step 9</small><span class="depth "><b></b><b></b><b class="o"></b></span></li></ol>
+      <div class="key-row"><span><span class="depth "><b></b><b></b><b class="o"></b></span> questions answered</span><span><i class="sw mint"></i>AI error caught</span><span><i class="sw pink"></i>flagged</span></div>
+      <div class="tip" style="left:22px;top:86px;--x:138px"><b class="label-ai">Step 3 · Draft the intro</b>150 words of its AI answer made it into the essay.</div>
+    </div>
+  </div>
+  <svg class="connect" data-from=".essay .lit" data-to=".cols li.lit i" data-side="top" style="--c:var(--ai)"><path/><circle r="5"/><circle r="5"/></svg>
+</section>
+</main>
+</div>
+<script>
+addEventListener("load", () => setTimeout(() => {
+  for (const svg of document.querySelectorAll("svg.connect")) {
+    const box = svg.getBoundingClientRect();
+    const a = document.querySelector(svg.dataset.from).getClientRects()[0];
+    const b = document.querySelector(svg.dataset.to).getBoundingClientRect();
+    const [ax, ay] = [a.right - box.left + 10, a.top + a.height / 2 - box.top];
+    const top = svg.dataset.side === "top";
+    const [bx, by] = top ? [b.left + b.width / 2 - box.left, b.top - box.top - 10] : [b.left - box.left - 10, b.top + b.height / 2 - box.top];
+    const bend = top ? `${bx} ${by - 140}` : `${bx - 90} ${by}`;
+    svg.querySelector("path").setAttribute("d", `M${ax} ${ay} C${ax + 120} ${ay} ${bend} ${bx} ${by}`);
+    const [from, to] = svg.querySelectorAll("circle");
+    from.setAttribute("cx", ax); from.setAttribute("cy", ay);
+    to.setAttribute("cx", bx); to.setAttribute("cy", by);
+    svg.classList.add("on");
+  }
+}, 1600));
+</script>
+</body>
+</html>
