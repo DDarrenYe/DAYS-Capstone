@@ -58,7 +58,10 @@ const StudentPage = () => (
           className="flex min-w-0 flex-col gap-6 [--paper-rotation:-1.4deg] nth-2:[--paper-rotation:1.2deg] nth-3:[--paper-rotation:-0.8deg]"
           key={assignment.id}
         >
-          <Card variant="paper" data-layout="assignment">
+          <Card
+            variant="paper"
+            className="min-h-120 flex-1 rotate-(--paper-rotation) max-[760px]:min-h-105"
+          >
             <CardHeader>
               <FileText aria-hidden="true" size={22} /> INFOMGMT 399 ·{" "}
               {assignment.label}

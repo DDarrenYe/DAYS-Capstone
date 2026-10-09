@@ -18,9 +18,9 @@ export const AppShell = ({
   const isStudent = userRole === "student";
 
   return (
-    <div className="mx-auto w-full max-w-[1440px]">
+    <div className="mx-auto w-full max-w-360">
       <a
-        className="bg-card fixed top-3 left-3 z-20 -translate-y-[200%] rounded-lg px-5 py-3 focus:translate-y-0"
+        className="bg-card fixed top-3 left-3 z-20 translate-y-[-200%] rounded-lg px-5 py-3 focus:translate-y-0"
         href="#main-content"
       >
         Skip to content
@@ -32,7 +32,7 @@ export const AppShell = ({
         >
           <svg
             aria-hidden="true"
-            className="size-[38px] shrink-0"
+            className="size-9.5 shrink-0"
             viewBox="-56 -56 112 112"
           >
             <rect

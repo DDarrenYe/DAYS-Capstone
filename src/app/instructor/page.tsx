@@ -21,7 +21,7 @@ const InstructorPage = () => (
         </CardHeader>
         <CardContent>
           <h2 className="text-ink text-panel font-bold">Look closer first</h2>
-          <ul className="[&_li]:border-border [&_p]:text-muted-foreground [&_h3]:leading-paper w-full [&_[data-slot=badge]]:ml-auto max-[760px]:[&_[data-slot=badge]]:ml-14 [&_h3]:text-2xl [&_h3]:font-bold [&_li]:flex [&_li]:flex-wrap [&_li]:items-center [&_li]:gap-4 [&_li]:border-b [&_li]:py-5.5">
+          <ul className="[&_li]:border-border [&_p]:text-muted-foreground [&_h3]:leading-paper w-full **:data-[slot=badge]:ml-auto max-[760px]:**:data-[slot=badge]:ml-14 [&_h3]:text-2xl [&_h3]:font-bold [&_li]:flex [&_li]:flex-wrap [&_li]:items-center [&_li]:gap-4 [&_li]:border-b [&_li]:py-5.5">
             <li>
               <span className="bg-human-soft text-human-ink text-caption inline-grid size-10 shrink-0 place-items-center rounded-full font-semibold">
                 JD
@@ -50,7 +50,7 @@ const InstructorPage = () => (
           <Link
             className={cn(
               buttonVariants({ variant: "outline" }),
-              "rounded-navigation leading-paper min-h-11 px-5.5 text-base"
+              "rounded-navigation text-base/paper min-h-11 px-5.5"
             )}
             href="/instructor/flags"
           >

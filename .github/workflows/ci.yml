@@ -33,6 +33,9 @@ jobs:
       - name: Check formatting and lint
         run: bun run check
 
+      - name: Run unit tests
+        run: bun run test
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest

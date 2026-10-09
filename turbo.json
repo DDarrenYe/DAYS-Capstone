@@ -30,7 +30,7 @@
         ".env*"
       ],
       "env": ["NODE_ENV", "NEXT_PUBLIC_*", "SUPABASE_SERVICE_ROLE_KEY"],
-      "outputs": [".next/types/**", "next-env.d.ts"],
+      "outputs": [".next/types/**", "next-env.d.ts", "src/lib/cn-tables.ts"],
       "outputLogs": "new-only"
     },
     "typecheck:app": {
@@ -69,7 +69,8 @@
         ".next/**",
         "!.next/cache/**",
         "!.next/dev/**",
-        "next-env.d.ts"
+        "next-env.d.ts",
+        "src/lib/cn-tables.ts"
       ],
       "outputLogs": "new-only"
     }

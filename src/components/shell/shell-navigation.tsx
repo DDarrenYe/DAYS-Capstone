@@ -1,5 +1,6 @@
 "use client";
 
+import { Menu } from "@base-ui/react/menu";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSelectedLayoutSegment } from "next/navigation";
@@ -63,27 +64,46 @@ export const Breadcrumbs = ({ userRole }: RoleProps) => {
 export const UserMenu = ({ userRole }: RoleProps) => {
   const pathname = usePathname();
   const isStudent = userRole === "student";
+  const userName = isStudent ? "John Doe" : "Jane Doe";
   return (
-    <details className="relative" key={pathname}>
-      <summary
-        aria-label="Example user menu"
-        className="rounded-navigation flex min-h-11 cursor-pointer list-none items-center gap-2.5 font-semibold [&::-webkit-details-marker]:hidden"
+    <Menu.Root key={pathname} modal={false}>
+      <Menu.Trigger
+        aria-label={`User menu for ${userName} (example)`}
+        className="rounded-navigation flex min-h-11 cursor-pointer items-center gap-2.5 font-semibold"
       >
         <span
           className={`text-caption inline-grid size-10 shrink-0 place-items-center rounded-full font-semibold ${isStudent ? "bg-human-soft text-human-ink" : "bg-ai-soft text-ai-ink"}`}
         >
           JD
         </span>
-        <span>{isStudent ? "John Doe" : "Jane Doe"}</span>
+        <span>{userName}</span>
         <ChevronDown aria-hidden="true" size={16} />
-      </summary>
-      <div className="bg-card shadow-lift [&_a:hover]:bg-subtle [&_p]:text-muted-foreground rounded-menu absolute top-[calc(100%+12px)] right-0 z-10 w-[244px] max-w-[calc(100vw-40px)] p-3 [&_a]:block [&_a]:rounded-lg [&_a]:px-2 [&_a]:py-2.5 [&_p]:p-2 [&_p]:text-sm">
-        <p>Example account</p>
-        <Link href={isStudent ? "/instructor" : "/student"}>
-          View {isStudent ? "instructor" : "student"} shell
-        </Link>
-        <Link href="/privacy">Privacy</Link>
-      </div>
-    </details>
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner align="end" sideOffset={12} className="z-10">
+          <Menu.Popup className="bg-card shadow-lift rounded-menu w-61 max-w-[calc(100vw-40px)] p-3">
+            <Menu.Group>
+              <Menu.GroupLabel className="text-muted-foreground p-2 text-sm">
+                Example account
+              </Menu.GroupLabel>
+              <Menu.LinkItem
+                closeOnClick
+                render={<Link href={isStudent ? "/instructor" : "/student"} />}
+                className="hover:bg-subtle data-highlighted:bg-subtle block rounded-lg px-2 py-2.5"
+              >
+                View {isStudent ? "instructor" : "student"} shell
+              </Menu.LinkItem>
+              <Menu.LinkItem
+                closeOnClick
+                render={<Link href="/privacy" />}
+                className="hover:bg-subtle data-highlighted:bg-subtle block rounded-lg px-2 py-2.5"
+              >
+                Privacy
+              </Menu.LinkItem>
+            </Menu.Group>
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
   );
 };

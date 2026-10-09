@@ -16,7 +16,8 @@
     "typecheck": "turbo run typecheck:app",
     "typecheck:app": "tsc --noEmit",
     "typegen": "turbo run typegen:app",
-    "typegen:app": "next typegen"
+    "typegen:app": "next typegen",
+    "test": "bun run typegen && bun test"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",
