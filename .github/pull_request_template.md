@@ -11,10 +11,15 @@ Describe the problem, what changed, and why. For behavior changes, explain the b
 List the commands and manual checks you ran, with their results. Note anything you could not verify.
 
 - [ ] `bun run check`
+- [ ] `bun run test`
 - [ ] `bun run typecheck`
 - [ ] `bun run build`
 
 Remove checks that do not apply and explain any skipped checks.
+
+## How to verify
+
+Describe any setup, the page or flow to check, and the expected result.
 
 ## Screenshots or recordings
 
