@@ -6,10 +6,10 @@ insert into auth.users (id) values
   ('00000000-0000-0000-0000-000000000002'),
   ('00000000-0000-0000-0000-000000000003');
 insert into public.profiles (id, display_name, role) values
-  ('00000000-0000-0000-0000-000000000001', 'Instructor', 'instructor');
+  ('00000000-0000-0000-0000-000000000001', 'Instructor', 'instructor') on conflict (id) do update set display_name = excluded.display_name, role = excluded.role;
 insert into public.profiles (id, display_name) values
   ('00000000-0000-0000-0000-000000000002', 'Student'),
-  ('00000000-0000-0000-0000-000000000003', 'Other student');
+  ('00000000-0000-0000-0000-000000000003', 'Other student') on conflict (id) do update set display_name = excluded.display_name;
 insert into public.courses (id, instructor_id, code, title) values
   ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000001', 'INFO399', 'Capstone'),
   ('00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000001', 'INFO400', 'Other course');
@@ -91,11 +91,11 @@ select throws_ok($$update public.grader_notes set final_version_id = '00000000-0
 select throws_ok($$delete from public.final_versions where id = '00000000-0000-0000-0000-000000000050'$$, '23503', null, 'Final text supporting analysis and notes cannot be deleted individually');
 select is((select count(*)::integer from pg_class join pg_namespace on pg_namespace.oid = relnamespace where nspname = 'public' and relkind = 'r' and relrowsecurity), 11, 'Every application table has RLS enabled');
 set local role anon;
-select is((select count(*)::integer from public.iterations), 0, 'Anonymous clients cannot read student text');
+select throws_ok($$select * from public.iterations$$, '42501', null, 'Anonymous clients cannot read student text');
 reset role;
 set local role authenticated;
-select is((select count(*)::integer from public.grader_notes), 0, 'Client roles cannot read private notes before access policies exist');
-select throws_ok($$insert into public.profiles (id, display_name, role) values (gen_random_uuid(), 'Escalated user', 'instructor')$$, '42501', null, 'Client profile creation is denied before safe policies exist');
+select is((select count(*)::integer from public.grader_notes), 0, 'Authenticated requests without a user cannot read private notes');
+select throws_ok($$insert into public.profiles (id, display_name, role) values (gen_random_uuid(), 'Escalated user', 'instructor')$$, '42501', null, 'Client profile creation is denied');
 reset role;
 delete from public.projects where id = '00000000-0000-0000-0000-000000000030';
 select is((select count(*)::integer from public.iterations) + (select count(*)::integer from public.analysis_results) + (select count(*)::integer from public.flags) + (select count(*)::integer from public.flag_reviews) + (select count(*)::integer from public.grader_notes), 0, 'Explicit project deletion removes its owned records');

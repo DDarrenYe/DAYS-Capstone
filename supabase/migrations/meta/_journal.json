@@ -8,6 +8,13 @@
       "when": 1791544691149,
       "tag": "20261009111811_assignment_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791578221530,
+      "tag": "20261009203701_role_course_access",
+      "breakpoints": true
     }
   ]
 }
