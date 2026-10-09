@@ -1,117 +1,116 @@
-# Project plan: AI-Interaction Analytics (Proposal 1)
+# Project plan: AI-Interaction Analytics
 
-Capstone build for INFOMGMT 399. A web app where students log every AI iteration of an assignment (prompt, raw AI output, mandatory critique), and graders get a Process Visualiser dashboard that charts the iteration timeline, colour-codes human vs AI text, flags low-effort critiques with an LLM, and exports a PDF report.
+This is our INFOMGMT 399 capstone (Proposal 1). We have a proper prototype now. The next step is to build it into an app where students log their AI use and graders can see how they got to the final essay.
 
-## 1. Scope
+## Where we are now
 
-In scope (from the brief):
+The nine prototype screens, design tokens, screenshots and showcase film are in `design/`. We have the Next.js scaffold, shared Base UI components and TanStack Query setup. The home page still says “Sign in (coming soon)”. Sign-in, saving data, chat import, text matching, reflection checks, grader decisions and exports still need to be built.
 
-- Student interface: multi-step iteration log (prompt, AI output, critique), final consolidated version, submit.
-- Relational schema: Project → Step iterations → prompt/output/critique blocks → final version, linked to students, assignments and courses.
-- LLM script that flags low-effort, blindly-accepted, or AI-written critiques for the grader.
-- Instructor dashboard: iteration timeline, human-vs-AI contribution, flag alerts, PDF export.
-- Final Report. Reports 1 and 2 are already submitted.
+[issue-plan.json](issue-plan.json) lists the 45 GitHub issues. Keep the existing task keys, owners, sub-issues and blockers. The scaffold task is already closed. We can start independent tasks when their blockers are done; we don't need to finish a whole sprint first.
 
-Out of scope (deliberate):
+We'll build and check everything with local Supabase first. Use the Docker-free runtime where supported, or the documented container fallback. Hosted Supabase and Vercel setup can wait until we're ready to deploy in the final milestone.
 
-- Auto-grading or any score that replaces the grader's mark. The tool only surfaces evidence.
-- LMS (Canvas) integration. Students sign in with their university email via magic link.
-- Capturing AI chats automatically from ChatGPT etc. Students paste the output; that is the "behavioural checkpoint" the brief asks for.
-- Power BI / Tableau. Charts are built into the app with Recharts so the dashboard is one deploy.
+## What we're building
 
-## 2. Stack
+- Assignment cards show the lane, due date and progress. Lane 1 restricts AI, so it has assignment details but no AI log. Lane 2 allows AI and lets students add steps.
+- Add steps follows import → critique → save. Students paste a supported public chat link, check the prompt/answer pairs, and critique each step. They can paste the text manually if the link isn't supported or fails.
+- Every critique answers the same three questions: **Was the AI right or wrong? How did you check? What did you change?** It can't be empty, but we don't need a 150-character minimum. A short, specific critique can be enough. Students can mark an AI error, but that only records what they reported.
+- My log keeps each prompt, raw AI answer, critique and source together. Students can edit drafts, but not submitted text.
+- Students write the final essay or import a `.docx` that passes file checks. They review the extracted text and matches to their logged AI before submitting the saved version.
+- Graders get a queue showing what needs a closer look, a searchable submissions table, highlighted essay matches and a chart of AI words kept from each step. They can read the critiques, save private notes, dismiss flags or add them to feedback.
+- Graders can export the same information as PDF or step CSV. The PDF can include the full prompt history and grader notes.
+- We also need the Final Report, demo and handover docs. Reports 1 and 2 are already submitted. We're still waiting for the official Final Report requirements, presentation length and dates.
 
-| Layer | Choice | Why |
-| --- | --- | --- |
-| Framework | Next.js 15 (App Router, TypeScript, Server Actions) | One codebase for both interfaces and the API. |
-| UI | Tailwind CSS + shadcn/ui on Base UI primitives + Recharts | Fast to build, accessible defaults, charts without a BI tool. |
-| Database + auth | Supabase (Postgres, Auth magic link, Row Level Security) | Relational schema is a graded objective. RLS gives per-role data access in the DB, not in app code. |
-| LLM | Anthropic API, `claude-haiku-5-5` | Cheap, fast enough for batch flagging on submit. |
-| PDF | `@react-pdf/renderer` in a Route Handler | Runs on Vercel serverless without a headless browser. |
-| Hosting | Vercel (preview deploy per PR, production on `main`) | Zero-config Next.js hosting. |
-| CI | GitHub Actions: lint, typecheck, build, Playwright smoke test | Keeps PRs mergeable with 4 people. |
+We're not building automatic grading, misconduct verdicts, authorship detection or LMS integration. We won't capture private chats or add more chat providers without agreeing on that work first. Public-link import only supports formats we've checked and doesn't need a student's provider login.
 
-## 3. Data model
+## What the numbers mean
 
-```
-profiles        id (= auth.users.id), full_name, email, role ('student' | 'instructor')
-courses         id, code, name, instructor_id → profiles
-enrolments      course_id → courses, student_id → profiles   (PK: course_id, student_id)
-assignments     id, course_id → courses, title, brief, due_at
-projects        id, assignment_id → assignments, student_id → profiles,
-                status ('draft' | 'submitted'), submitted_at
-iterations      id, project_id → projects, step_no, ai_tool,
-                prompt_text, ai_output_text, critique_text, created_at
-final_versions  id, project_id → projects, content, created_at
-flags           id, iteration_id → iterations, kind ('low_effort' | 'blind_accept' | 'ai_written'),
-                confidence (0–1), rationale, model, created_at
-```
+The main percentage is **how much of the final essay matches none of the logged AI answers**. It doesn't tell us who wrote that text. Paraphrased AI text or AI answers that weren't logged can still appear unmatched. Prompt and critique character counts aren't a substitute for this number.
 
-Derived, not stored: human-vs-AI character counts per project come from a SQL view over `iterations` and `final_versions` (`prompt_text` + `critique_text` + final = human, `ai_output_text` = AI).
+Use the same matching code for the student preview, cohort numbers, visualiser and exports, and record which version produced the results. Define how we handle case, punctuation and the shortest match we count. Keep each match's source step and position in the original essay. Count each final word once, even if several AI answers contain it. Pick a consistent source step for shared matches so the step bars add up to the essay total. Check no matches, all matches, repeated answers, punctuation, empty essays and results left over after an edit.
 
-RLS rules:
+The reflection check looks for evidence against the three questions and possible thin critiques or blind acceptance. The grader still decides what to do. If the check suggests a critique might be AI-written, say that it's uncertain; it can't confirm misconduct. “I found no error” can be a good critique if the student explains how they checked. Show the difference between analysis that is still running, analysis that failed, and a completed check with no flags.
 
-- Students read and write only their own `projects`, `iterations`, `final_versions`; writes blocked once `status = 'submitted'`.
-- Instructors read everything under `courses` they own. They never write student text.
-- `flags` are written only by the server (service role) and readable by the course instructor.
+## Stack
 
-## 4. Data flow
+| Part | What we're using |
+| --- | --- |
+| App | Next.js 16 App Router, TypeScript and bun. Read the installed Next.js guides before writing code. |
+| UI | Tailwind 4, our existing shadcn/Base UI components and prototype tokens. Use accessible HTML/SVG; add a chart library only if we need it. |
+| Data fetching | The existing TanStack Query provider and query-client helper, with access checked for each user. |
+| Database and sign-in | Supabase Postgres, magic links and Row Level Security (RLS). |
+| Reflection check | A server-only Anthropic client with validated responses and a versioned rubric. Check which model is supported when we build it. |
+| Export | Server-side PDF and spreadsheet-safe CSV. Check the PDF renderer locally and on the hosted app before release. |
+| Hosting | Vercel previews and production, with separate settings and sign-in callback URLs. |
+| Checks | `bun run check`, `bun run typecheck` and `bun run build`. Add SQL, integration and Playwright checks as we build the related tasks. |
 
-1. Student signs in (magic link) → `profiles` row created by a trigger on `auth.users`.
-2. Student opens an assignment → a `projects` row is created on first visit.
-3. Each step is one `iterations` row, typed in or imported from a chat share link (one row per prompt and AI answer). Critique is required and is checked live against the three questions the flagging rubric uses: was the AI right or wrong, how did you check, what did you change.
-4. Student writes the final version and clicks Submit → server action sets `status = 'submitted'` and calls the flagging job.
-5. Flagging job sends each critique (plus its prompt and AI output) to the LLM with a fixed rubric and writes `flags`.
-6. Instructor opens the submissions table (metrics view) → Process Visualiser (timeline + flags + detail) → Export PDF (Route Handler renders the same data).
+Reuse the scaffold, UI components and query setup. We don't need another lint setup. `design/mockups/generate.py` generates the prototype, and `design/mockups/style.css` has the design tokens. Keep the app usable with a keyboard, on smaller screens and with reduced motion. The notes still need to be readable.
 
-## 5. Screens
+## Data we need
 
-| # | Screen | User | Mockup |
-| --- | --- | --- | --- |
-| 1 | Sign in (magic link) beside what the product does | both | `design/mockups/01-sign-in.html` |
-| 2 | Student dashboard: assignments, lanes and status | student | `design/mockups/02-student-dashboard.html` |
-| 3 | Project workspace: import a chat link, critique each step against the three questions | student | `design/mockups/03-student-workspace.html` |
-| 3b | My log: every step with its critique, final version with an own-writing check before submit | student | `design/mockups/03b-student-log.html` |
-| 4 | Instructor overview: review queue (who to read first) and own writing across the cohort | instructor | `design/mockups/04-instructor-overview.html` |
-| 5 | Submissions table: steps, own-writing %, critique questions answered, status | instructor | `design/mockups/05-submissions.html` |
-| 6 | Process Visualiser: final essay matched against logged AI answers, own-writing share, steps with critique depth and flags | instructor | `design/mockups/06-process-visualiser.html` |
-| 6b | Flagged step: the reflection check's evidence and the grader's decision | instructor | `design/mockups/06b-flagged-step.html` |
-| 7 | PDF report | instructor | `design/mockups/07-pdf-report.html` |
+| Record | What it needs to hold |
+| --- | --- |
+| profiles | Auth user ID, name and role. New users default to student; client metadata mustn't grant instructor access. |
+| courses / enrolments | The instructor who owns each course and its students. Emails without an account need a clear pending-invitation flow. |
+| assignments | Course, title, brief, due date and Lane 1/Lane 2. |
+| projects | One project per student/assignment, draft/submitted state, submission time and analysis state/version/error/timestamps. |
+| iterations | Stable step ID, order, AI tool, prompt, raw answer, critique, import source and student-marked error evidence. |
+| final_versions | One current saved final per project, extracted text and the filename if there is one. |
+| analysis results / flags | The submitted version checked, three-question results, evidence, explanation, model/rubric version and uncertainty. |
+| grader_notes / review decisions | Private notes and open/dismissed/added-to-feedback decisions, with the reviewer, time and previous decisions. |
+| usage accounting | Budget reserved before calls, actual token use and limited retries. |
 
-Screenshots are in `design/screenshots/`. The screens are generated: edit `design/mockups/generate.py`, run `python3 design/mockups/generate.py design/mockups`, then re-screenshot at 1440x960 and 2x (for example headless Chrome with `--window-size=1440,960 --force-device-scale-factor=2 --virtual-time-budget=6000`, so the entrance motion has finished).
+Save or calculate match results for the exact saved or submitted text, with a version attached. The schema task decides the table layout and constraints. These are requirements; the migrations aren't done yet. Choose what happens when a record is deleted instead of adding cascade deletion everywhere.
 
-## 6. Team split (4 members)
+Check access in both RLS and server code, including views, privileged operations, import and export. Students can only access their own Lane 2 drafts for assignments they're enrolled in. They can't change submitted text. Instructors can only access their courses and can't edit student text. Flags, question results and grader notes are instructor-only. Keep analysis credentials out of browser code. Block Lane 1 logging on the server/database as well as in the UI.
 
-Roles are by area so that each person owns a vertical slice end to end. Everyone writes the Final Report.
+## How the flow works
 
-| Member | Area | Owns |
-| --- | --- | --- |
-| M1 | Frontend | App shell, auth UI, student dashboard and workspace, final version editor, demo |
-| M2 | Data | Supabase schema, RLS, metrics SQL, seed, security review, handover docs |
-| M3 | Dashboard | Instructor pages, submissions table, Process Visualiser, flag display, usability tests with graders, Final Report lead |
-| M4 | AI + platform | Anthropic flagging pipeline, PDF export, Vercel, CI, Playwright |
+1. The student or instructor signs in with a magic link. New profiles default to student, and the app sends each user to the right pages based on their role.
+2. An enrolled student opens a Lane 2 assignment. Opening it again reuses the same project.
+3. The student imports a supported share link or pastes manually, then checks the ordered steps. Restrict hosts and redirects, block private-network requests, and limit fetch size and time. Don't overwrite critiques or import the same saved steps twice.
+4. The student writes critiques, optionally marks errors, saves steps and reviews My log. They save or import the final essay. A failed save mustn't lose what they typed.
+5. Submit checks every included step and the final essay, then locks the saved text in one database operation and starts analysis. Repeated requests mustn't submit twice. An AI-provider failure mustn't lose the submission.
+6. Text matching and reflection checks finish or show an error the user can retry. Keep the previous results and grader decisions until re-analysis succeeds.
+7. The grader opens the queue, selects a submission and reads the matched passages, steps and evidence. They can add a private note, dismiss a flag or add it to feedback.
+8. PDF and CSV use the same saved text, numbers and decisions. Escape spreadsheet formulas in CSV. Don't expose private notes to students or through public caches.
 
-## 7. Milestones and sprints
+## Screens and tasks
 
-Due dates are left blank until the course dates are confirmed.
+| Prototype | Tasks |
+| --- | --- |
+| `01-sign-in.html` | F5 sign-in and session routing; F9 shared shell |
+| `02-student-dashboard.html` | S1 assignment lanes and progress; S6 setup |
+| `03-student-workspace.html` | S2 import/manual entry, critique and save; S7 privacy notice |
+| `03b-student-log.html` | S3 linked log; S4 final essay; S5 submission |
+| `04-instructor-overview.html` | I1 metrics; I2 review queue |
+| `05-submissions.html` | I3 search, filters, metrics and status |
+| `06-process-visualiser.html` | I4 final-text highlights and retained-word chart; I5 step evidence/notes |
+| `06b-flagged-step.html` | L1 rubric; L2 analysis; L3 review decisions |
+| `07-pdf-report.html` | L6 PDF/CSV and export options |
 
-| Milestone | Goal | Done when |
-| --- | --- | --- |
-| M1 Sprint 1: Foundation | Repo, schema, RLS, auth, Vercel, CI, seed | A seeded student can sign in on the Vercel preview |
-| M2 Sprint 2: Student interface | Iteration log, timeline, final version, submit | A student can log 3 iterations and submit |
-| M3 Sprint 3: Instructor dashboard | Overview, submissions table, Process Visualiser | A grader can open a submission and read the timeline |
-| M4 Sprint 4: Flagging and PDF | LLM flags, cost guards, accuracy check, PDF export | Flags appear on submit; PDF downloads |
-| M5 Sprint 5: Testing | Usability tests, fixes, security audit, smoke test | High-severity findings fixed |
-| M6 Final | Final report, demo, handover, production release | Final report submitted, demo given |
+Use the screenshots in `design/screenshots/` to compare the app with the prototype. Matching a screenshot doesn't prove that sign-in, saving or analysis works. If we change the design, update the generator rather than editing the generated HTML on its own.
 
-## 8. Risks and anchors
+## Team and order
 
-- Privacy: student text is sent to a third-party LLM. Students see a notice before their first iteration; flags are only visible to the instructor and never shown as a grade.
-- Fairness: flags are a prompt for the grader to look closer, never an accusation. The UI wording says "check" not "cheated".
-- Cost: flagging runs once per submission with a per-project cap and a daily budget guard.
-- Access: no real users yet. Usability tests use proxy students and tutors, labelled honestly.
-- Feasibility: PDF generation is the riskiest technical piece; `@react-pdf/renderer` avoids a headless browser on Vercel.
+Keep the current issue owners and assignees. M1 handles frontend, M2 data, M3 dashboard and report coordination, and M4 AI/platform. Some tasks cross those areas, so check the issue owner and coordinate shared schema, metrics and UI changes. Everyone contributes to the report.
 
-## 9. Issue tracker
+| Milestone | Done when |
+| --- | --- |
+| M1 Foundation | Seeded students and instructors can sign in locally and reach the right shell. Schema, RLS and repo checks pass. |
+| M2 Student flow | Import/manual entry → critique → My log/final essay → saved and locked submission works. Lane 1 blocks AI logging. |
+| M3 Instructor flow | Queue → submission → matched essay/step evidence → saved private note works, with the same numbers on each screen. |
+| M4 Checks and export | Analysis can recover from errors, dismiss/feedback decisions persist, and authorised PDF/CSV exports match the app. |
+| M5 Testing | High-severity findings are fixed and retested. Access checks and the full-flow CI smoke test pass. |
+| M6 Final handover | We set up hosting when ready, verify the release, finish maintainer docs, rehearse the demo and check the Final Report against the official rubric. |
 
-The full issue breakdown (45 issues, 6 milestones, blocking edges, member split) is in `docs/issue-plan.json`. It is created on GitHub only after the team approves the visualisation.
+Follow the actual GitHub blockers. Once foundation tasks allow it, student features and shared metrics can run in parallel. Rubric and export work can also start when their own blockers are done. The final-essay preview needs matching; we can build the editor first, but it must say when match results aren't available. Add review counts once reflection results exist. Keep collecting docs and report evidence throughout. Sprint groups don't add extra blockers.
+
+## What we need to check
+
+- Seed realistic, consistent examples: Lane 1, an untouched draft, imported steps waiting for critiques, a short specific critique, a thin critique, overlapping matches and pending/failed/reviewed analysis. Don't hardcode the prototype's percentages.
+- Test parsing, matching, validation, access, submission locking and saved reviews with unit, SQL and integration checks. Mocked LLM tests check response handling; separately run labelled examples against the live model to check quality and cost.
+- Run a student-to-grader flow in CI with Playwright and fixed analysis examples, including export downloads. Passing with mocked responses doesn't prove the live provider or hosted app works.
+- Test with proxy students and graders. Record who took part, what they tried, timing, confusion and retest results. A finished prototype doesn't mean we've tested with real university users.
+- Check third-party processing notices, secrets, text logging, import/file limits, exports and retention. Only promise deletion behaviour we've built and checked.
+- Get the actual course requirements and dates before calling the final submission ready. Check model support, accuracy and the release rather than assuming them.

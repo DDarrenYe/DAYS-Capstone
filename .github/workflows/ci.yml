@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun and install dependencies
+        uses: ./.github/actions/setup-bun
+
+      - name: Check formatting and lint
+        run: bun run check
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun and install dependencies
+        uses: ./.github/actions/setup-bun
+
+      - name: Typecheck
+        run: bun run typecheck
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Set up Bun and install dependencies
+        uses: ./.github/actions/setup-bun
+
+      - name: Cache Next.js
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-next-${{ hashFiles('bun.lock', 'package.json') }}-${{ hashFiles('src/**', 'public/**', '*config*') }}
+          restore-keys: |
+            ${{ runner.os }}-next-${{ hashFiles('bun.lock', 'package.json') }}-
+
+      - name: Build
+        run: bun run build
+
+  verify:
+    name: Verify
+    needs: [lint, typecheck, build]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Verify results
+        run: test "$PASSED" = true
+        env:
+          PASSED: ${{ needs.lint.result == 'success' && needs.typecheck.result == 'success' && needs.build.result == 'success' }}
