@@ -16,14 +16,16 @@
     "db:test": "supabase test db --local",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "supabase migration up --local",
-    "db:check": "drizzle-kit check",
-    "test": "bun test --conditions=react-server",
+    "db:check": "turbo run db:check:app",
+    "test": "turbo run test:app db:check:app",
     "dev:app": "next dev",
     "build:app": "next build",
     "check:app": "vp check",
     "typecheck:app": "tsc --noEmit",
     "typegen": "turbo run typegen:app",
-    "typegen:app": "next typegen"
+    "typegen:app": "next typegen",
+    "test:app": "bun test --conditions=react-server",
+    "db:check:app": "drizzle-kit check"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",

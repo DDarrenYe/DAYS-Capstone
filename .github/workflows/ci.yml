@@ -80,17 +80,23 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Bun
-        uses: ./.github/actions/setup-bun
+      - parallel:
+          - name: Set up Bun
+            uses: ./.github/actions/setup-bun
+
+          - name: Cache Turborepo tasks
+            uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+            with:
+              path: .turbo/cache
+              key: ${{ runner.os }}-${{ runner.arch }}-turbo-${{ github.job }}-${{ github.sha }}
+              restore-keys: |
+                ${{ runner.os }}-${{ runner.arch }}-turbo-${{ github.job }}-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Test server database client
+      - name: Test and check migration snapshots
         run: bun run test
-
-      - name: Check migration snapshots
-        run: bun run db:check
 
   build:
     name: Build
