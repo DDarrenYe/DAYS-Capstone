@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My log · AI-Interaction Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+.head { align-items: flex-start; }
+.summary { display: flex; gap: 10px; margin-top: 30px; }
+.desk { display: grid; grid-template-columns: 290px 360px 290px 1fr; gap: 34px; align-items: start; margin-top: 60px; }
+.desk .paper { min-height: 520px; }
+.desk .body { display: flex; flex-direction: column; gap: 10px; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; }
+.list li { display: grid; gap: 4px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.list li:last-child { border-bottom: 0; }
+.list small { font-size: 13px; font-weight: 700; color: var(--muted); }
+.list b { font-size: 16px; font-weight: 600; color: var(--ink-2); }
+.list p { font-size: 15px; color: var(--body); }
+.list em { justify-self: start; padding: 2px 10px; border-radius: 6px; background: var(--mint); color: var(--ok-ink); font-size: 13px; font-weight: 700; font-style: normal; }
+.slot { position: relative; }
+.slot .body p { font-size: 17px; }
+.said { color: var(--body); }
+.slot .sticky p { font-size: 19px; }
+.slot .kicker { display: flex; align-items: center; gap: 10px; }
+.caught { display: flex; align-items: center; gap: 8px; font-size: 16px !important; color: var(--ok-ink) !important; }
+.caught .ic { width: 18px; height: 18px; stroke: var(--ok); stroke-width: 3; }
+.final .body { gap: 14px; }
+.final h2 { font-size: 34px; }
+.muted-text { font-size: 16px; color: var(--body); }
+.share { height: 12px; border-radius: 6px; background: var(--ai); overflow: hidden; }
+.share i { display: block; height: 12px; border-radius: 6px; background: var(--human); }
+.own { font-size: 19px; font-weight: 700; color: var(--human-ink); }
+.final .btn { margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="nav"><div class="logo"><svg viewBox="-56 -56 112 112" aria-hidden="true"><rect x="-56" y="-56" width="112" height="112" rx="30" fill="#099bff" opacity=".18"/><rect x="-50" y="-50" width="100" height="100" rx="27" fill="#099bff"/><circle cx="-19" cy="-2" r="18" fill="#fff"/><circle cx="19" cy="-2" r="18" fill="#fff"/><circle cx="-19" cy="0" r="9" fill="#ff8a3d"/><circle cx="19" cy="0" r="9" fill="#0b4f8a"/><circle cx="-16" cy="-4" r="3" fill="#fff"/><circle cx="22" cy="-4" r="3" fill="#fff"/><path d="M-6 19 L6 19 L0 28 Z" fill="#ffc46b"/></svg>AI-Interaction Analytics</div><div class="tabs"><button class="tab" type="button">Assignments</button><button class="tab on" type="button">My log</button><button class="tab" type="button">Progress</button></div><div class="nav-end"><span class="chip human dot">Student</span><span class="who"><span class="avatar ">JD</span>John Doe</span></div></nav>
+<main class="page">
+
+<div class="head"><div><h1>My log</h1><p class="sub">Nine steps, each with a critique stuck on.</p></div><div class="summary"><span class="chip outline">Your grader sees this log</span><span class="chip outline">9 steps</span><span class="chip ok">3 AI errors caught</span><span class="chip human">68% not from logged AI</span></div></div>
+<section class="desk">
+  <article class="paper " style="--r:-1.2deg;"><header><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h7 M9 17h5"/></svg>Steps 1 to 3</header><div class="body"><ol class="list"><li><small>Step 1</small><b>Outline the argument</b><p>Kept 1 and 3. Workload is off-topic.</p><span class="depth "><b></b><b></b><b class="o"></b></span></li><li><small>Step 2</small><b>Find two sources</b><p>Smith &amp; Lee doesn't exist. I searched, then replaced it.</p><span class="depth "><b></b><b></b><b></b></span><em>AI error caught</em></li><li><small>Step 3</small><b>Draft the intro</b><p>Too generic. Rewrote it in my own words.</p><span class="depth "><b></b><b></b><b class="o"></b></span></li></ol></div></article>
+  <div class="slot">
+    <article class="paper " style="--r:1.2deg;"><header><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h7 M9 17h5"/></svg>Step 4 · Check the facts</header><div class="body"><p class="kicker label-human">You asked</p><p>Why do universities split assessment into two lanes?</p>
+      <p class="kicker label-ai">The AI said</p><p class="said">The two-lane model, introduced in <span class="wrong">2019</span>, separates…</p></div></article>
+    <div class="sticky  pin" style="--r:4deg;--d:0;left:110px;top:300px;width:270px"><span class="kicker label-human">Critique <span class="depth "><b></b><b></b><b></b></span></span><p>Wrong date. Sydney introduced it in 2023…</p></div>
+    <div class="sticky mint pin" style="--r:6deg;--d:1;right:-14px;top:-30px"><p class="caught"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>AI error caught</p></div>
+  </div>
+  <article class="paper " style="--r:-0.6deg;"><header><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h7 M9 17h5"/></svg>Steps 5 to 9</header><div class="body"><ol class="list"><li><small>Step 5</small><b>Strengthen paragraph 2</b><span class="depth "><b></b><b></b><b class="o"></b></span></li><li><small>Step 6</small><b>Check the conclusion</b><span class="depth "><b class="o"></b><b class="o"></b><b class="o"></b></span></li><li><small>Step 7</small><b>Fix a misquoted statistic</b><span class="depth "><b></b><b></b><b></b></span><em>caught</em></li><li><small>Step 8</small><b>Tighten the wording</b><span class="depth "><b></b><b class="o"></b><b class="o"></b></span></li><li><small>Step 9</small><b>Final proofread</b><span class="depth "><b></b><b></b><b class="o"></b></span></li></ol></div></article>
+  <article class="paper final" style="--r:-1deg;"><header><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h7 M9 17h5"/></svg>Final version</header><div class="body"><h2>Final version</h2><p class="muted-text">essay2-final.docx, linked to all nine steps and their critiques.</p>
+    <p class="kicker label-muted">Before you submit</p>
+    <div class="share"><i style="width:68%"></i></div>
+    <p class="own">68% not from your logged AI</p><p class="muted-text">The rest matches AI answers you logged.</p>
+    <button class="btn primary" type="button">Submit final version</button></div></article>
+</section>
+</main>
+</div>
+<script>
+addEventListener("load", () => setTimeout(() => {
+  for (const svg of document.querySelectorAll("svg.connect")) {
+    const box = svg.getBoundingClientRect();
+    const a = document.querySelector(svg.dataset.from).getClientRects()[0];
+    const b = document.querySelector(svg.dataset.to).getBoundingClientRect();
+    const [ax, ay] = [a.right - box.left + 10, a.top + a.height / 2 - box.top];
+    const top = svg.dataset.side === "top";
+    const [bx, by] = top ? [b.left + b.width / 2 - box.left, b.top - box.top - 10] : [b.left - box.left - 10, b.top + b.height / 2 - box.top];
+    const bend = top ? `${bx} ${by - 140}` : `${bx - 90} ${by}`;
+    svg.querySelector("path").setAttribute("d", `M${ax} ${ay} C${ax + 120} ${ay} ${bend} ${bx} ${by}`);
+    const [from, to] = svg.querySelectorAll("circle");
+    from.setAttribute("cx", ax); from.setAttribute("cy", ay);
+    to.setAttribute("cx", bx); to.setAttribute("cy", by);
+    svg.classList.add("on");
+  }
+}, 1600));
+</script>
+</body>
+</html>

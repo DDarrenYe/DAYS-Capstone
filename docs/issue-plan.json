@@ -1,0 +1,543 @@
+{
+  "repo": "DDarrenYe/DAYS-Capstone",
+  "members": {
+    "M1": {
+      "role": "Frontend",
+      "owns": "App shell, auth UI, student dashboard and workspace, final version editor, demo"
+    },
+    "M2": {
+      "role": "Data",
+      "owns": "Supabase schema, RLS, metrics SQL, seed, security review, handover docs"
+    },
+    "M3": {
+      "role": "Dashboard",
+      "owns": "Instructor pages, submissions table, Process Visualiser, flag display, grader usability tests, Final Report lead"
+    },
+    "M4": {
+      "role": "AI + platform",
+      "owns": "Anthropic flagging pipeline, PDF export, Vercel, CI, Playwright"
+    }
+  },
+  "labels": {
+    "area:report": "Written deliverables (Final Report)",
+    "area:frontend": "Next.js UI",
+    "area:data": "Supabase schema, RLS, SQL",
+    "area:dashboard": "Instructor views and charts",
+    "area:ai": "LLM flagging",
+    "area:platform": "Vercel, CI, testing",
+    "member:M1": "Owner: M1 Frontend",
+    "member:M2": "Owner: M2 Data",
+    "member:M3": "Owner: M3 Dashboard",
+    "member:M4": "Owner: M4 AI + platform",
+    "tracker": "Parent issue that groups sub-issues"
+  },
+  "milestones": [
+    {
+      "key": "M1",
+      "title": "M1 · Sprint 1: Foundation",
+      "description": "Repo, Next.js, Supabase schema and RLS, auth, Vercel, CI, seed. Done when a seeded student can sign in on the Vercel preview."
+    },
+    {
+      "key": "M2",
+      "title": "M2 · Sprint 2: Student logging interface",
+      "description": "Iteration form, timeline, final version, submit. Done when a student can log 3 iterations and submit."
+    },
+    {
+      "key": "M3",
+      "title": "M3 · Sprint 3: Instructor dashboard and Process Visualiser",
+      "description": "Overview, submissions table, metrics, timeline chart, step detail. Done when a grader can open a submission and read the timeline."
+    },
+    {
+      "key": "M4",
+      "title": "M4 · Sprint 4: LLM flagging and PDF export",
+      "description": "Anthropic flags on submit, cost guards, accuracy check, PDF export."
+    },
+    {
+      "key": "M5",
+      "title": "M5 · Sprint 5: Testing",
+      "description": "Usability tests with proxy users, fixes, security audit, Playwright smoke test."
+    },
+    {
+      "key": "M6",
+      "title": "M6 · Final report and handover",
+      "description": "Final report, demo, README and handover, production release."
+    }
+  ],
+  "issues": [
+    {
+      "key": "ROOT",
+      "title": "AI-Interaction Analytics: project tracker",
+      "tracker": true,
+      "labels": ["tracker"],
+      "body": "Capstone build for INFOMGMT 399 (Proposal 1). Students log each AI iteration (prompt, raw output, critique); graders get a Process Visualiser with human-vs-AI contribution, LLM flags and PDF export.\n\nStack: Next.js 15 (App Router), Tailwind + shadcn/ui (Base UI), Supabase (Postgres, Auth, RLS), Anthropic API, @react-pdf/renderer, Vercel.\n\nPlan: `docs/plan.md`. Mockups: `design/mockups/`, screenshots in `design/screenshots/`.\n\nReports 1 and 2 are already submitted; the remaining written deliverable is the Final Report. Each milestone has its own tracker as a sub-issue of this one. Difficulty markers: 🟢 easy, 🟡 medium, 🔴 hard. Reassess difficulty at task start, when evidence changes the estimate, and before the completion report; update the title marker and note the reason on the issue."
+    },
+    {
+      "key": "T1",
+      "parent": "ROOT",
+      "milestone": "M1",
+      "title": "Sprint 1: Foundation (tracker)",
+      "tracker": true,
+      "labels": ["tracker"],
+      "body": "Repo scaffold, Supabase project, schema and RLS, magic-link auth, Vercel preview deploys, CI, seed data, app shell.\n\nDone when a seeded student can sign in on the Vercel preview URL and see an empty dashboard."
+    },
+    {
+      "key": "F1",
+      "parent": "T1",
+      "milestone": "M1",
+      "member": "M1",
+      "difficulty": "easy",
+      "labels": ["area:frontend"],
+      "title": "Scaffold the Next.js app with TypeScript, Tailwind, shadcn/ui (Base UI) and bun",
+      "body": "Create the app with `bun create next-app` (App Router, TypeScript, Tailwind, ESLint). Add shadcn/ui using the Base UI primitives, install Button, Card, Badge, Input, Textarea, Table, Tabs, Dialog. Add Ultracite with oxlint and oxfmt for linting and formatting. Commit a `README.md` with setup steps.\n\nDone when: `bun dev`, `bun run check`, and `bun run build` all pass on a clean clone."
+    },
+    {
+      "key": "F2",
+      "parent": "T1",
+      "milestone": "M1",
+      "member": "M2",
+      "difficulty": "easy",
+      "labels": ["area:data"],
+      "title": "Create the Supabase project and local CLI setup",
+      "body": "Create the hosted Supabase project, install the Supabase CLI, run `supabase init` and `supabase start` locally, and add `.env.example` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Document how to get keys in the README.\n\nDone when: a teammate can run the local stack from the README in under 15 minutes."
+    },
+    {
+      "key": "F3",
+      "parent": "T1",
+      "milestone": "M1",
+      "member": "M2",
+      "difficulty": "hard",
+      "labels": ["area:data"],
+      "blocked_by": ["F2"],
+      "title": "Database schema migration: profiles, courses, enrolments, assignments, projects, iterations, final_versions, flags",
+      "body": "Write the first migration under `supabase/migrations/` matching section 3 of `docs/plan.md`. Include enums for role, project status and flag kind, foreign keys with `on delete cascade`, a unique constraint on `(project_id, step_no)`, and `created_at` defaults. Generate TypeScript types with `supabase gen types`.\n\nDone when: `supabase db reset` applies cleanly and the generated types are committed under `src/lib/database.types.ts`."
+    },
+    {
+      "key": "F4",
+      "parent": "T1",
+      "milestone": "M1",
+      "member": "M2",
+      "difficulty": "hard",
+      "labels": ["area:data"],
+      "blocked_by": ["F3"],
+      "title": "Row Level Security policies and the profile trigger on sign-up",
+      "body": "Enable RLS on every table. Policies: students read and write only their own projects, iterations and final_versions, and cannot write once the project is submitted; instructors read everything under courses they own; flags are readable by the course instructor and writable only by the service role. Add a trigger on `auth.users` insert that creates a `profiles` row.\n\nDone when: SQL tests under `supabase/tests/` prove a student cannot read another student's project and an instructor cannot read a project outside their courses."
+    },
+    {
+      "key": "F5",
+      "parent": "T1",
+      "milestone": "M1",
+      "member": "M1",
+      "difficulty": "medium",
+      "labels": ["area:frontend"],
+      "blocked_by": ["F1", "F4"],
+      "title": "Supabase Auth: magic-link sign-in, session middleware, role-based routing",
+      "body": "Build the sign-in page from `design/mockups/01-sign-in.html` using `@supabase/ssr`. Add middleware that refreshes the session and redirects: students to `/assignments`, instructors to `/courses`, signed-out users to `/sign-in`.\n\nDone when: a seeded student and a seeded instructor can sign in with a magic link on localhost and land on the right route."
+    },
+    {
+      "key": "F6",
+      "parent": "T1",
+      "milestone": "M1",
+      "member": "M4",
+      "difficulty": "easy",
+      "labels": ["area:platform"],
+      "blocked_by": ["F1"],
+      "title": "Deploy to Vercel with preview deployments and environment variables",
+      "body": "Connect the GitHub repo to a Vercel project. Set the Supabase and Anthropic environment variables for Preview and Production. Confirm every PR gets a preview URL and `main` deploys to production.\n\nDone when: a PR comment shows a working preview URL and the production URL is in the README."
+    },
+    {
+      "key": "F7",
+      "parent": "T1",
+      "milestone": "M1",
+      "member": "M4",
+      "difficulty": "easy",
+      "labels": ["area:platform"],
+      "blocked_by": ["F1"],
+      "title": "GitHub Actions CI: lint, typecheck and build on every pull request",
+      "body": "Add `.github/workflows/ci.yml` running `bun install --frozen-lockfile`, `bun run check`, `bun run typecheck`, and `bun run build` with bun caching (`oven-sh/setup-bun`). Make the check required on `main`.\n\nDone when: a PR with a type error is blocked by CI."
+    },
+    {
+      "key": "F8",
+      "parent": "T1",
+      "milestone": "M1",
+      "member": "M3",
+      "difficulty": "medium",
+      "labels": ["area:data"],
+      "blocked_by": ["F3"],
+      "title": "Seed script: demo course, instructor, students, assignments and iterations",
+      "body": "Write `supabase/seed.sql` (or a TypeScript seed) that creates one instructor, one course with 6 students, 2 assignments, and realistic projects matching the mockup data: one strong student with 10 iterations, one with 3 thin critiques, one with an AI-written critique. Include an empty draft.\n\nDone when: `supabase db reset` seeds the data and the sign-in emails are listed in the README."
+    },
+    {
+      "key": "F9",
+      "parent": "T1",
+      "milestone": "M1",
+      "member": "M1",
+      "difficulty": "medium",
+      "labels": ["area:frontend"],
+      "blocked_by": ["F1"],
+      "title": "App shell: left panel, page layout, design tokens and the two text voices",
+      "body": "Implement the shell from the mockups: 248px left panel with wordmark, pill nav, dashed privacy card and user pill; page area with crumb and head. Map the tokens in `design/mockups/style.css` to shadcn CSS variables. Load Bricolage Grotesque, Hanken Grotesk, Newsreader and DM Mono with `next/font`. Add `.voice-human` (Newsreader, highlighter mark) and `.voice-ai` (DM Mono, periwinkle wash) utilities.\n\nDone when: a Storybook-free demo route renders the shell with both voices and matches `design/screenshots/02-student-dashboard.png` in spacing and colour."
+    },
+    {
+      "key": "F10",
+      "parent": "T1",
+      "milestone": "M1",
+      "member": "M2",
+      "difficulty": "easy",
+      "labels": ["area:data"],
+      "blocked_by": ["F3"],
+      "title": "ERD and data-flow diagram in docs",
+      "body": "Draw the entity relationship diagram and the data-flow diagram (form → database → flagging → dashboard → PDF) as Mermaid in `docs/architecture.md`. These are reused in the Final Report.\n\nDone when: both diagrams render on GitHub and match the migration."
+    },
+    {
+      "key": "F11",
+      "parent": "T1",
+      "milestone": "M1",
+      "member": "M2",
+      "difficulty": "easy",
+      "labels": ["area:data"],
+      "blocked_by": ["F3"],
+      "title": "Typed Supabase clients and shared query helpers",
+      "body": "Add `src/lib/supabase/server.ts`, `client.ts` and `admin.ts` (service role, server only). Add typed query helpers for the common reads: my projects, project with iterations, course submissions.\n\nDone when: helpers are used by at least one page and have unit tests against the local stack."
+    },
+    {
+      "key": "T2",
+      "parent": "ROOT",
+      "milestone": "M2",
+      "title": "Sprint 2: Student logging interface (tracker)",
+      "tracker": true,
+      "labels": ["tracker"],
+      "body": "Student dashboard, project workspace with the three-part iteration form, timeline, final version, submit. Instructor assignment setup so there is something to log against.\n\nDone when a student can log three iterations, write a final version, and submit, and the project is then locked."
+    },
+    {
+      "key": "S1",
+      "parent": "T2",
+      "milestone": "M2",
+      "member": "M1",
+      "difficulty": "medium",
+      "labels": ["area:frontend"],
+      "blocked_by": ["F5", "F9", "F11"],
+      "title": "Student dashboard: assignments list with process strip and human-share bar",
+      "body": "Build `/assignments` from `design/mockups/02-student-dashboard.html`: greeting, days-until-due card, one row per assignment with the process strip (one tick per iteration, yellow height = human share of that step), the human/AI share bar, status tag and Continue/Open/View button. Create the project row on first open.\n\nDone when: the seeded student sees three rows matching the seed and can open a workspace."
+    },
+    {
+      "key": "S2",
+      "parent": "T2",
+      "milestone": "M2",
+      "member": "M1",
+      "difficulty": "hard",
+      "labels": ["area:frontend"],
+      "blocked_by": ["S1"],
+      "title": "Project workspace: iteration form (prompt, raw AI output, critique) with validation",
+      "body": "Build `/assignments/[id]/workspace` from `design/mockups/03-student-workspace.html`. Three fields with the numbered labels and voice tags, AI tool picker, character counters, critique minimum of 150 characters, and a server action that inserts an `iterations` row with the next `step_no`. Show the pen-note checks (names a specific error, says what changed) as simple client-side heuristics.\n\nDone when: saving a step appends it to the timeline without a full reload and validation errors are shown inline."
+    },
+    {
+      "key": "S3",
+      "parent": "T2",
+      "milestone": "M2",
+      "member": "M3",
+      "difficulty": "medium",
+      "labels": ["area:frontend"],
+      "blocked_by": ["S2"],
+      "title": "Iteration timeline with edit and delete while the project is a draft",
+      "body": "Left column of the workspace: one card per step with step number, date, first line of the prompt, and the mini share bar. Clicking a step loads it into the form for editing; delete asks for confirmation. Both are disabled once submitted.\n\nDone when: editing step 2 updates the row in place and the timeline re-orders correctly after a delete."
+    },
+    {
+      "key": "S4",
+      "parent": "T2",
+      "milestone": "M2",
+      "member": "M1",
+      "difficulty": "medium",
+      "labels": ["area:frontend"],
+      "blocked_by": ["S2"],
+      "title": "Final consolidated version editor",
+      "body": "A `/final` route (or dialog) with one large Newsreader textarea for the final version, autosave to `final_versions`, and a character count. Show the live human/AI share for the project including the final text.\n\nDone when: the final version persists across reloads and the share bar updates."
+    },
+    {
+      "key": "S5",
+      "parent": "T2",
+      "milestone": "M2",
+      "member": "M2",
+      "difficulty": "medium",
+      "labels": ["area:data"],
+      "blocked_by": ["S2", "S4"],
+      "title": "Submit project server action: lock iterations, set status and timestamp",
+      "body": "Server action that validates at least one iteration and a non-empty final version, sets `projects.status = 'submitted'` and `submitted_at`, and returns the user to the dashboard with a Submitted tag. RLS already blocks writes after submission; the UI must also disable the form.\n\nDone when: after submit, an attempted insert into `iterations` for that project is rejected by the database and the UI shows the locked state."
+    },
+    {
+      "key": "S6",
+      "parent": "T2",
+      "milestone": "M2",
+      "member": "M3",
+      "difficulty": "medium",
+      "labels": ["area:dashboard"],
+      "blocked_by": ["F5", "F11"],
+      "title": "Instructor setup: create course and assignment, enrol students by pasting emails",
+      "body": "Minimal instructor pages: new course (code, name), new assignment (title, brief, due date), and an enrol dialog that accepts pasted emails one per line and upserts `profiles` + `enrolments`. No bulk CSV upload.\n\nDone when: the seeded instructor can create an assignment that then appears on an enrolled student's dashboard."
+    },
+    {
+      "key": "S7",
+      "parent": "T2",
+      "milestone": "M2",
+      "member": "M1",
+      "difficulty": "easy",
+      "labels": ["area:frontend"],
+      "blocked_by": ["S2"],
+      "title": "Privacy notice page and first-iteration consent line",
+      "body": "Add `/privacy` explaining what is stored, who sees it, that critiques are sent to an AI model once after submission, and that flags are never a grade. Show the one-line note under the critique field on the first iteration.\n\nDone when: the page is linked from the dashboard panel card and the workspace footer."
+    },
+    {
+      "key": "T3",
+      "parent": "ROOT",
+      "milestone": "M3",
+      "title": "Sprint 3: Instructor dashboard and Process Visualiser (tracker)",
+      "tracker": true,
+      "labels": ["tracker"],
+      "body": "Course overview, submissions table with metrics, and the Process Visualiser (timeline chart, cohort comparison, step detail).\n\nDone when a grader can open any submission and read the full iteration timeline with human-vs-AI contribution."
+    },
+    {
+      "key": "I1",
+      "parent": "T3",
+      "milestone": "M3",
+      "member": "M2",
+      "difficulty": "medium",
+      "labels": ["area:data"],
+      "blocked_by": ["F3"],
+      "title": "Human-vs-AI contribution metrics as a SQL view",
+      "body": "Create `project_metrics` view: per project, human chars (prompts + critiques + final version), AI chars (outputs), human share, iteration count, time span, average critique length, and share of final text that appears verbatim in pasted outputs (use trigram similarity, `pg_trgm`). Add a `cohort_metrics` view with medians per assignment.\n\nDone when: the view returns the expected numbers for the seed (for example the thin student at 12% human share) and has a SQL test."
+    },
+    {
+      "key": "I2",
+      "parent": "T3",
+      "milestone": "M3",
+      "member": "M3",
+      "difficulty": "medium",
+      "labels": ["area:dashboard"],
+      "blocked_by": ["F9", "S6", "I1"],
+      "title": "Instructor course overview page with cohort histograms",
+      "body": "Build `/courses/[id]` from `design/mockups/04-instructor-overview.html`: four stat cards, one row per assignment with submitted count, flagged count, and a 10-bin histogram of human share across the cohort, plus the most-recent-flag card.\n\nDone when: numbers match the `cohort_metrics` view for the seed."
+    },
+    {
+      "key": "I3",
+      "parent": "T3",
+      "milestone": "M3",
+      "member": "M3",
+      "difficulty": "medium",
+      "labels": ["area:dashboard"],
+      "blocked_by": ["I1", "S5"],
+      "title": "Submissions table with process strip, metrics, flags and filters",
+      "body": "Build `/courses/[id]/assignments/[id]` from `design/mockups/05-submissions.html` with shadcn Table: student, process strip, steps, human share, flags tag, last critique excerpt, Visualise link. Filter chips: all, flagged, under 25% human, 3 steps or fewer, not yet opened. Search by name or ID. Flagged rows get the red-pen underline.\n\nDone when: filters are URL-driven and the table paginates at 50 rows."
+    },
+    {
+      "key": "I4",
+      "parent": "T3",
+      "milestone": "M3",
+      "member": "M3",
+      "difficulty": "hard",
+      "labels": ["area:dashboard"],
+      "blocked_by": ["I3"],
+      "title": "Process Visualiser: the conversation-as-a-score timeline chart",
+      "body": "Build the chart from `design/mockups/06-process-visualiser.html` with Recharts: one group per step, human chars drawn up from the midline in highlighter yellow, AI chars drawn down in periwinkle, the cohort median shape as grey ghost bars, time labels on the x axis, and red-pen ellipses on flagged steps. Add the comparison table below (steps, human share, critiques naming an error, final-text overlap) against cohort medians.\n\nDone when: the chart renders for the seeded 3-step and 10-step projects and is keyboard-focusable per step."
+    },
+    {
+      "key": "I5",
+      "parent": "T3",
+      "milestone": "M3",
+      "member": "M1",
+      "difficulty": "medium",
+      "labels": ["area:dashboard"],
+      "blocked_by": ["I4"],
+      "title": "Step detail panel with the two voices and step navigation",
+      "body": "Right column of the visualiser: the selected step's prompt (Newsreader), AI output (DM Mono wash), critique (Newsreader with red-pen underline when flagged), previous/next step links, and a private grader note textarea saved to a `grader_notes` table (add migration).\n\nDone when: clicking a bar in the chart selects the step and the note persists."
+    },
+    {
+      "key": "T4",
+      "parent": "ROOT",
+      "milestone": "M4",
+      "title": "Sprint 4: LLM flagging and PDF export (tracker)",
+      "tracker": true,
+      "labels": ["tracker"],
+      "body": "Anthropic-based flagging of low-effort, blind-accept and AI-written critiques, run once on submission with cost guards, surfaced in the dashboard, plus the PDF report export.\n\nDone when flags appear within a minute of submission and the PDF downloads for any submission."
+    },
+    {
+      "key": "L1",
+      "parent": "T4",
+      "milestone": "M4",
+      "member": "M4",
+      "difficulty": "medium",
+      "labels": ["area:ai"],
+      "blocked_by": ["F1"],
+      "title": "Anthropic client and the flagging prompt with a fixed rubric",
+      "body": "Add `src/lib/flagging/` with an Anthropic SDK client (`claude-haiku-5-5`), a system prompt that defines three flag kinds (low_effort, blind_accept, ai_written) with examples, and a tool-use schema returning `{kind, confidence, rationale}[]` per iteration. Input per call: prompt, AI output, critique, and whether the final version contains the output verbatim.\n\nDone when: a unit test with 6 fixture iterations returns the expected flag kinds and the prompt is documented in `docs/flagging.md`."
+    },
+    {
+      "key": "L2",
+      "parent": "T4",
+      "milestone": "M4",
+      "member": "M4",
+      "difficulty": "hard",
+      "labels": ["area:ai"],
+      "blocked_by": ["L1", "S5"],
+      "title": "Flagging pipeline: run on submit, store flags, re-analyse button",
+      "body": "On submit, call the flagging job (server action, `after()` or a Route Handler) for every iteration of the project, insert `flags` rows with the service role, and set `projects.analysed_at`. Add a Re-analyse button for instructors that deletes and recomputes flags for one project.\n\nDone when: submitting the seeded thin project produces two blind_accept flags and re-analyse is idempotent."
+    },
+    {
+      "key": "L3",
+      "parent": "T4",
+      "milestone": "M4",
+      "member": "M3",
+      "difficulty": "medium",
+      "labels": ["area:dashboard"],
+      "blocked_by": ["L2", "I5"],
+      "title": "Show flags in the submissions table, visualiser and flag queue",
+      "body": "Flag tags in the submissions table, the red flag card and ellipses in the visualiser, a dismiss action (stores `dismissed_by`, keeps the row), and a `/flags` queue page listing open flags across the instructor's courses newest first.\n\nDone when: dismissing a flag removes it from the queue and the table count, without deleting it."
+    },
+    {
+      "key": "L4",
+      "parent": "T4",
+      "milestone": "M4",
+      "member": "M4",
+      "difficulty": "medium",
+      "labels": ["area:ai"],
+      "blocked_by": ["L2"],
+      "title": "Cost and rate guards, retries and failure handling for LLM calls",
+      "body": "Cap iterations analysed per project (for example 40), add a daily token budget stored in a `usage` table, retry transient errors three times with backoff, and on failure set `projects.analysis_error` so the dashboard shows 'analysis failed, retry' instead of silently showing no flags.\n\nDone when: a forced API failure shows the error state and a retry succeeds."
+    },
+    {
+      "key": "L5",
+      "parent": "T4",
+      "milestone": "M4",
+      "member": "M2",
+      "difficulty": "medium",
+      "labels": ["area:ai"],
+      "blocked_by": ["L2", "F8"],
+      "title": "Evaluate flagging accuracy against a hand-labelled sample",
+      "body": "Hand-label 30 critiques (team-written, mixed quality) as flag or no flag per kind. Run the pipeline, compute precision and recall per kind, and record the results and prompt changes in `docs/flagging.md`. Target: precision above 0.8 for blind_accept.\n\nDone when: the table of results is committed and any prompt change is re-tested."
+    },
+    {
+      "key": "L6",
+      "parent": "T4",
+      "milestone": "M4",
+      "member": "M4",
+      "difficulty": "hard",
+      "labels": ["area:platform"],
+      "blocked_by": ["I5"],
+      "title": "PDF report export with @react-pdf/renderer",
+      "body": "Route Handler `GET /api/projects/[id]/report.pdf` that renders `design/mockups/07-pdf-report.html` as a `@react-pdf/renderer` document: masthead, facts row, flags section, full iteration history with the two voices, page numbers. Instructor-only via RLS check.\n\nDone when: the Export PDF button downloads a multi-page PDF for the seeded 10-step project on the Vercel preview within 10 seconds."
+    },
+    {
+      "key": "T5",
+      "parent": "ROOT",
+      "milestone": "M5",
+      "title": "Sprint 5: Testing (tracker)",
+      "tracker": true,
+      "labels": ["tracker"],
+      "body": "Usability tests with proxy students and graders, fixes, security audit, end-to-end smoke test."
+    },
+    {
+      "key": "Q1",
+      "parent": "T5",
+      "milestone": "M5",
+      "member": "M1",
+      "difficulty": "medium",
+      "labels": ["area:frontend"],
+      "blocked_by": ["S5", "S7"],
+      "title": "Usability test of the student logging flow with proxy students",
+      "body": "Three think-aloud sessions on the Vercel preview: log two iterations and submit a real past assignment. Record time per step, confusion points, and whether the critique prompt produced a specific critique. Write findings in `docs/testing/students.md`.\n\nDone when: findings are ranked by severity with a proposed fix each."
+    },
+    {
+      "key": "Q2",
+      "parent": "T5",
+      "milestone": "M5",
+      "member": "M3",
+      "difficulty": "medium",
+      "labels": ["area:dashboard"],
+      "blocked_by": ["L3", "L6"],
+      "title": "Usability test of the Process Visualiser with proxy graders",
+      "body": "Two sessions with tutors: open three seeded submissions, judge critique depth, export a PDF. Measure time to judgement against the Report 1 success measure. Write findings in `docs/testing/graders.md`.\n\nDone when: findings are ranked by severity with a proposed fix each."
+    },
+    {
+      "key": "Q3",
+      "parent": "T5",
+      "milestone": "M5",
+      "member": "M2",
+      "difficulty": "medium",
+      "labels": ["area:data"],
+      "blocked_by": ["F4", "L2"],
+      "title": "Security and privacy review: RLS audit, secrets, data retention",
+      "body": "Re-run the RLS tests against production schema, confirm the service role key is server-only, check no student text is logged, define a retention rule (delete projects one year after course end) and document it in `/privacy`.\n\nDone when: the checklist in `docs/security.md` is complete with evidence links."
+    },
+    {
+      "key": "Q4",
+      "parent": "T5",
+      "milestone": "M5",
+      "member": "M4",
+      "difficulty": "medium",
+      "labels": ["area:frontend"],
+      "blocked_by": ["Q1", "Q2"],
+      "title": "Fix the high-severity usability findings",
+      "body": "Implement the fixes for every finding ranked high in `docs/testing/`. Split into one PR per finding; owners by area. Low-severity findings go to the Final milestone or are closed with a reason.\n\nDone when: all high findings have a merged PR linked."
+    },
+    {
+      "key": "Q5",
+      "parent": "T5",
+      "milestone": "M5",
+      "member": "M4",
+      "difficulty": "easy",
+      "labels": ["area:platform"],
+      "blocked_by": ["L3"],
+      "title": "Playwright smoke test: student logs and submits, instructor sees flags",
+      "body": "One Playwright test against the local stack: sign in as the seeded student (test-mode magic link), log one iteration, submit; sign in as instructor, open the submission, assert the visualiser renders and the flag count is visible. Run in CI.\n\nDone when: the test passes in CI and fails if the submit action is broken."
+    },
+    {
+      "key": "T6",
+      "parent": "ROOT",
+      "milestone": "M6",
+      "title": "Final report, demo and handover (tracker)",
+      "tracker": true,
+      "labels": ["tracker"],
+      "body": "Final report, presentation and demo, README and handover documentation, production release.\n\nReports 1 and 2 are already submitted. The Final Report specification has not been provided yet; rescope its issue when it arrives."
+    },
+    {
+      "key": "X1",
+      "parent": "T6",
+      "milestone": "M6",
+      "member": "M2",
+      "difficulty": "medium",
+      "labels": ["area:platform"],
+      "title": "README, setup guide and handover documentation",
+      "body": "Rewrite the README for a new maintainer: architecture summary, local setup, environment variables, deploy, seed accounts, how flagging works and its cost, known limitations. Link `docs/architecture.md`, `docs/flagging.md`, `docs/security.md`.\n\nDone when: a teammate who did not write the backend can deploy from the README alone."
+    },
+    {
+      "key": "X2",
+      "parent": "T6",
+      "milestone": "M6",
+      "member": "M3",
+      "difficulty": "hard",
+      "labels": ["area:report"],
+      "title": "Final report (scope to be confirmed when the specification is released)",
+      "body": "Placeholder. Rescope into sections with owners when the specification arrives. Reuse the ERD, data-flow diagram, flagging evaluation and usability findings, and the design-thinking work from Reports 1 and 2.\n\nDone when: the report is submitted and the PDF is in `docs/final-report/`."
+    },
+    {
+      "key": "X3",
+      "parent": "T6",
+      "milestone": "M6",
+      "member": "M1",
+      "difficulty": "medium",
+      "labels": ["area:frontend"],
+      "blocked_by": ["Q4"],
+      "title": "Demo script and presentation",
+      "body": "A 10-minute demo on the production URL: student logs a step and submits, instructor opens the visualiser, sees a flag, exports the PDF. Slides covering problem, design-thinking journey, architecture, evaluation results, limitations.\n\nDone when: the demo has been rehearsed end to end on production with the seed accounts."
+    },
+    {
+      "key": "X4",
+      "parent": "T6",
+      "milestone": "M6",
+      "member": "M4",
+      "difficulty": "easy",
+      "labels": ["area:platform"],
+      "blocked_by": ["Q3", "Q4"],
+      "title": "Production release checklist and final deploy",
+      "body": "Checklist: migrations applied to production, environment variables set, daily LLM budget set, seed accounts reset, custom domain if any, error monitoring on, smoke test passing against production.\n\nDone when: the checklist is complete and the production URL is tagged `v1.0.0`."
+    }
+  ]
+}

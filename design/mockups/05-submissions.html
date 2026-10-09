@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Submissions · AI-Interaction Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+.filters { position: relative; display: inline-flex; padding: 4px; border-radius: 999px; background: var(--surface); box-shadow: var(--lift); }
+.seg { height: 38px; padding: 0 18px; border-radius: 999px; display: inline-flex; align-items: center; font-size: 16px; font-weight: 600; color: var(--body); }
+.seg.on { background: var(--ink-2); color: var(--surface); }
+.table { margin-top: 44px; padding: 10px 14px 18px; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 18px 18px 14px; font-size: 14px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); }
+td { padding: 14px 18px; border-bottom: 1px solid var(--line); vertical-align: middle; font-size: 17px; }
+tbody tr { transition: background 0.16s var(--ease-out); }
+tbody tr:hover, tbody tr.hover { background: var(--subtle); }
+.num { text-align: right; font-variant-numeric: tabular-nums; width: 90px; }
+.person { display: flex; align-items: center; gap: 14px; font-size: 18px; font-weight: 600; color: var(--ink); }
+.person .avatar { box-shadow: none; }
+td .share { display: inline-block; width: 220px; height: 10px; margin-right: 14px; border-radius: 5px; background: var(--ai); overflow: hidden; vertical-align: middle; }
+td .share i { display: block; height: 10px; border-radius: 5px; background: var(--human); }
+.pct { font-weight: 700; color: var(--human-ink); font-variant-numeric: tabular-nums; }
+.avg { margin-left: 12px; color: var(--body); font-variant-numeric: tabular-nums; }
+.go { width: 40px; color: var(--muted); }
+tr.hover .go { color: var(--ai); }
+.foot { padding: 16px 18px 0; }
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="nav"><div class="logo"><svg viewBox="-56 -56 112 112" aria-hidden="true"><rect x="-56" y="-56" width="112" height="112" rx="30" fill="#099bff" opacity=".18"/><rect x="-50" y="-50" width="100" height="100" rx="27" fill="#099bff"/><circle cx="-19" cy="-2" r="18" fill="#fff"/><circle cx="19" cy="-2" r="18" fill="#fff"/><circle cx="-19" cy="0" r="9" fill="#ff8a3d"/><circle cx="19" cy="0" r="9" fill="#0b4f8a"/><circle cx="-16" cy="-4" r="3" fill="#fff"/><circle cx="22" cy="-4" r="3" fill="#fff"/><path d="M-6 19 L6 19 L0 28 Z" fill="#ffc46b"/></svg>AI-Interaction Analytics</div><div class="tabs"><button class="tab on" type="button">Cohort</button><button class="tab" type="button">Visualiser</button><button class="tab" type="button">Flags</button><button class="tab" type="button">Reports</button></div><div class="nav-end"><span class="chip ai dot">Grader</span><span class="who"><span class="avatar ai">JD</span>Jane Doe</span></div></nav>
+<main class="page">
+
+<div class="head"><div><p class="crumb">INFOMGMT 399  /  Essay 2  /  Submissions</p><h1>All submissions</h1><p class="sub">Essay 2 · 48 submitted · flagged first</p></div><div class="filters"><span class="seg on">All 48</span><span class="seg">Look closer 2</span><span class="seg">Ready 39</span><span class="seg">Marked 7</span></div></div>
+<section class="card table">
+  <table>
+    <thead><tr><th>Student</th><th class="num">Steps</th><th>Not from logged AI</th><th>Critique questions answered</th><th>Status</th><th></th></tr></thead>
+    <tbody><tr class="hover"><td><span class="person"><span class="avatar sm ">JD</span>John Doe</span></td>
+<td class="num">9</td>
+<td><span class="share"><i style="width:68%"></i></span><b class="pct">68%</b></td>
+<td><span class="depth flag"><b></b><b></b><b class="o"></b></span><span class="avg">2.0 of 3</span></td>
+<td><span class="chip flag dot">2 flagged</span></td><td class="go"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr><tr><td><span class="person"><span class="avatar sm ok">AK</span>Alex Kim</span></td>
+<td class="num">11</td>
+<td><span class="share"><i style="width:81%"></i></span><b class="pct">81%</b></td>
+<td><span class="depth flag"><b></b><b></b><b class="o"></b></span><span class="avg">1.8 of 3</span></td>
+<td><span class="chip flag dot">1 flagged</span></td><td class="go"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr><tr><td><span class="person"><span class="avatar sm ai">JR</span>Jane Roe</span></td>
+<td class="num">7</td>
+<td><span class="share"><i style="width:53%"></i></span><b class="pct">53%</b></td>
+<td><span class="depth "><b></b><b></b><b></b></span><span class="avg">2.7 of 3</span></td>
+<td><span class="chip plain dot">Ready to mark</span></td><td class="go"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr><tr><td><span class="person"><span class="avatar sm lilac">SL</span>Sam Lee</span></td>
+<td class="num">5</td>
+<td><span class="share"><i style="width:76%"></i></span><b class="pct">76%</b></td>
+<td><span class="depth "><b></b><b></b><b class="o"></b></span><span class="avg">2.4 of 3</span></td>
+<td><span class="chip plain dot">Ready to mark</span></td><td class="go"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr><tr><td><span class="person"><span class="avatar sm rose">PS</span>Priya Shah</span></td>
+<td class="num">8</td>
+<td><span class="share"><i style="width:60%"></i></span><b class="pct">60%</b></td>
+<td><span class="depth "><b></b><b></b><b></b></span><span class="avg">2.6 of 3</span></td>
+<td><span class="chip plain dot">Ready to mark</span></td><td class="go"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr><tr><td><span class="person"><span class="avatar sm tint">TN</span>Tom Ng</span></td>
+<td class="num">6</td>
+<td><span class="share"><i style="width:68%"></i></span><b class="pct">68%</b></td>
+<td><span class="depth "><b></b><b></b><b></b></span><span class="avg">2.9 of 3</span></td>
+<td><span class="chip ok dot">Marked</span></td><td class="go"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr><tr><td><span class="person"><span class="avatar sm ok">ML</span>Mia Lopez</span></td>
+<td class="num">10</td>
+<td><span class="share"><i style="width:79%"></i></span><b class="pct">79%</b></td>
+<td><span class="depth "><b></b><b></b><b class="o"></b></span><span class="avg">2.5 of 3</span></td>
+<td><span class="chip ok dot">Marked</span></td><td class="go"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr><tr><td><span class="person"><span class="avatar sm ">RB</span>Ravi Bose</span></td>
+<td class="num">7</td>
+<td><span class="share"><i style="width:72%"></i></span><b class="pct">72%</b></td>
+<td><span class="depth "><b></b><b></b><b class="o"></b></span><span class="avg">2.2 of 3</span></td>
+<td><span class="chip plain dot">Ready to mark</span></td><td class="go"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></td></tr></tbody>
+  </table>
+  <p class="caption foot">Showing 8 of 48. The share of each final essay matching none of its logged AI answers; unmatched text is not proof of authorship.</p>
+</section>
+</main>
+</div>
+<script>
+addEventListener("load", () => setTimeout(() => {
+  for (const svg of document.querySelectorAll("svg.connect")) {
+    const box = svg.getBoundingClientRect();
+    const a = document.querySelector(svg.dataset.from).getClientRects()[0];
+    const b = document.querySelector(svg.dataset.to).getBoundingClientRect();
+    const [ax, ay] = [a.right - box.left + 10, a.top + a.height / 2 - box.top];
+    const top = svg.dataset.side === "top";
+    const [bx, by] = top ? [b.left + b.width / 2 - box.left, b.top - box.top - 10] : [b.left - box.left - 10, b.top + b.height / 2 - box.top];
+    const bend = top ? `${bx} ${by - 140}` : `${bx - 90} ${by}`;
+    svg.querySelector("path").setAttribute("d", `M${ax} ${ay} C${ax + 120} ${ay} ${bend} ${bx} ${by}`);
+    const [from, to] = svg.querySelectorAll("circle");
+    from.setAttribute("cx", ax); from.setAttribute("cy", ay);
+    to.setAttribute("cx", bx); to.setAttribute("cy", by);
+    svg.classList.add("on");
+  }
+}, 1600));
+</script>
+</body>
+</html>

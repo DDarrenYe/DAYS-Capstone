@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · AI-Interaction Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+.page { padding-top: 40px; }
+.hero { display: grid; grid-template-columns: 1fr 600px; gap: 64px; align-items: start; }
+.copy { display: flex; flex-direction: column; align-items: flex-start; gap: 22px; padding-top: 48px; }
+.mega { font-size: 84px; line-height: 1.04; letter-spacing: -0.03em; color: var(--ink); }
+.lead { font-size: 25px; color: var(--body); }
+.signin { display: flex; gap: 12px; width: 100%; max-width: 620px; margin-top: 10px; }
+.signin .input { flex: 1; }
+.lock { display: flex; align-items: center; gap: 8px; }
+.lock .ic { width: 18px; height: 18px; }
+.art { position: relative; height: 760px; margin-top: 60px; }
+.art .paper { position: absolute; }
+.art .blank { width: 520px; height: 640px; }
+.art .front { left: 0; top: 36px; width: 560px; height: 660px; }
+.log { list-style: none; margin: 0; padding: 0; display: grid; gap: 13px; font-size: 17px; }
+.log li { display: grid; grid-template-columns: 44px 1fr; color: var(--body); }
+.log b { font-weight: 600; }
+.wavy { text-decoration: underline wavy var(--flag) 1.5px; text-underline-offset: 6px; }
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="nav"><div class="logo"><svg viewBox="-56 -56 112 112" aria-hidden="true"><rect x="-56" y="-56" width="112" height="112" rx="30" fill="#099bff" opacity=".18"/><rect x="-50" y="-50" width="100" height="100" rx="27" fill="#099bff"/><circle cx="-19" cy="-2" r="18" fill="#fff"/><circle cx="19" cy="-2" r="18" fill="#fff"/><circle cx="-19" cy="0" r="9" fill="#ff8a3d"/><circle cx="19" cy="0" r="9" fill="#0b4f8a"/><circle cx="-16" cy="-4" r="3" fill="#fff"/><circle cx="22" cy="-4" r="3" fill="#fff"/><path d="M-6 19 L6 19 L0 28 Z" fill="#ffc46b"/></svg>AI-Interaction Analytics</div><div class="links"><span>How it works</span><span>For students</span><span>For graders</span></div><div class="nav-end"><span class="who" style="font-weight:600">Sign in</span><button class="btn primary sm" type="button">Get started</button></div></nav>
+<main class="page">
+
+<section class="hero">
+  <div class="copy">
+    <span class="chip ai dot">Built for Lane 2 assessment</span>
+    <h1 class="mega">See the <span class="marker">thinking</span><br>behind the work.</h1>
+    <p class="lead">Students import their AI chats and critique every step.<br>Graders see the whole process at a glance.</p>
+    <form class="signin" onsubmit="return false">
+      <input class="input" type="email" value="jdoe123@aucklanduni.ac.nz" aria-label="University email">
+      <button class="btn primary" type="submit">Send sign-in link</button>
+    </form>
+    <p class="caption">One-time link to your university email. No password.</p>
+    <p class="caption lock"><svg class="ic" viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0 1 10 0v3 M5 11h14v10H5z"/></svg>Made for INFOMGMT 399, Information and Technology Management</p>
+  </div>
+  <div class="art">
+    <div class="aside" style="--r:-4deg;left:-30px;top:-8px"><span>the messy middle, made readable</span><svg width="84" height="48" viewBox="0 0 84 48"><path d="M4 6 C44 8 64 20 76 40 M76 40 l-13 -4 M76 40 l2 -13" style="--len:110"/></svg></div>
+    <div class="paper blank" style="--r:7deg;left:80px;top:46px"></div>
+    <div class="paper blank" style="--r:-5deg;left:20px;top:60px"></div>
+    <article class="paper front" style="--r:-1.5deg;"><header><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h7 M9 17h5"/></svg>essay2-ai-log.docx</header><div class="body"><ul class="log"><li><b class="label-human">Me:</b><span>Write an intro on the two-lane model</span></li><li><b class="label-ai">AI:</b><span class=wavy>Sure! It was introduced in 2019 by</span></li><li><b class="label-human">Me:</b><span>That's wrong. Check the date.</span></li><li><b class="label-ai">AI:</b><span>You're right, apologies for the error.</span></li><li><b class="label-human">Me:</b><span>Cite a source for paragraph two</span></li><li><b class="label-ai">AI:</b><span class=wavy>Smith & Lee (2019), J. Assessment</span></li><li><b class="label-human">Me:</b><span>That paper doesn't exist.</span></li><li><b class="label-ai">AI:</b><span>Here's a revised version:</span></li><li><b class="label-human">Me:</b><span>Shorter. Keep my argument.</span></li><li><b class="label-ai">AI:</b><span>As an AI language model, I</span></li><li><b class="label-human">Me:</b><span>Para 2 contradicts para 4</span></li><li><b class="label-ai">AI:</b><span>Good catch! Updated below.</span></li><li><b class="label-human">Me:</b><span>Rewrite it in my own voice</span></li><li><b class="label-ai">AI:</b><span>Certainly! Here is the essay:</span></li></ul></div></article>
+    <div class="sticky  pin" style="--r:5deg;--d:0;left:340px;top:68px;width:290px"><span class="kicker label-human">John&#39;s critique</span><p>Wrong date. Sydney introduced it in 2023.</p></div>
+    <div class="sticky pink pin" style="--r:-6deg;--d:1;left:-90px;top:380px;width:280px"><span class="kicker label-flag">Reflection check</span><p>“Looks good.” Take a closer look.</p></div>
+    <div class="sticky mint pin" style="--r:3deg;--d:2;left:380px;top:540px;width:260px"><span class="kicker label-ok">AI error caught</span><p>Fake source replaced.</p></div>
+  </div>
+</section>
+</main>
+</div>
+<script>
+addEventListener("load", () => setTimeout(() => {
+  for (const svg of document.querySelectorAll("svg.connect")) {
+    const box = svg.getBoundingClientRect();
+    const a = document.querySelector(svg.dataset.from).getClientRects()[0];
+    const b = document.querySelector(svg.dataset.to).getBoundingClientRect();
+    const [ax, ay] = [a.right - box.left + 10, a.top + a.height / 2 - box.top];
+    const top = svg.dataset.side === "top";
+    const [bx, by] = top ? [b.left + b.width / 2 - box.left, b.top - box.top - 10] : [b.left - box.left - 10, b.top + b.height / 2 - box.top];
+    const bend = top ? `${bx} ${by - 140}` : `${bx - 90} ${by}`;
+    svg.querySelector("path").setAttribute("d", `M${ax} ${ay} C${ax + 120} ${ay} ${bend} ${bx} ${by}`);
+    const [from, to] = svg.querySelectorAll("circle");
+    from.setAttribute("cx", ax); from.setAttribute("cy", ay);
+    to.setAttribute("cx", bx); to.setAttribute("cy", by);
+    svg.classList.add("on");
+  }
+}, 1600));
+</script>
+</body>
+</html>

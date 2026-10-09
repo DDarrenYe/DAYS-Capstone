@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Step 6, flagged · AI-Interaction Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+.audit { position: relative; display: grid; grid-template-columns: 280px 500px 1fr; gap: 36px; align-items: start; margin-top: 44px; }
+.asked { padding: 26px 28px; display: grid; gap: 12px; font-size: 22px; font-weight: 500; }
+.answer { position: relative; }
+.answer .paper { height: 440px; }
+.said { margin-top: 18px; font-size: 25px; line-height: 1.6; color: var(--body); }
+.quote { font-size: 36px !important; font-weight: 700 !important; letter-spacing: -0.01em; }
+.zero { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 17px !important; color: #a08a3c !important; }
+.check { display: flex; flex-direction: column; gap: 34px; padding-top: 8px; }
+.check .sticky { padding: 28px 30px 26px; }
+.check .kicker { display: flex; align-items: center; gap: 8px; }
+.check .kicker .ic { width: 20px; height: 20px; }
+.check h2 { margin: 6px 0 14px; font-size: 26px; }
+.check .qs { margin: 14px 0 18px; }
+.evidence { font-size: 20px !important; }
+.small { margin-top: 18px; font-size: 17px !important; color: var(--flag-ink) !important; }
+.decide { display: flex; justify-content: flex-end; gap: 14px; }
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="nav"><div class="logo"><svg viewBox="-56 -56 112 112" aria-hidden="true"><rect x="-56" y="-56" width="112" height="112" rx="30" fill="#099bff" opacity=".18"/><rect x="-50" y="-50" width="100" height="100" rx="27" fill="#099bff"/><circle cx="-19" cy="-2" r="18" fill="#fff"/><circle cx="19" cy="-2" r="18" fill="#fff"/><circle cx="-19" cy="0" r="9" fill="#ff8a3d"/><circle cx="19" cy="0" r="9" fill="#0b4f8a"/><circle cx="-16" cy="-4" r="3" fill="#fff"/><circle cx="22" cy="-4" r="3" fill="#fff"/><path d="M-6 19 L6 19 L0 28 Z" fill="#ffc46b"/></svg>AI-Interaction Analytics</div><div class="tabs"><button class="tab" type="button">Cohort</button><button class="tab" type="button">Visualiser</button><button class="tab on" type="button">Flags</button><button class="tab" type="button">Reports</button></div><div class="nav-end"><span class="chip ai dot">Grader</span><span class="who"><span class="avatar ai">JD</span>Jane Doe</span></div></nav>
+<main class="page">
+
+<div class="head"><div><p class="crumb">Cohort  /  John Doe  /  Step 6</p><h1>Step 6, flagged</h1><p class="sub">The reflection check explains. You decide.</p></div><span class="chip flag dot">Flagged</span></div>
+<section class="audit">
+  <div class="card asked"><p class="kicker label-human">What John asked</p><p>Is my conclusion consistent with the evidence in my essay?</p></div>
+  <div class="answer">
+    <article class="paper " style="--r:-1deg;"><header><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h7 M9 17h5"/></svg>Step 6 · AI answer</header><div class="body"><p class="kicker label-ai">What the AI said</p>
+      <p class="said">Mostly, but <span class="hl-flag">paragraph 4 overstates the survey results</span>. Consider softening that claim before you submit.</p></div></article>
+    <div class="sticky  pin" style="--r:-5deg;--d:0;left:250px;top:330px;width:280px"><span class="kicker label-human">John&#39;s critique</span><p class="quote">“Looks good.”</p><p class="zero"><span class="depth muted"><b class="o"></b><b class="o"></b><b class="o"></b></span> 0 of 3 questions</p></div>
+  </div>
+  <div class="check">
+    <div class="sticky pink " style="--r:2.5deg;--d:1;"><span class="kicker label-flag"><svg class="ic" viewBox="0 0 24 24"><path d="M5 21V4h11l-2 4 2 4H5"/></svg> Reflection check · LLM</span>
+      <h2>Possible low-effort reflection</h2><p class="kicker" style="color:var(--flag-ink)">The three questions John saw while writing</p>
+      <div class="qs"><div class="q missed"><i><svg class="" viewBox="0 0 24 24"><path d="M6 6l12 12 M18 6L6 18"/></svg></i>Was the AI right or wrong?</div><div class="q missed"><i><svg class="" viewBox="0 0 24 24"><path d="M6 6l12 12 M18 6L6 18"/></svg></i>How did you check?</div><div class="q missed"><i><svg class="" viewBox="0 0 24 24"><path d="M6 6l12 12 M18 6L6 18"/></svg></i>What did you change?</div></div><p class="evidence">It skips the AI's point about paragraph 4.</p>
+      <p class="small">A prompt to look closer, not a grade.</p></div>
+    <div class="decide"><button class="btn ghost sm" type="button">Dismiss flag</button><button class="btn primary sm" type="button">Add to feedback</button></div>
+  </div>
+  <svg class="connect" data-from=".hl-flag" data-to=".evidence" style="--c:var(--flag)"><path/><circle r="5"/><circle r="5"/></svg>
+</section>
+</main>
+</div>
+<script>
+addEventListener("load", () => setTimeout(() => {
+  for (const svg of document.querySelectorAll("svg.connect")) {
+    const box = svg.getBoundingClientRect();
+    const a = document.querySelector(svg.dataset.from).getClientRects()[0];
+    const b = document.querySelector(svg.dataset.to).getBoundingClientRect();
+    const [ax, ay] = [a.right - box.left + 10, a.top + a.height / 2 - box.top];
+    const top = svg.dataset.side === "top";
+    const [bx, by] = top ? [b.left + b.width / 2 - box.left, b.top - box.top - 10] : [b.left - box.left - 10, b.top + b.height / 2 - box.top];
+    const bend = top ? `${bx} ${by - 140}` : `${bx - 90} ${by}`;
+    svg.querySelector("path").setAttribute("d", `M${ax} ${ay} C${ax + 120} ${ay} ${bend} ${bx} ${by}`);
+    const [from, to] = svg.querySelectorAll("circle");
+    from.setAttribute("cx", ax); from.setAttribute("cy", ay);
+    to.setAttribute("cx", bx); to.setAttribute("cy", by);
+    svg.classList.add("on");
+  }
+}, 1600));
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Report · AI-Interaction Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+.report { display: grid; grid-template-columns: 800px 1fr; gap: 70px; margin-top: 40px; }
+.stack { position: relative; }
+.sheet-behind { position: absolute; left: 36px; top: 14px; width: 780px; height: 760px; }
+.pdf { width: 780px; }
+.pdf .body { display: flex; flex-direction: column; gap: 16px; padding: 30px 48px 40px; }
+.mast { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.mast .logo { font-size: 16px; } .mast .logo svg { width: 28px; height: 28px; }
+.title { display: flex; justify-content: space-between; align-items: baseline; }
+.title h2 { font-size: 34px; }
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.facts div { padding: 18px; border-radius: 12px; background: var(--subtle); }
+.facts b { display: block; font-size: 38px; font-weight: 700; letter-spacing: -0.02em; }
+.facts small { font-size: 15px; font-weight: 500; color: var(--body); }
+.pdf h3 { margin-top: 10px; font-size: 18px; font-weight: 700; color: var(--ink-2); }
+.bars { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(9, 1fr); align-items: end; height: 190px; }
+.bars li { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; }
+.bars b { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.bars small { font-size: 13px; color: var(--muted); }
+.key { display: flex; gap: 22px; font-size: 14px; color: var(--body); }
+.key span { display: inline-flex; align-items: center; gap: 8px; }
+.key .sq { width: 14px; height: 14px; border-radius: 4px; background: var(--ai); }
+.bars i { display: block; width: 30px; border-radius: 6px; background: var(--ai); }
+.bars i.none { background: var(--line); }
+.mark { width: 12px; height: 12px; border-radius: 50%; }
+.mark.ok { background: var(--ok); } .mark.flag { background: var(--flag); }
+.flagged { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 17px; color: var(--body); }
+.flagged li { display: flex; gap: 14px; align-items: center; }
+.flagged li::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--flag); }
+.flagged b { color: var(--ink-2); }
+.lines { display: grid; gap: 14px; }
+.lines i { display: block; width: 100%; height: 10px; border-radius: 5px; background: var(--line); }
+.export { display: flex; flex-direction: column; gap: 46px; padding-top: 30px; }
+.panel { display: grid; gap: 4px; padding: 30px 32px; }
+.panel-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.opt { display: flex; justify-content: space-between; align-items: center; height: 58px; border-bottom: 1px solid var(--line); font-size: 20px; font-weight: 500; color: var(--ink-2); }
+.radio { width: 26px; height: 26px; border-radius: 50%; box-shadow: inset 0 0 0 2.5px #c9d3dc; }
+.radio.on { box-shadow: inset 0 0 0 2.5px var(--ai), inset 0 0 0 7px var(--surface); background: var(--ai); }
+.toggle { position: relative; width: 52px; height: 30px; border-radius: 15px; background: #d5dde4; }
+.toggle::after { content: ""; position: absolute; top: 4px; left: 4px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); transition: transform 0.2s var(--ease-out); }
+.toggle.on { background: var(--ai); } .toggle.on::after { transform: translateX(22px); }
+.panel .btn { margin-top: 26px; }
+.export .sticky { width: 440px; align-self: flex-start; margin-left: 20px; }
+.saved { display: flex; gap: 16px; align-items: center; font-size: 21px !important; }
+.saved .ic { width: 26px; height: 26px; stroke: var(--ok); stroke-width: 3; }
+.saved small { display: block; font-size: 14px; font-weight: 700; color: var(--ok-ink); }
+.saved em { display: block; font-size: 17px; font-style: normal; font-weight: 500; color: #3d8b67; }
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="nav"><div class="logo"><svg viewBox="-56 -56 112 112" aria-hidden="true"><rect x="-56" y="-56" width="112" height="112" rx="30" fill="#099bff" opacity=".18"/><rect x="-50" y="-50" width="100" height="100" rx="27" fill="#099bff"/><circle cx="-19" cy="-2" r="18" fill="#fff"/><circle cx="19" cy="-2" r="18" fill="#fff"/><circle cx="-19" cy="0" r="9" fill="#ff8a3d"/><circle cx="19" cy="0" r="9" fill="#0b4f8a"/><circle cx="-16" cy="-4" r="3" fill="#fff"/><circle cx="22" cy="-4" r="3" fill="#fff"/><path d="M-6 19 L6 19 L0 28 Z" fill="#ffc46b"/></svg>AI-Interaction Analytics</div><div class="tabs"><button class="tab" type="button">Cohort</button><button class="tab" type="button">Visualiser</button><button class="tab" type="button">Flags</button><button class="tab on" type="button">Reports</button></div><div class="nav-end"><span class="chip ai dot">Grader</span><span class="who"><span class="avatar ai">JD</span>Jane Doe</span></div></nav>
+<main class="page">
+
+<div class="head"><div><h1>Report</h1><p class="sub">John Doe · Essay 2, ready for moderation.</p></div></div>
+<section class="report">
+  <div class="stack">
+    <div class="paper sheet-behind" style="--r:3.5deg"></div>
+    <article class="paper pdf" style="--r:-1deg;"><header><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h7 M9 17h5"/></svg>john-doe-essay-2.pdf · page 1 of 2</header><div class="body"><div class="mast"><span class="logo"><svg viewBox="-56 -56 112 112" aria-hidden="true"><rect x="-56" y="-56" width="112" height="112" rx="30" fill="#099bff" opacity=".18"/><rect x="-50" y="-50" width="100" height="100" rx="27" fill="#099bff"/><circle cx="-19" cy="-2" r="18" fill="#fff"/><circle cx="19" cy="-2" r="18" fill="#fff"/><circle cx="-19" cy="0" r="9" fill="#ff8a3d"/><circle cx="19" cy="0" r="9" fill="#0b4f8a"/><circle cx="-16" cy="-4" r="3" fill="#fff"/><circle cx="22" cy="-4" r="3" fill="#fff"/><path d="M-6 19 L6 19 L0 28 Z" fill="#ffc46b"/></svg>AI-Interaction Analytics</span><span class="caption">Process report</span></div>
+      <div class="title"><h2>John Doe · Essay 2</h2><span class="caption">INFOMGMT 399 · Lane 2</span></div>
+      <div class="facts"><div><b style="color:var(--human)">68%</b><small>not from logged AI</small></div><div><b style="color:var(--ok)">3</b><small>AI errors caught</small></div><div><b style="color:var(--flag)">2</b><small>flagged steps</small></div></div>
+      <h3>Where the AI text came from</h3><ol class="bars"><li><span class="mark "></span><i style="height:3px" class="none"></i><small>Step 1</small></li><li><span class="mark ok"></span><i style="height:3px" class="none"></i><small>Step 2</small></li><li><span class="mark "></span><b>150</b><i style="height:120px" class=""></i><small>Step 3</small></li><li><span class="mark ok"></span><i style="height:3px" class="none"></i><small>Step 4</small></li><li><span class="mark "></span><b>130</b><i style="height:104px" class=""></i><small>Step 5</small></li><li><span class="mark flag"></span><i style="height:3px" class="none"></i><small>Step 6</small></li><li><span class="mark ok"></span><b>64</b><i style="height:51px" class=""></i><small>Step 7</small></li><li><span class="mark flag"></span><i style="height:3px" class="none"></i><small>Step 8</small></li><li><span class="mark "></span><b>40</b><i style="height:32px" class=""></i><small>Step 9</small></li></ol>
+      <p class="key"><span><i class="sq"></i>words of the step's AI answer kept in the essay</span><span><i class="mark ok"></i>AI error caught</span><span><i class="mark flag"></i>flagged</span></p>
+      <h3>Flagged steps</h3>
+      <ul class="flagged"><li><b>Step 6</b>“Looks good.”  0 of 3 questions, added to feedback</li><li><b>Step 8</b>Reads like AI-written text</li></ul>
+      <h3>Full prompt history</h3><div class="lines"><i></i><i></i><i style="width:70%"></i></div></div></article>
+  </div>
+  <div class="export">
+    <div class="card panel">
+      <div class="panel-h"><h2>Export</h2><span class="caption">PDF · 2 pages</span></div>
+      <label class="opt">Standard PDF report<span class="radio on"></span></label>
+      <label class="opt">CSV of every step<span class="radio"></span></label>
+      <label class="opt">Full prompt history<span class="toggle on"></span></label>
+      <label class="opt">Grader notes<span class="toggle on"></span></label>
+      <button class="btn primary" type="button"><svg class="ic" viewBox="0 0 24 24"><path d="M12 4v11 M7 10l5 5 5-5 M5 20h14"/></svg>Download PDF</button>
+    </div>
+    <div class="sticky mint " style="--r:-3deg;--d:0;"><p class="saved"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg><span><small>SAVED</small>john-doe-essay-2.pdf<em>2 pages, ready to file</em></span></p></div>
+  </div>
+</section>
+</main>
+</div>
+<script>
+addEventListener("load", () => setTimeout(() => {
+  for (const svg of document.querySelectorAll("svg.connect")) {
+    const box = svg.getBoundingClientRect();
+    const a = document.querySelector(svg.dataset.from).getClientRects()[0];
+    const b = document.querySelector(svg.dataset.to).getBoundingClientRect();
+    const [ax, ay] = [a.right - box.left + 10, a.top + a.height / 2 - box.top];
+    const top = svg.dataset.side === "top";
+    const [bx, by] = top ? [b.left + b.width / 2 - box.left, b.top - box.top - 10] : [b.left - box.left - 10, b.top + b.height / 2 - box.top];
+    const bend = top ? `${bx} ${by - 140}` : `${bx - 90} ${by}`;
+    svg.querySelector("path").setAttribute("d", `M${ax} ${ay} C${ax + 120} ${ay} ${bend} ${bx} ${by}`);
+    const [from, to] = svg.querySelectorAll("circle");
+    from.setAttribute("cx", ax); from.setAttribute("cy", ay);
+    to.setAttribute("cx", bx); to.setAttribute("cy", by);
+    svg.classList.add("on");
+  }
+}, 1600));
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add steps · AI-Interaction Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+.import { display: flex; align-items: center; gap: 16px; width: 1040px; height: 72px; margin-top: 30px; padding: 0 28px; border-radius: 999px; background: var(--surface); box-shadow: 0 0 0 6px rgba(226, 238, 249, 0.7); }
+.import > .ic { color: var(--ai); }
+.import .value { font-size: 21px; font-weight: 500; color: var(--ink-2); }
+.import .found { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; font-size: 17px; font-weight: 600; color: var(--ok-ink); }
+.import .found .ic { width: 18px; height: 18px; color: var(--ok); stroke-width: 3; }
+.work { display: grid; grid-template-columns: 280px 560px 1fr; gap: 40px; align-items: start; margin-top: 40px; }
+.steps { display: flex; flex-direction: column; gap: 18px; padding: 24px; }
+.steps ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.steps li { display: grid; grid-template-columns: 30px 1fr auto; gap: 12px; align-items: center; }
+.steps li b { display: block; font-size: 15px; font-weight: 600; color: var(--ink-2); line-height: 1.3; }
+.steps li small { display: block; font-size: 13px; color: var(--muted); }
+.steps .n { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--ai-soft); color: var(--ai); font-size: 14px; font-weight: 700; }
+.steps .n .ic { width: 16px; height: 16px; stroke-width: 3; }
+.steps li.now .n { background: var(--ink-2); color: var(--surface); }
+.steps li.todo .n { background: var(--human-soft); color: var(--human); }
+.step .body { display: grid; gap: 14px; font-size: 23px; }
+.asked { font-weight: 500; color: var(--ink-2); line-height: 1.4; margin-bottom: 10px; }
+.said { color: var(--body); line-height: 1.55; }
+.src { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 16px; color: var(--muted); }
+.side { display: flex; flex-direction: column; gap: 34px; padding-top: 30px; }
+.note .crit { font-size: 29px; line-height: 1.5; }
+.note hr { margin: 24px 0 20px; border: 0; border-top: 1.5px dashed #e4cf7a; }
+.save { display: flex; align-items: center; gap: 18px; }
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="nav"><div class="logo"><svg viewBox="-56 -56 112 112" aria-hidden="true"><rect x="-56" y="-56" width="112" height="112" rx="30" fill="#099bff" opacity=".18"/><rect x="-50" y="-50" width="100" height="100" rx="27" fill="#099bff"/><circle cx="-19" cy="-2" r="18" fill="#fff"/><circle cx="19" cy="-2" r="18" fill="#fff"/><circle cx="-19" cy="0" r="9" fill="#ff8a3d"/><circle cx="19" cy="0" r="9" fill="#0b4f8a"/><circle cx="-16" cy="-4" r="3" fill="#fff"/><circle cx="22" cy="-4" r="3" fill="#fff"/><path d="M-6 19 L6 19 L0 28 Z" fill="#ffc46b"/></svg>AI-Interaction Analytics</div><div class="tabs"><button class="tab on" type="button">Assignments</button><button class="tab" type="button">My log</button><button class="tab" type="button">Progress</button></div><div class="nav-end"><span class="chip human dot">Student</span><span class="who"><span class="avatar ">JD</span>John Doe</span></div></nav>
+<main class="page">
+
+<div class="head"><div><p class="crumb">Assignments  /  Essay 2  /  Add steps</p><h1>Add steps</h1><p class="sub">Paste a chat link. Each prompt becomes a step; you add the critique.</p></div><div class="stepper"><span class="done"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Import</span><span class="on">2  Critique</span><span>3  Save</span></div></div>
+<div class="import">
+  <svg class="ic" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1 M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span class="value">chatgpt.com/share/6f2a91c4-essay-2</span>
+  <span class="found"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>2 new steps</span>
+</div>
+<section class="work">
+  <aside class="card steps">
+    <p class="kicker label-muted">Essay 2 · steps</p>
+    <ol><li class="done"><span class="n"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>
+<span><b>Step 1 · Outline the argument</b><small>Logged Monday</small></span><span class="depth "><b></b><b></b><b class="o"></b></span></li><li class="done"><span class="n"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>
+<span><b>Step 2 · Find two sources</b><small>Logged Monday</small></span><span class="depth "><b></b><b></b><b></b></span></li><li class="done"><span class="n"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>
+<span><b>Step 3 · Draft the intro</b><small>Logged Tuesday</small></span><span class="depth "><b></b><b></b><b class="o"></b></span></li><li class="now"><span class="n">4</span>
+<span><b>Step 4 · Check the facts</b><small>From this chat · writing critique</small></span></li><li class="todo"><span class="n">5</span>
+<span><b>Step 5 · Strengthen paragraph 2</b><small>From this chat · needs a critique</small></span></li></ol>
+    <button class="btn ghost sm" type="button">Write final version</button>
+  </aside>
+  <article class="paper step" style="--r:0deg;"><header><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h7 M9 17h5"/></svg>Step 4 · Check the facts<span class="end"><span class="chip flag dot">1 error marked</span></span></header><div class="body"><p class="kicker label-human">You asked</p>
+    <p class="asked">Why do universities split assessment into two lanes?</p>
+    <p class="kicker label-ai">The AI said</p>
+    <p class="said">The two-lane model, introduced in <span class="wrong">2019</span>, separates secure assessment from open tasks where AI use is allowed. Lane 1 restricts AI; Lane 2 lets students use it.</p>
+    <p class="src">Imported from chatgpt.com/share/6f2a91c4 · 14:20</p></div></article>
+  <div class="side">
+    <div class="sticky  note" style="--r:2.5deg;--d:0;"><span class="kicker label-human">Your critique</span>
+      <p class="crit"><span class="hl">Wrong date.</span> Sydney introduced it in 2023. <span class="hl">I checked their article</span> and <span class="hl">fixed my intro</span>.</p>
+      <hr><div class="qs"><div class="q met"><i><svg class="" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></i>Was the AI right or wrong?</div><div class="q met"><i><svg class="" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></i>How did you check?</div><div class="q met"><i><svg class="" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></i>What did you change?</div></div></div>
+    <div class="save"><button class="btn primary" type="button">Save step</button><span class="caption">or press <span class="key">⌘ ↵</span></span></div>
+  </div>
+</section>
+</main>
+</div>
+<script>
+addEventListener("load", () => setTimeout(() => {
+  for (const svg of document.querySelectorAll("svg.connect")) {
+    const box = svg.getBoundingClientRect();
+    const a = document.querySelector(svg.dataset.from).getClientRects()[0];
+    const b = document.querySelector(svg.dataset.to).getBoundingClientRect();
+    const [ax, ay] = [a.right - box.left + 10, a.top + a.height / 2 - box.top];
+    const top = svg.dataset.side === "top";
+    const [bx, by] = top ? [b.left + b.width / 2 - box.left, b.top - box.top - 10] : [b.left - box.left - 10, b.top + b.height / 2 - box.top];
+    const bend = top ? `${bx} ${by - 140}` : `${bx - 90} ${by}`;
+    svg.querySelector("path").setAttribute("d", `M${ax} ${ay} C${ax + 120} ${ay} ${bend} ${bx} ${by}`);
+    const [from, to] = svg.querySelectorAll("circle");
+    from.setAttribute("cx", ax); from.setAttribute("cy", ay);
+    to.setAttribute("cx", bx); to.setAttribute("cy", by);
+    svg.classList.add("on");
+  }
+}, 1600));
+</script>
+</body>
+</html>
