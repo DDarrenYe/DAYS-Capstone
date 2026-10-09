@@ -9,6 +9,7 @@ import { defineConfig } from "vite-plus";
 
 export default defineConfig({
   lint: {
+    options: { denyWarnings: true },
     extends: [core, next, react, shadcn, tanstack, antiSlop],
     ignorePatterns: [...(core.ignorePatterns ?? []), "design/**"],
     jsPlugins: shadcn.jsPlugins,
