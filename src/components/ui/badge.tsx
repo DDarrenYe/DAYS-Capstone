@@ -12,6 +12,11 @@ const badgeVariants = cva(
     },
     variants: {
       variant: {
+        ai: "status-chip ai",
+        human: "status-chip human",
+        neutral: "status-chip neutral",
+        success: "status-chip success",
+        flagged: "status-chip flagged",
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
         destructive:
           "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
