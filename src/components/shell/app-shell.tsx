@@ -1,22 +1,21 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import type { ReactNode } from "react";
 
+import { AccountMenu } from "@/components/shell/account-menu";
 import { Brand } from "@/components/shell/brand";
 import {
   Breadcrumbs,
   RoleNavigation,
-  UserMenu,
 } from "@/components/shell/shell-navigation";
 import { Badge } from "@/components/ui/badge";
 
 export const AppShell = ({
   userRole,
   children,
-  displayName,
 }: {
   userRole: "student" | "instructor";
   children: ReactNode;
-  displayName: string;
 }) => {
   const isStudent = userRole === "student";
 
@@ -35,7 +34,15 @@ export const AppShell = ({
           <Badge variant={isStudent ? "human" : "ai"}>
             {isStudent ? "Student" : "Instructor"}
           </Badge>
-          <UserMenu userRole={userRole} displayName={displayName} />
+          <Suspense
+            fallback={
+              <output className="text-muted-foreground flex min-h-11 items-center">
+                Loading account…
+              </output>
+            }
+          >
+            <AccountMenu userRole={userRole} />
+          </Suspense>
         </div>
       </header>
       <main

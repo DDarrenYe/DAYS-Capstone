@@ -2,7 +2,6 @@ import { createServerClient } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { readAccount } from "@/lib/supabase/account";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
 export const proxy = async (request: NextRequest) => {
@@ -25,30 +24,14 @@ export const proxy = async (request: NextRequest) => {
       },
     },
   });
-  const { pathname } = request.nextUrl;
-  let account: Awaited<ReturnType<typeof readAccount>> = null;
-  try {
-    account = await readAccount(supabase);
-  } catch (error) {
-    if (pathname !== "/") {
-      throw error;
-    }
-  }
-  const protectedRoute =
-    pathname.startsWith("/student") || pathname.startsWith("/instructor");
-  let destination: string | undefined;
-  if (!account && protectedRoute) {
-    destination = "/";
-  } else if (
-    account &&
-    (pathname === "/" ||
-      (protectedRoute && pathname.split("/")[1] !== account.role))
-  ) {
-    destination = `/${account.role}`;
-  }
-  if (destination) {
+  const [, section] = request.nextUrl.pathname.split("/");
+  const protectedRoute = section === "student" || section === "instructor";
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session && protectedRoute) {
     const target = request.nextUrl.clone();
-    target.pathname = destination;
+    target.pathname = "/";
     target.search = "";
     const redirected = NextResponse.redirect(target);
     for (const cookie of response.cookies.getAll()) {
@@ -62,10 +45,12 @@ export const proxy = async (request: NextRequest) => {
     redirected.headers.set("Cache-Control", "private, no-store");
     return redirected;
   }
-  response.headers.set("Cache-Control", "private, no-store");
+  if (session || protectedRoute) {
+    response.headers.set("Cache-Control", "private, no-store");
+  }
   return response;
 };
 
 export const config = {
-  matcher: ["/", "/student/:path*", "/instructor/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

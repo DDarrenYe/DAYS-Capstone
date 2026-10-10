@@ -1,5 +1,6 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
+import { io } from "next/cache";
 import { cookies } from "next/headers";
 
 import { getSupabaseConfig } from "./config";
@@ -8,6 +9,7 @@ export const createClient = async ({
   writeCookies = false,
 }: { writeCookies?: boolean } = {}) => {
   const cookieStore = await cookies();
+  await io();
   const { url, key } = getSupabaseConfig();
   return createServerClient(url, key, {
     cookies: {

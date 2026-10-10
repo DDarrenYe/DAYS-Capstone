@@ -5,19 +5,18 @@ import { NextRequest } from "next/server";
 
 import { proxy } from "./proxy";
 
-const userId = "10000000-0000-0000-0000-000000000001";
 const user = {
-  id: userId,
+  id: "10000000-0000-0000-0000-000000000001",
   app_metadata: {},
-  user_metadata: { role: "instructor" },
+  user_metadata: {},
   aud: "authenticated",
   created_at: "2026-10-10T00:00:00Z",
 };
 
-const sessionCookie = (role: string, expired = false) => {
+const sessionCookie = (expired = false) => {
   const session = {
-    access_token: `${role}-access`,
-    refresh_token: `${role}-refresh`,
+    access_token: "access",
+    refresh_token: "refresh",
     expires_at: expired ? 1 : Math.floor(Date.now() / 1000) + 3600,
     token_type: "bearer",
     user,
@@ -34,44 +33,37 @@ const request = (path: string, cookie = "", prefetch = false) => {
   return new NextRequest(`https://app.example${path}`, { headers });
 };
 
-test("proxy verifies identity and preserves refreshed cookies and cache headers across role redirects", async () => {
+test("proxy only reads the session cookie and redirects signed-out visitors", async () => {
   const originalFetch = globalThis.fetch;
+  const originalConsoleError = console.error;
   const originalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const originalKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  let profileRole = "student";
-  let revoked = false;
-  let unavailable = false;
-  globalThis.fetch = async (input, init) => {
-    const incoming = new Request(input, init);
-    const url = new URL(incoming.url);
-    if (url.pathname === "/auth/v1/token") {
-      const { refresh_token: refreshToken } = await incoming.json();
-      return Response.json({
-        access_token: `${refreshToken}-renewed`,
-        refresh_token: refreshToken,
+  const calls: string[] = [];
+  let refresh: "renewed" | "revoked" = "renewed";
+  globalThis.fetch = (input, init) => {
+    const { pathname } = new URL(new Request(input, init).url);
+    calls.push(pathname);
+    assert.equal(pathname, "/auth/v1/token");
+    if (refresh === "revoked") {
+      return Promise.resolve(
+        Response.json(
+          {
+            error: "invalid_grant",
+            error_description: "Invalid Refresh Token",
+          },
+          { status: 400, headers: { "X-Supabase-Api-Version": "2024-01-01" } }
+        )
+      );
+    }
+    return Promise.resolve(
+      Response.json({
+        access_token: "access-renewed",
+        refresh_token: "refresh",
         expires_in: 3600,
         token_type: "bearer",
         user,
-      });
-    }
-    if (url.pathname === "/auth/v1/user") {
-      assert.ok(incoming.headers.get("authorization")?.startsWith("Bearer "));
-      if (unavailable) {
-        return Response.json(
-          { message: "Unavailable", code: "unexpected_failure" },
-          { status: 500 }
-        );
-      }
-      return revoked
-        ? Response.json(
-            { message: "Session not found", code: "session_not_found" },
-            { status: 400, headers: { "X-Supabase-Api-Version": "2024-01-01" } }
-          )
-        : Response.json(user);
-    }
-    assert.equal(url.pathname, "/rest/v1/profiles");
-    assert.equal(url.searchParams.get("id"), `eq.${userId}`);
-    return Response.json({ display_name: "Demo Account", role: profileRole });
+      })
+    );
   };
   try {
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
@@ -83,32 +75,29 @@ test("proxy verifies identity and preserves refreshed cookies and cache headers 
     assert.equal(anonymous.status, 307);
     assert.equal(anonymous.headers.get("location"), "https://app.example/");
     assert.equal(anonymous.headers.get("cache-control"), "private, no-store");
-    const anonymousHome = await proxy(request("/"));
-    assert.equal(anonymousHome.status, 200);
+    const publicPages = await Promise.all([
+      proxy(request("/")),
+      proxy(request("/privacy")),
+      proxy(request("/students")),
+    ]);
+    for (const response of publicPages) {
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get("cache-control"), null);
+    }
 
-    const student = await proxy(
-      request("/student/log", sessionCookie("student"))
-    );
-    assert.equal(student.status, 200);
-    assert.equal(student.headers.get("location"), null);
-    assert.equal(student.headers.get("cache-control"), "private, no-store");
-    const crossRole = await proxy(
-      request(
-        "/instructor/flags?next=https://evil.example",
-        sessionCookie("student"),
-        true
-      )
-    );
-    assert.equal(crossRole.status, 307);
-    assert.equal(
-      crossRole.headers.get("location"),
-      "https://app.example/student"
-    );
-    assert.equal(crossRole.headers.get("cache-control"), "private, no-store");
+    const signedIn = await Promise.all([
+      proxy(request("/", sessionCookie())),
+      proxy(request("/student/log", sessionCookie())),
+      proxy(request("/instructor/flags", sessionCookie(), true)),
+    ]);
+    for (const response of signedIn) {
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get("location"), null);
+      assert.equal(response.headers.get("cache-control"), "private, no-store");
+    }
+    assert.deepEqual(calls, []);
 
-    const refreshed = await proxy(
-      request("/student/log", sessionCookie("student", true))
-    );
+    const refreshed = await proxy(request("/student/log", sessionCookie(true)));
     assert.equal(refreshed.status, 200);
     const refreshedCookie = refreshed.cookies.get("sb-project-auth-token");
     assert.ok(refreshedCookie);
@@ -121,61 +110,23 @@ test("proxy verifies identity and preserves refreshed cookies and cache headers 
     const refreshedSession = JSON.parse(
       Buffer.from(refreshedCookie.value.slice(7), "base64url").toString()
     );
-    assert.equal(refreshedSession.access_token, "student-refresh-renewed");
+    assert.equal(refreshedSession.access_token, "access-renewed");
+    assert.deepEqual(calls, ["/auth/v1/token"]);
 
-    const refreshedRedirect = await proxy(
-      request("/instructor", sessionCookie("student", true))
-    );
-    assert.equal(refreshedRedirect.status, 307);
-    assert.ok(refreshedRedirect.cookies.get("sb-project-auth-token"));
-    assert.equal(refreshedRedirect.headers.get("expires"), "0");
-    assert.equal(refreshedRedirect.headers.get("pragma"), "no-cache");
-    assert.equal(
-      refreshedRedirect.headers.get("cache-control"),
-      "private, no-store"
-    );
-
-    profileRole = "instructor";
-    const instructor = await proxy(
-      request("/student/progress", sessionCookie("instructor"))
-    );
-    assert.equal(
-      instructor.headers.get("location"),
-      "https://app.example/instructor"
-    );
-    const instructorHome = await proxy(
-      request("/instructor/reports", sessionCookie("instructor"))
-    );
-    assert.equal(instructorHome.status, 200);
-    const signedInHome = await proxy(request("/", sessionCookie("instructor")));
-    assert.equal(
-      signedInHome.headers.get("location"),
-      "https://app.example/instructor"
-    );
-
-    revoked = true;
-    const invalid = await proxy(
-      request("/instructor", sessionCookie("instructor"))
-    );
-    assert.equal(invalid.headers.get("location"), "https://app.example/");
-    assert.equal(invalid.cookies.get("sb-project-auth-token")?.maxAge, 0);
-    revoked = false;
-    unavailable = true;
-    await assert.rejects(
-      proxy(request("/student", sessionCookie("student"))),
-      /Unable to verify your session/u
-    );
-    unavailable = false;
-    profileRole = "admin";
-    await assert.rejects(
-      proxy(request("/student", sessionCookie("student"))),
-      /Unable to load your account/u
-    );
-    const brokenHome = await proxy(request("/", sessionCookie("student")));
-    assert.equal(brokenHome.status, 200);
-    assert.equal(brokenHome.headers.get("location"), null);
+    refresh = "revoked";
+    console.error = () => {};
+    const revoked = await proxy(request("/instructor", sessionCookie(true)));
+    assert.equal(revoked.status, 307);
+    assert.equal(revoked.headers.get("location"), "https://app.example/");
+    assert.equal(revoked.cookies.get("sb-project-auth-token")?.maxAge, 0);
+    assert.equal(revoked.headers.get("expires"), "0");
+    assert.equal(revoked.headers.get("pragma"), "no-cache");
+    assert.equal(revoked.headers.get("cache-control"), "private, no-store");
+    const revokedHome = await proxy(request("/", sessionCookie(true)));
+    assert.equal(revokedHome.status, 200);
   } finally {
     globalThis.fetch = originalFetch;
+    console.error = originalConsoleError;
     if (originalUrl === undefined) {
       delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     } else {

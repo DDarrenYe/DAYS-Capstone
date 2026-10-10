@@ -1,16 +1,14 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { signIn } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const SignInForm = () => {
-  const [state, action, pending] = useActionState(signIn, {
-    error: "",
-    email: "",
-  });
+  const [state, action, pending] = useActionState(signIn, { error: "" });
+  const [email, setEmail] = useState("");
   return (
     <form
       aria-describedby="sign-in-error"
@@ -23,11 +21,12 @@ export const SignInForm = () => {
         </label>
         <Input
           autoComplete="username"
-          defaultValue={state.email}
           id="email"
           name="email"
+          onChange={(event) => setEmail(event.target.value)}
           required
           type="email"
+          value={email}
           maxLength={254}
         />
       </div>
