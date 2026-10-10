@@ -8,7 +8,7 @@ function Card({
   variant = "default",
   ...props
 }: React.ComponentProps<"div"> & {
-  size?: "default" | "sm";
+  size?: "default" | "sm" | "lg";
   variant?: "default" | "paper";
 }) {
   return (
@@ -17,8 +17,8 @@ function Card({
       data-size={size}
       data-variant={variant}
       className={cn(
-        "group/card bg-card text-card-foreground ring-foreground/10 flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl py-(--card-spacing) text-sm ring-1 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
-        variant === "paper" && "shadow-lift gap-0 rounded-lg p-0 ring-0",
+        "group/card bg-card text-card-foreground shadow-card flex flex-col gap-(--card-spacing) overflow-hidden rounded-3xl py-(--card-spacing) text-sm [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=lg]:[--card-spacing:--spacing(7)] data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        variant === "paper" && "shadow-lift gap-0 rounded-lg p-0",
         className
       )}
       {...props}
@@ -82,7 +82,7 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="card-content"
       className={cn(
         "px-(--card-spacing)",
-        "group-data-[variant=paper]/card:leading-paper group-data-[variant=paper]/card:text-ui/paper group-data-[variant=paper]/card:flex group-data-[variant=paper]/card:flex-col group-data-[variant=paper]/card:items-start group-data-[variant=paper]/card:gap-4.5 group-data-[variant=paper]/card:p-7 max-[1100px]:group-data-[variant=paper]/card:p-5.5",
+        "group-data-[variant=paper]/card:leading-paper group-data-[variant=paper]/card:text-ui/paper group-data-[variant=paper]/card:flex group-data-[variant=paper]/card:flex-1 group-data-[variant=paper]/card:flex-col group-data-[variant=paper]/card:items-start group-data-[variant=paper]/card:gap-4.5 group-data-[variant=paper]/card:p-7 max-[1100px]:group-data-[variant=paper]/card:p-5.5",
         className
       )}
       {...props}

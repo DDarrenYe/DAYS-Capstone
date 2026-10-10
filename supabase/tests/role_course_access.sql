@@ -1,8 +1,8 @@
 begin;
 select no_plan();
 insert into auth.users (id, raw_user_meta_data) values ('00000000-0000-0000-0000-000000000001', '{"role":"instructor","display_name":"User 1"}'),('00000000-0000-0000-0000-000000000002', '{"role":"instructor","display_name":"User 2"}'),('00000000-0000-0000-0000-000000000003', '{"role":"instructor","display_name":"User 3"}'),('00000000-0000-0000-0000-000000000004', '{"role":"instructor","display_name":"User 4"}');
-select is((select count(*)::integer from public.profiles where true), 4, 'Auth trigger creates all profiles');
-select is((select count(*)::integer from public.profiles where role = 'student'), 4, 'Metadata cannot elevate the student default');
+select is((select count(*)::integer from public.profiles where id in ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000004')), 4, 'Auth trigger creates all profiles');
+select is((select count(*)::integer from public.profiles where role = 'student' and id in ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000004')), 4, 'Metadata cannot elevate the student default');
 update public.profiles set role = 'instructor' where id in ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000004');
 insert into public.courses (id, instructor_id, code, title) values ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000001', 'A', 'First'), ('00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000004', 'B', 'Second');
 insert into public.enrolments (course_id, student_id, email) values ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000002', 's1@example.com'), ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000003', 's2@example.com'), ('00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000003', 's2@example.com');

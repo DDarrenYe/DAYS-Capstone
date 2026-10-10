@@ -11,8 +11,9 @@ const PrivacyPage = () => (
       <CardContent>
         <h2 className="text-ink text-panel font-bold">Example content only</h2>
         <p>
-          The student and instructor shells show fictional accounts and
-          assignment data. This preview has no sign-in or upload flow.
+          The student and instructor shells show fictional assignment data.
+          Sign-in uses accounts your instructor provisions, and this preview has
+          no upload flow.
         </p>
         <p>
           Privacy information for the connected application will be added before
