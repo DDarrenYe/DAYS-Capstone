@@ -18,7 +18,7 @@ const noteVariants = cva(
       placement: {
         inline: "",
         assignment:
-          "text-note-assignment max-[1100px]:text-note-compact order-first -mr-3 w-55 self-end max-[1100px]:w-47.5 max-[760px]:mr-0 max-[760px]:p-4.5",
+          "text-note-assignment max-[1100px]:text-note-compact order-first -mr-3 w-55 self-end max-[1100px]:w-47.5 max-[760px]:mr-0 max-[760px]:p-4.5 min-[1100px]:absolute min-[1100px]:-top-11.5 min-[1100px]:-right-4 min-[1100px]:z-2 min-[1100px]:mr-0 min-[1100px]:w-59",
       },
     },
     compoundVariants: [

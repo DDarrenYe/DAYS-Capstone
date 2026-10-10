@@ -6,7 +6,7 @@ Plan: [docs/plan.md](docs/plan.md). Issues: [docs/issue-plan.json](docs/issue-pl
 
 ## Current status
 
-We have the nine-screen prototype and showcase ready. The app has the Next.js scaffold and shared UI, but we still need to build sign-in, saving data, chat import, text matching, reflection checks, grader decisions and exports. The plan follows the existing 45 GitHub issues; the scaffold task is already done.
+We have the nine-screen prototype and showcase ready. The app has the Next.js scaffold and shared UI, with password sign-in and role-based sessions. We still need to build saving data, chat import, text matching, reflection checks, grader decisions and exports. The plan follows the existing 45 GitHub issues; the scaffold task is already done.
 
 ## Stack
 
@@ -36,13 +36,33 @@ Open http://localhost:3000.
 
 `bun run db:status` shows the local API, database, Studio, and Mailpit URLs. Ports are assigned per checkout and branch, so use the printed URLs rather than assuming default ports. Auth emails stay in Mailpit instead of going to real inboxes. Each teammate has their own database.
 
-`.env.local` is ignored by Git. Keep `SUPABASE_SERVICE_ROLE_KEY` server-only; never prefix it with `NEXT_PUBLIC_` or put it in browser code. `DATABASE_URL` is also server-only. The Drizzle schema, SQL migrations and constraint tests are in place; see [supabase/README.md](supabase/README.md) for the data contract. Supabase Auth clients, access policies and seed data are still separate tasks; seeding is disabled until a seed exists.
+`.env.local` is ignored by Git. Keep `SUPABASE_SERVICE_ROLE_KEY` server-only; never prefix it with `NEXT_PUBLIC_` or put it in browser code. `DATABASE_URL` is also server-only. The Drizzle schema, SQL migrations and constraint tests are in place; see [supabase/README.md](supabase/README.md) for the data contract. Password sign-in uses Supabase SSR cookies and the database profile role. RLS is enabled; the auth client uses the anonymous key plus the signed-in user session, never the service-role key.
 
 Stop the stack with `bun run db:stop`; stopping preserves local data. Database resets and `supabase stack destroy` delete data. Changing branches selects a different stack; stop the current one before switching.
 
 Windows and Intel Macs need Docker or Podman and can start with `bunx --no-install supabase start --runtime docker` (or `--runtime podman`) instead. A stack keeps its original runtime; don't switch an existing stack without backing up its data.
 
 When we decide to deploy, create a hosted Supabase project, apply the committed migrations, configure hosted auth and environment variables, and deploy Next.js. Local test data doesn't move automatically. The planned Anthropic API is external even when the app runs locally; fully offline AI checks need mocked responses or a local model.
+
+## Sign-in demo
+
+Password sign-in does not send an email. Local database seeding creates these confirmed accounts:
+
+- Student: `student@example.com`
+- Instructor: `instructor@example.com`
+- Password for both: `Capstone-demo-399!`
+
+On a fresh stack, seeds run automatically. For an existing disposable stack, `bun run db:reset` applies migrations and seeds, deleting its local data. To preserve existing data, apply `supabase/seed.sql` to this checkout's local database as its administrator instead. The seed inserts only the two fixed demo users and promotes the demo instructor; it does not reset existing passwords.
+
+Students land on `/student` (assignments); instructors land on `/instructor` (the current instructor shell). The proxy is an optimistic check: it reads the session cookie, persists refreshed session cookies, and redirects signed-out users away from protected routes. It never queries Supabase for the user or the role. The account menu in each role shell calls `requireRole`, which verifies the user and reads the role from the profile stored in Postgres (not editable user metadata), then sends signed-out or cross-role users to the right place. That check streams in behind its own `Suspense` boundary, so it does not gate the page content. Sign out is in the account menu. The server client is read-only during rendering; Server Actions use `createClient({ writeCookies: true })`. Every page that reads data and every mutation must call `requireRole` itself and enforce ownership/RLS; the shell check is not authorization. The current pages show fictional example content only.
+
+This version signs in provisioned accounts. Public signup and self-service password recovery are not included; users contact their instructor for help. Do not deploy the demo seed or reuse its known password for real accounts.
+
+### Optional hosted email with Resend
+
+Hosted password sign-in also works without sending email for already confirmed accounts. If we add email confirmation, invitations, or password recovery, configure a verified sender domain and a Resend API key in Supabase's custom SMTP settings: host `smtp.resend.com`, port `465`, username `resend`, password the API key, and a sender address on the verified domain. Keep the key in Supabase configuration, not browser code. Disable link tracking for auth emails, and check Supabase's auth email rate limits separately from Resend's quota. Local email tests continue to use Mailpit.
+
+See [Resend's Supabase SMTP guide](https://resend.com/docs/send-with-supabase-smtp). No Resend SDK is needed for Supabase Auth emails.
 
 ## Scripts
 

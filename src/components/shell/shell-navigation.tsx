@@ -4,6 +4,10 @@ import { Menu } from "@base-ui/react/menu";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSelectedLayoutSegment } from "next/navigation";
+import { useActionState } from "react";
+
+import { signOut } from "@/app/actions";
+import { Avatar } from "@/components/shell/avatar";
 
 const navigation = {
   student: [
@@ -61,21 +65,22 @@ export const Breadcrumbs = ({ userRole }: RoleProps) => {
   );
 };
 
-export const UserMenu = ({ userRole }: RoleProps) => {
+export const UserMenu = ({
+  userRole,
+  displayName: userName,
+}: RoleProps & { displayName: string }) => {
+  const [state, action, pending] = useActionState(signOut, { error: "" });
   const pathname = usePathname();
   const isStudent = userRole === "student";
-  const userName = isStudent ? "John Doe" : "Jane Doe";
   return (
     <Menu.Root key={pathname} modal={false}>
       <Menu.Trigger
-        aria-label={`User menu for ${userName} (example)`}
+        aria-label={`User menu for ${userName}`}
         className="rounded-navigation flex min-h-11 cursor-pointer items-center gap-2.5 font-semibold"
       >
-        <span
-          className={`text-caption inline-grid size-10 shrink-0 place-items-center rounded-full font-semibold ${isStudent ? "bg-human-soft text-human-ink" : "bg-ai-soft text-ai-ink"}`}
-        >
-          JD
-        </span>
+        <Avatar tone={isStudent ? "human" : "ai"}>
+          {[...userName][0]?.toUpperCase() ?? ""}
+        </Avatar>
         <span>{userName}</span>
         <ChevronDown aria-hidden="true" size={16} />
       </Menu.Trigger>
@@ -84,15 +89,22 @@ export const UserMenu = ({ userRole }: RoleProps) => {
           <Menu.Popup className="bg-card shadow-lift rounded-menu w-61 max-w-[calc(100vw-40px)] p-3">
             <Menu.Group>
               <Menu.GroupLabel className="text-muted-foreground p-2 text-sm">
-                Example account
+                Signed in as {userName}
               </Menu.GroupLabel>
-              <Menu.LinkItem
-                closeOnClick
-                render={<Link href={isStudent ? "/instructor" : "/student"} />}
-                className="hover:bg-subtle data-highlighted:bg-subtle block rounded-lg px-2 py-2.5"
-              >
-                View {isStudent ? "instructor" : "student"} shell
-              </Menu.LinkItem>
+              <form action={action}>
+                <Menu.Item
+                  nativeButton
+                  render={<button aria-label="Sign out" type="submit" />}
+                  disabled={pending}
+                  closeOnClick={false}
+                  className="hover:bg-subtle data-highlighted:bg-subtle block w-full rounded-lg px-2 py-2.5 text-left"
+                >
+                  {pending ? "Signing out…" : "Sign out"}
+                </Menu.Item>
+                <p aria-live="polite" className="text-destructive px-2 text-sm">
+                  {state.error}
+                </p>
+              </form>
               <Menu.LinkItem
                 closeOnClick
                 render={<Link href="/privacy" />}

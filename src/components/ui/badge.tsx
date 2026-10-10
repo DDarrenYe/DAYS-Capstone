@@ -12,19 +12,34 @@ const badgeVariants = cva(
       {
         variant: ["ai", "human", "neutral", "success", "flagged"],
         className:
-          "text-sm/badge h-auto min-h-7.5 px-3 py-1 text-left font-semibold whitespace-normal",
+          "gap-2 py-0 font-semibold before:size-2.25 before:shrink-0 before:rounded-full before:bg-current before:content-['']",
+      },
+      {
+        variant: ["ai", "human", "neutral", "success", "flagged"],
+        size: "default",
+        className: "h-8 px-3.5 text-base",
+      },
+      {
+        variant: ["ai", "human", "neutral", "success", "flagged"],
+        size: "sm",
+        className: "text-caption h-7.5 px-3",
       },
     ],
     defaultVariants: {
+      size: "default",
       variant: "default",
     },
     variants: {
+      size: {
+        default: "",
+        sm: "",
+      },
       variant: {
-        ai: "bg-ai-soft text-ai-ink",
-        human: "bg-human-soft text-human-ink",
-        neutral: "bg-subtle text-body",
-        success: "bg-note-mint text-success",
-        flagged: "bg-note-pink text-destructive",
+        ai: "bg-ai-soft text-ai",
+        human: "bg-human-soft text-human",
+        neutral: "bg-plain text-body",
+        success: "bg-success-soft text-success",
+        flagged: "bg-destructive-soft text-destructive",
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
         destructive:
           "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
@@ -43,6 +58,7 @@ const badgeVariants = cva(
 function Badge({
   className,
   variant = "default",
+  size = "default",
   render,
   ...props
 }: useRender.ComponentProps<"span"> & VariantProps<typeof badgeVariants>) {
@@ -50,7 +66,7 @@ function Badge({
     defaultTagName: "span",
     props: mergeProps<"span">(
       {
-        className: cn(badgeVariants({ variant }), className),
+        className: cn(badgeVariants({ size, variant }), className),
       },
       props
     ),

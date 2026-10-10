@@ -1,7 +1,9 @@
-import { Check, Clock, FileText } from "lucide-react";
+import { Clock, FileText } from "lucide-react";
+import Link from "next/link";
 
 import { Note } from "@/components/shell/note";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 const assignments = [
@@ -12,6 +14,7 @@ const assignments = [
     lane: "Lane 2 · AI allowed",
     due: "Due Friday",
     logged: "3 steps logged",
+    steps: ["human", "ai", "human"],
     tone: "yellow",
     note: "3 steps so far. Keep logging!",
     brief:
@@ -24,6 +27,7 @@ const assignments = [
     lane: "Lane 1 · AI restricted",
     due: "Due Monday",
     logged: "No AI log needed",
+    steps: [],
     tone: "sky",
     note: "Lane 1: no AI here",
     brief:
@@ -36,6 +40,7 @@ const assignments = [
     lane: "Lane 2 · AI allowed",
     due: "Submitted",
     logged: "6 steps logged",
+    steps: ["human", "ai", "human", "ai", "human", "ai"],
     tone: "mint",
     note: "Submitted. Nice work.",
     brief:
@@ -45,22 +50,22 @@ const assignments = [
 
 const StudentPage = () => (
   <>
-    <h1 className="text-display mt-4.5 font-bold">Assignments</h1>
-    <p className="text-body text-subtitle mt-3">
+    <h1 className="text-display rise-in mt-4.5 font-bold">Assignments</h1>
+    <p className="text-body text-subtitle rise-in mt-3 [--i:1]">
       Three tasks this semester. Lane 2 ones keep an AI log.
     </p>
     <section
       aria-label="Example assignments"
-      className="mt-12 grid grid-cols-3 gap-10 max-[1100px]:gap-6 max-[760px]:grid-cols-1 max-[760px]:gap-12"
+      className="mt-12 grid grid-cols-3 gap-10 max-[1100px]:gap-6 max-[760px]:grid-cols-1 max-[760px]:gap-12 min-[1100px]:mt-17.5"
     >
       {assignments.map((assignment) => (
         <article
-          className="flex min-w-0 flex-col gap-6 [--paper-rotation:-1.4deg] nth-2:[--paper-rotation:1.2deg] nth-3:[--paper-rotation:-0.8deg]"
+          className="rise-in relative flex min-w-0 flex-col gap-6 [--i:2] [--paper-rotation:-1.4deg] nth-2:[--i:3] nth-2:[--paper-rotation:1.2deg] nth-3:[--i:4] nth-3:[--paper-rotation:-0.8deg]"
           key={assignment.id}
         >
           <Card
             variant="paper"
-            className="min-h-120 flex-1 rotate-(--paper-rotation) max-[760px]:min-h-105"
+            className="min-h-140 flex-1 rotate-(--paper-rotation) max-[760px]:min-h-105"
           >
             <CardHeader>
               <FileText aria-hidden="true" size={22} /> INFOMGMT 399 ·{" "}
@@ -78,13 +83,34 @@ const StudentPage = () => (
                 <Clock aria-hidden="true" size={18} />
                 {assignment.due}
               </p>
-              <p className="mt-2.5 font-semibold">{assignment.logged}</p>
+              <ul
+                aria-label={`${assignment.steps.length} logged steps`}
+                className="flex min-h-2.5 gap-2"
+              >
+                {assignment.steps.map((step, stepIndex) => (
+                  <li
+                    className={`h-2.5 w-6.5 rounded-full ${step === "ai" ? "bg-ai" : "bg-human"}`}
+                    key={`${assignment.id}-${stepIndex}`}
+                  />
+                ))}
+              </ul>
+              <p className="font-semibold">{assignment.logged}</p>
               <p className="text-body">{assignment.brief}</p>
-              {assignment.id === "reflection" && (
-                <Badge variant="success" className="mt-auto">
-                  <Check aria-hidden="true" /> Submitted
-                </Badge>
-              )}
+              <div className="mt-auto">
+                {assignment.id === "reflection" ? (
+                  <Badge variant="success">Submitted</Badge>
+                ) : (
+                  <Link
+                    className={buttonVariants({
+                      size: "sm",
+                      variant: assignment.id === "lab" ? "outline" : "default",
+                    })}
+                    href="/student/log"
+                  >
+                    {assignment.id === "lab" ? "Open" : "Add steps"}
+                  </Link>
+                )}
+              </div>
             </CardContent>
           </Card>
           <Note tone={assignment.tone} placement="assignment">
