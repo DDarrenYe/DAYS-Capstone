@@ -207,7 +207,7 @@ const CourseCard = ({
       <div className="grid gap-10 min-[1100px]:grid-cols-2">
         <section
           aria-label={`${course.code} assignments`}
-          className="grid gap-5"
+          className="grid content-start gap-5"
         >
           <h3 className="font-bold">Assignments</h3>
           {course.assignments.length === 0 ? (
@@ -240,7 +240,10 @@ const CourseCard = ({
           )}
           <NewAssignmentForm courseId={course.id} userId={userId} />
         </section>
-        <section aria-label={`${course.code} students`} className="grid gap-5">
+        <section
+          aria-label={`${course.code} students`}
+          className="grid content-start gap-5"
+        >
           <h3 className="font-bold">Students · {course.enrolments.length}</h3>
           {course.enrolments.length === 0 ? (
             <p className="text-muted-foreground">No students yet.</p>
