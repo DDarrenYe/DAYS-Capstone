@@ -23,6 +23,7 @@ const navigation: Record<UserRole, NavItem[]> = {
       segment: "flags",
     },
     { icon: "report", label: "Reports", segment: "reports" },
+    { icon: "book", label: "Courses", segment: "courses" },
   ],
   student: [
     { icon: "book", label: "Assignments", segment: null },

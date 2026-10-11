@@ -5,8 +5,9 @@ import type { SubmitEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { coursesQuery } from "@/lib/data/queries";
 import type { CourseRows } from "@/lib/data/queries";
@@ -31,7 +32,7 @@ const outcomeLabels = new Map([
   ["not_a_student", "is an instructor account, not enrolled"],
 ]);
 
-const labelClassName = "text-body font-semibold";
+const labelClassName = "text-label text-body font-emphasis";
 
 const submitForm =
   (submit: (data: FormData, form: HTMLFormElement) => void) =>
@@ -43,7 +44,7 @@ const submitForm =
 const field = (data: FormData, name: string) => String(data.get(name) ?? "");
 
 const FormError = ({ error }: { error: Error | null }) => (
-  <p aria-live="polite" className="text-destructive text-sm">
+  <p aria-live="polite" className="text-destructive text-xs empty:hidden">
     {error?.message}
   </p>
 );
@@ -125,17 +126,20 @@ const NewAssignmentForm = ({
         </label>
         <Input id={`due-${courseId}`} name="dueAt" type="datetime-local" />
       </div>
-      <fieldset className="grid gap-2">
-        <legend className={labelClassName}>Lane</legend>
-        <label className="flex items-center gap-2.5">
-          <input defaultChecked name="lane" type="radio" value="lane_2" />
-          Lane 2 · AI allowed, students keep an AI log
-        </label>
-        <label className="flex items-center gap-2.5">
-          <input name="lane" type="radio" value="lane_1" />
-          Lane 1 · AI restricted
-        </label>
-      </fieldset>
+      <RadioGroup aria-label="Lane" defaultValue="lane_2" name="lane">
+        {[
+          {
+            label: "Lane 2 · AI allowed, students keep an AI log",
+            value: "lane_2",
+          },
+          { label: "Lane 1 · AI restricted", value: "lane_1" },
+        ].map((option) => (
+          <label className="flex items-center gap-2.5" key={option.value}>
+            <RadioGroupItem value={option.value} />
+            {option.label}
+          </label>
+        ))}
+      </RadioGroup>
       <FormError error={error} />
       <Button className="w-fit" disabled={isPending} type="submit">
         {isPending ? "Adding…" : "Add assignment"}
@@ -178,7 +182,7 @@ const EnrolForm = ({
         {isPending ? "Enrolling…" : "Enrol students"}
       </Button>
       {data ? (
-        <ul aria-label="Enrolment results" className="grid gap-1 text-base">
+        <ul aria-label="Enrolment results" className="text-ui grid gap-1">
           {data.map(({ address, outcome }) => (
             <li key={address}>
               {address}: {outcomeLabels.get(outcome) ?? outcome}
@@ -197,19 +201,19 @@ const CourseCard = ({
   course: CourseRows[number];
   userId: string;
 }) => (
-  <Card size="lg">
+  <Card>
     <CardHeader>
-      <h2 className="text-ink text-panel font-bold">
+      <CardTitle>
         {course.code} · {course.title}
-      </h2>
+      </CardTitle>
     </CardHeader>
     <CardContent>
-      <div className="grid gap-10 min-[1100px]:grid-cols-2">
+      <div className="grid gap-8 min-[1100px]:grid-cols-2">
         <section
           aria-label={`${course.code} assignments`}
           className="grid content-start gap-5"
         >
-          <h3 className="font-bold">Assignments</h3>
+          <h3 className="font-heading">Assignments</h3>
           {course.assignments.length === 0 ? (
             <p className="text-muted-foreground">No assignments yet.</p>
           ) : (
@@ -220,11 +224,11 @@ const CourseCard = ({
                   key={assignment.id}
                 >
                   <Badge
-                    variant={assignment.lane === "lane_2" ? "ai" : "neutral"}
+                    variant={assignment.lane === "lane_2" ? "ai" : "default"}
                   >
                     {assignment.lane === "lane_2" ? "Lane 2" : "Lane 1"}
                   </Badge>
-                  <span className="font-semibold">{assignment.title}</span>
+                  <span className="font-emphasis">{assignment.title}</span>
                   {assignment.due_at ? (
                     <time
                       className="text-muted-foreground"
@@ -244,7 +248,9 @@ const CourseCard = ({
           aria-label={`${course.code} students`}
           className="grid content-start gap-5"
         >
-          <h3 className="font-bold">Students · {course.enrolments.length}</h3>
+          <h3 className="font-heading">
+            Students · {course.enrolments.length}
+          </h3>
           {course.enrolments.length === 0 ? (
             <p className="text-muted-foreground">No students yet.</p>
           ) : (
@@ -255,11 +261,7 @@ const CourseCard = ({
                   key={enrolment.id}
                 >
                   <span>{enrolment.email}</span>
-                  {enrolment.student_id ? null : (
-                    <Badge size="sm" variant="neutral">
-                      Invited
-                    </Badge>
-                  )}
+                  {enrolment.student_id ? null : <Badge>Invited</Badge>}
                 </li>
               ))}
             </ul>
@@ -286,10 +288,10 @@ export const CourseSetup = ({
     initialDataUpdatedAt: fetchedAt,
   });
   return (
-    <div className="mt-12 grid gap-10">
-      <Card size="lg">
+    <div className="mt-5 grid gap-4">
+      <Card>
         <CardHeader>
-          <h2 className="text-ink text-panel font-bold">New course</h2>
+          <CardTitle>New course</CardTitle>
         </CardHeader>
         <CardContent>
           <NewCourseForm userId={userId} />
@@ -307,7 +309,7 @@ export const CourseSetupSkeleton = () => (
     <output className="sr-only">Loading courses…</output>
     <div
       aria-hidden="true"
-      className="bg-card/70 shadow-hairline mt-12 min-h-80 animate-pulse rounded-2xl motion-reduce:animate-none"
+      className="bg-muted shadow-hairline mt-5 h-62 animate-pulse rounded-xl motion-reduce:animate-none"
     />
   </>
 );
