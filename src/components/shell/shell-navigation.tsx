@@ -1,6 +1,5 @@
 "use client";
 
-import { Menu } from "@base-ui/react/menu";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSelectedLayoutSegment } from "next/navigation";
@@ -8,6 +7,16 @@ import { useActionState } from "react";
 
 import { signOut } from "@/app/actions";
 import { Avatar } from "@/components/shell/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuLinkItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const navigation = {
   student: [
@@ -73,49 +82,42 @@ export const UserMenu = ({
   const pathname = usePathname();
   const isStudent = userRole === "student";
   return (
-    <Menu.Root key={pathname} modal={false}>
-      <Menu.Trigger
+    <DropdownMenu key={pathname} modal={false}>
+      <DropdownMenuTrigger
         aria-label={`User menu for ${userName}`}
-        className="rounded-navigation flex min-h-11 cursor-pointer items-center gap-2.5 font-semibold"
+        render={<Button variant="ghost" size="sm" />}
       >
-        <Avatar tone={isStudent ? "human" : "ai"}>
+        <Avatar size="sm" tone={isStudent ? "human" : "ai"}>
           {[...userName][0]?.toUpperCase() ?? ""}
         </Avatar>
         <span>{userName}</span>
         <ChevronDown aria-hidden="true" size={16} />
-      </Menu.Trigger>
-      <Menu.Portal>
-        <Menu.Positioner align="end" sideOffset={12} className="z-10">
-          <Menu.Popup className="bg-card shadow-lift rounded-menu w-61 max-w-[calc(100vw-40px)] p-3">
-            <Menu.Group>
-              <Menu.GroupLabel className="text-muted-foreground p-2 text-sm">
-                Signed in as {userName}
-              </Menu.GroupLabel>
-              <form action={action}>
-                <Menu.Item
-                  nativeButton
-                  render={<button aria-label="Sign out" type="submit" />}
-                  disabled={pending}
-                  closeOnClick={false}
-                  className="hover:bg-subtle data-highlighted:bg-subtle block w-full rounded-lg px-2 py-2.5 text-left"
-                >
-                  {pending ? "Signing out…" : "Sign out"}
-                </Menu.Item>
-                <p aria-live="polite" className="text-destructive px-2 text-sm">
-                  {state.error}
-                </p>
-              </form>
-              <Menu.LinkItem
-                closeOnClick
-                render={<Link href="/privacy" />}
-                className="hover:bg-subtle data-highlighted:bg-subtle block rounded-lg px-2 py-2.5"
-              >
-                Privacy
-              </Menu.LinkItem>
-            </Menu.Group>
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
-    </Menu.Root>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        sideOffset={12}
+        className="w-61 max-w-[calc(100vw-40px)]"
+      >
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Signed in as {userName}</DropdownMenuLabel>
+          <form action={action}>
+            <DropdownMenuItem
+              nativeButton
+              render={<button aria-label="Sign out" type="submit" />}
+              disabled={pending}
+              closeOnClick={false}
+            >
+              {pending ? "Signing out…" : "Sign out"}
+            </DropdownMenuItem>
+            <p aria-live="polite" className="text-destructive px-2 text-sm">
+              {state.error}
+            </p>
+          </form>
+          <DropdownMenuLinkItem closeOnClick render={<Link href="/privacy" />}>
+            Privacy
+          </DropdownMenuLinkItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
