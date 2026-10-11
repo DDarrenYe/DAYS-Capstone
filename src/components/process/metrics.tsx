@@ -44,20 +44,17 @@ export const DepthMeter = ({ depth }: { depth: number }) => {
 export const Stat = ({
   label,
   children,
-  index,
   className,
 }: {
   label: string;
   children: ReactNode;
-  index: number;
   className?: string;
 }) => (
   <div
     className={cn(
-      "animate-rise stagger min-w-30 border-l px-5.5 first:border-l-0 first:pl-0",
+      "min-w-30 border-l px-5.5 first:border-l-0 first:pl-0",
       className
     )}
-    style={{ "--i": index }}
   >
     <div className="text-label text-muted-foreground font-emphasis">
       {label}

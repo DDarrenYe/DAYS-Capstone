@@ -43,7 +43,11 @@ export const signIn = async (
   redirect(destination);
 };
 
-export const signOut = async (_previous: { error: string }) => {
+/*
+  Signing out ends with a full page load on the client rather than redirect(): Next keeps recent pages and their
+  state alive across client navigation, and a shared lab computer must not show one student's draft to the next.
+*/
+export const signOut = async () => {
   try {
     const supabase = await createClient({ writeCookies: true });
     const { error } = await supabase.auth.signOut({ scope: "local" });
@@ -54,5 +58,5 @@ export const signOut = async (_previous: { error: string }) => {
     console.error("Sign-out failed", error);
     return { error: "Unable to sign out. Try again shortly." };
   }
-  redirect("/");
+  return { error: "" };
 };

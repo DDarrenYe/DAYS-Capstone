@@ -102,6 +102,7 @@ const glyphs = {
       <path d="M12.75 12.75 16.5 16.5" strokeWidth={2.25} />
     </>
   ),
+  down: <path d="M6 8.25l4 4 4-4" />,
   left: <path d="M11.75 6l-4 4 4 4" />,
   right: <path d="M8.25 6l4 4-4 4" />,
   updown: <path d="M7 7.75l3-3 3 3 M7 12.25l3 3 3-3" />,

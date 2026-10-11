@@ -1,33 +1,15 @@
-import { cva } from "class-variance-authority";
-import type { VariantProps } from "class-variance-authority";
 import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const cardVariants = cva(
-  "bg-card text-card-foreground shadow-hairline flex flex-col overflow-hidden rounded-xl",
-  {
-    defaultVariants: { entrance: "none" },
-    variants: {
-      entrance: {
-        fade: "animate-fade stagger",
-        none: "",
-        rise: "animate-rise stagger",
-      },
-    },
-  }
-);
-
-/* entrance staggers by the --i custom property, set through style on the card. */
-function Card({
-  className,
-  entrance,
-  ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof cardVariants>) {
+function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
-      className={cn(cardVariants({ entrance }), className)}
+      className={cn(
+        "bg-card text-card-foreground shadow-hairline flex flex-col overflow-hidden rounded-xl",
+        className
+      )}
       {...props}
     />
   );

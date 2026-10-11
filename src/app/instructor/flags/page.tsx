@@ -14,7 +14,7 @@ const FlagsPage = () => (
       example
     />
     <div className="flex-1 overflow-y-auto">
-      <section className="animate-rise px-6 pt-5 max-md:px-4">
+      <section className="px-6 pt-5 max-md:px-4">
         <h1 className="text-title font-semibold">
           {cohortFlags.length} flags across {students} students
         </h1>

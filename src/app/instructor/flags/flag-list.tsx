@@ -9,11 +9,12 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { CohortFlag } from "@/lib/example-data";
+import { stepKey, useFlagDecisions } from "@/lib/review-state";
 import { cn } from "@/lib/utils";
 
-type Decision = "open" | "kept" | "dismissed";
+type View = "open" | "kept" | "dismissed";
 
-const flagKey = (flag: CohortFlag) => `${flag.name}-${flag.step}`;
+const flagKey = (flag: CohortFlag) => stepKey(flag.name, flag.step);
 
 export const FlagList = ({
   flags,
@@ -22,15 +23,24 @@ export const FlagList = ({
   flags: readonly CohortFlag[];
   detailFor: string;
 }) => {
-  const [decisions, setDecisions] = useState<Record<string, Decision>>({});
+  const { decide: record, decisions } = useFlagDecisions();
   const [show, setShow] = useState<string>("open");
-  const decisionOf = (flag: CohortFlag) => decisions[flagKey(flag)] ?? "open";
-  const decide = (flag: CohortFlag, decision: Decision) =>
-    setDecisions((current) => ({ ...current, [flagKey(flag)]: decision }));
-  const visible = flags.filter(
-    (flag) => show === "all" || decisionOf(flag) === show
+  const [decidedHere, setDecidedHere] = useState<ReadonlySet<string>>(
+    new Set()
   );
-  const count = (decision: Decision) =>
+  const decisionOf = (flag: CohortFlag): View =>
+    decisions[flagKey(flag)] ?? "open";
+  const decide = (flag: CohortFlag, decision: View) => {
+    record(flagKey(flag), decision === "open" ? undefined : decision);
+    setDecidedHere((current) => new Set(current).add(flagKey(flag)));
+  };
+  const visible = flags.filter(
+    (flag) =>
+      show === "all" ||
+      decisionOf(flag) === show ||
+      decidedHere.has(flagKey(flag))
+  );
+  const count = (decision: View) =>
     flags.filter((flag) => decisionOf(flag) === decision).length;
 
   return (
@@ -41,6 +51,7 @@ export const FlagList = ({
           const [next] = value;
           if (next) {
             setShow(next);
+            setDecidedHere(new Set());
           }
         }}
         value={[show]}
@@ -53,12 +64,17 @@ export const FlagList = ({
         <ToggleGroupItem value="all">All {flags.length}</ToggleGroupItem>
       </ToggleGroup>
       <ul className="mt-3.5 grid gap-2.5">
-        {visible.map((flag, index) => {
+        {visible.map((flag) => {
           const decision = decisionOf(flag);
           return (
             <li key={flagKey(flag)}>
-              <Card entrance="rise" style={{ "--i": index }}>
-                <div className="grid gap-x-4 gap-y-2 px-4 py-3.5 md:grid-cols-[220px_minmax(0,1fr)_auto]">
+              <Card>
+                <div
+                  className={cn(
+                    "grid gap-x-4 gap-y-2 px-4 py-3.5 transition-opacity duration-200 ease-out md:grid-cols-[220px_minmax(0,1fr)_auto]",
+                    decision === "dismissed" && "opacity-60"
+                  )}
+                >
                   <div className="flex items-start gap-2.5">
                     <Avatar name={flag.name} />
                     <div>
@@ -72,7 +88,7 @@ export const FlagList = ({
                   <div className="min-w-0">
                     <p
                       className={cn(
-                        "font-heading flex items-center gap-1.75",
+                        "font-heading flex items-center gap-1.75 transition-colors duration-200",
                         decision === "dismissed"
                           ? "text-muted-foreground"
                           : "text-flag-ink"
@@ -116,7 +132,7 @@ export const FlagList = ({
                           size: "icon-sm",
                           variant: "ghost",
                         })}
-                        href="/instructor/visualiser"
+                        href={`/instructor/visualiser?step=${flag.step}`}
                       >
                         <Icon name="right" />
                       </Link>

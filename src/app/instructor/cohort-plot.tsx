@@ -104,9 +104,9 @@ export const CohortPlot = ({
         >
           median {formatPercent(median)}
         </text>
-        {students.map((student, index) => (
+        {students.map((student) => (
           <circle
-            className="animate-fade stagger-fast stroke-card cursor-pointer"
+            className="stroke-card"
             cx={x(student.traced)}
             cy={y(student.depth)}
             fill={dotFill(student)}
@@ -117,7 +117,6 @@ export const CohortPlot = ({
             r={student.detail ? 6 : 5}
             stroke={student.detail ? "var(--ai)" : undefined}
             strokeWidth={student.detail ? 2.5 : 1.5}
-            style={{ "--i": index }}
           />
         ))}
         {students

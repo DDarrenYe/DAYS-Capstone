@@ -36,8 +36,8 @@ const StudentPage = () => (
   <>
     <PageBar crumbs={[{ label: "Assignments" }]} />
     <div className="flex-1 overflow-y-auto px-6 pt-5 pb-6 max-md:px-4">
-      <h1 className="text-title animate-rise font-semibold">Assignments</h1>
-      <p className="text-muted-foreground animate-rise stagger mt-1.5 [--i:1]">
+      <h1 className="text-title font-semibold">Assignments</h1>
+      <p className="text-muted-foreground mt-1.5">
         Your tasks this semester. Lane 2 tasks keep an AI log; Lane 1 tasks
         restrict AI.
       </p>

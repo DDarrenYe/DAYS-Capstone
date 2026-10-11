@@ -121,7 +121,6 @@ const ReportPage = ({ on }: { on: Record<Section, boolean> }) => (
             base={84}
             height={124}
             labels
-            scale={0.17}
             steps={steps}
             width={666}
           />

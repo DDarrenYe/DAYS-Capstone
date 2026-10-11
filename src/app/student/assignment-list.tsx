@@ -47,17 +47,13 @@ export const AssignmentList = ({
   }
   return (
     <section aria-label="Your assignments" className={gridClassName}>
-      {assignments.map((assignment, index) => {
+      {assignments.map((assignment) => {
         const [project] = assignment.projects;
         const steps = project?.iterations[0]?.count ?? 0;
         const submitted = project?.status === "submitted";
         const aiAllowed = assignment.lane === "lane_2";
         return (
-          <Card
-            entrance="rise"
-            key={assignment.id}
-            style={{ "--i": index + 2 }}
-          >
+          <Card key={assignment.id}>
             <CardContent className="flex flex-1 flex-col">
               <div className="flex flex-1 flex-col gap-3.5">
                 <div className="flex items-center gap-2">

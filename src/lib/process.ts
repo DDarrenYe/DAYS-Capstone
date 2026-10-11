@@ -75,3 +75,19 @@ export const critiqueCoverage = ({
   check: countWords(check) >= 6,
   verdict: verdict !== null,
 });
+
+/* Rounds up to a readable step times a power of ten. Fine steps keep the tallest bar near the top of its chart. */
+export const niceCeil = (value: number) => {
+  if (value <= 0) {
+    return 1;
+  }
+  const power = 10 ** Math.floor(Math.log10(value));
+  const step = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].find(
+    (candidate) => value / power <= candidate
+  );
+  return (step ?? 10) * power;
+};
+
+/* The axis maximum for a set of steps: the longest AI answer, rounded up with niceCeil. */
+export const wordsAxis = (steps: readonly Pick<Step, "words">[]) =>
+  niceCeil(Math.max(0, ...steps.map((step) => step.words)));

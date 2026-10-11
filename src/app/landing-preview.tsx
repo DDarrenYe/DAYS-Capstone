@@ -43,7 +43,6 @@ export const LandingPreview = () => (
           className="w-full"
           height={104}
           labels
-          scale={0.15}
           steps={steps}
           width={520}
         />

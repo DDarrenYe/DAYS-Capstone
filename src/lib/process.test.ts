@@ -6,6 +6,8 @@ import {
   countWords,
   critiqueCoverage,
   formatPercent,
+  niceCeil,
+  wordsAxis,
   summarise,
 } from "./process";
 
@@ -62,4 +64,22 @@ test("the example cohort agrees with its flag list and the open student", () => 
     const flagged = row.steps.filter((step) => step.flag).length;
     assert.equal(flagged, row.flags, row.name);
   }
+});
+
+test("niceCeil rounds up to a readable step that keeps bars tall", () => {
+  assert.equal(niceCeil(0), 1);
+  assert.equal(niceCeil(1), 1);
+  assert.equal(niceCeil(1.2), 1.5);
+  assert.equal(niceCeil(420), 500);
+  assert.equal(niceCeil(500), 500);
+  assert.equal(niceCeil(501), 600);
+  assert.equal(niceCeil(1840), 2000);
+  assert.equal(niceCeil(2019), 2500);
+  assert.equal(niceCeil(9001), 10_000);
+});
+
+test("wordsAxis fits the longest answer, so long ChatGPT turns never overflow", () => {
+  assert.equal(wordsAxis(steps), 500);
+  assert.equal(wordsAxis([{ words: 2600 }, { words: 40 }]), 3000);
+  assert.equal(wordsAxis([]), 1);
 });

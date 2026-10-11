@@ -1,8 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
+import { parseAsInteger, useQueryState } from "nuqs";
+import {
+  useEffect,
+  useEffectEvent,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
+import { z } from "zod";
 
 import { Icon } from "@/components/icon";
 import type { IconName } from "@/components/icon";
@@ -23,8 +32,9 @@ import { Kbd } from "@/components/ui/kbd";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { assignmentName, steps } from "@/lib/example-data";
+import { usePersistentState } from "@/lib/local-state";
 import { addMark, splitMarks } from "@/lib/marks";
-import type { Mark, MarkKind } from "@/lib/marks";
+import type { MarkKind } from "@/lib/marks";
 import {
   countWords,
   critiqueCoverage,
@@ -35,6 +45,43 @@ import type { CritiqueQuestion } from "@/lib/process";
 import { cn } from "@/lib/utils";
 
 const CURRENT = 6;
+
+/* Steps are numbered from 1 in the URL. My log opens on the step being written. */
+const stepParser = parseAsInteger.withDefault(CURRENT + 1).withOptions({
+  history: "replace",
+});
+
+/* The critique being written, kept on this device until the log is saved to Supabase (#21). */
+const draftSchema = z.object({
+  change: z.string(),
+  check: z.string(),
+  marks: z.array(
+    z.object({
+      end: z.number().int().nonnegative(),
+      kind: z.enum(["wrong", "unsourced", "used"]),
+      start: z.number().int().nonnegative(),
+    })
+  ),
+  sources: z.array(z.url()),
+  verdict: z.string().nullable(),
+});
+
+type Draft = z.infer<typeof draftSchema>;
+
+const DRAFT_FALLBACK: Draft = {
+  change:
+    "I rewrote the sentence in paragraph 3 to say “every week” and cited the survey",
+  check:
+    "I looked up the 2025 Universities NZ student survey. It reports 64% weekly use of AI tools, and it does not say the use is for assignments.",
+  marks: [],
+  sources: ["https://www.universitiesnz.ac.nz/student-survey-2025"],
+  verdict: "wrong",
+};
+
+const savedSchema = z.array(z.number().int().positive());
+const SAVED_FALLBACK = steps.flatMap((_, index) =>
+  index < CURRENT ? [index + 1] : []
+);
 
 const MARKS: {
   kind: MarkKind;
@@ -91,19 +138,14 @@ const Part = ({
   meta,
   active = false,
   children,
-  index,
 }: {
   number: string;
   title: string;
   meta?: ReactNode;
   active?: boolean;
   children: ReactNode;
-  index: number;
 }) => (
-  <section
-    className="animate-rise stagger before:bg-border relative grid grid-cols-[26px_minmax(0,1fr)] gap-x-3.5 pb-6.5 before:absolute before:top-7 before:bottom-1 before:left-[12.5px] before:w-px last:before:hidden"
-    style={{ "--i": index }}
-  >
+  <section className="before:bg-border relative grid grid-cols-[26px_minmax(0,1fr)] gap-x-3.5 pb-6.5 before:absolute before:top-7 before:bottom-1 before:left-[12.5px] before:w-px last:before:hidden">
     <span
       className={cn(
         "text-label grid size-6.5 place-items-center rounded-lg font-mono font-medium",
@@ -138,7 +180,7 @@ const StepRail = ({
 }) => (
   <nav
     aria-label="Steps in Essay 2"
-    className="animate-fade flex flex-col gap-0.5 px-3 py-4.5 max-lg:border-b lg:overflow-y-auto lg:border-r"
+    className="flex flex-col gap-0.5 px-3 py-4.5 max-lg:border-b lg:overflow-y-auto lg:border-r"
   >
     <span className="text-label text-muted-foreground font-emphasis px-2.5 pb-2">
       Essay 2 · {steps.length} steps
@@ -210,7 +252,7 @@ const CritiqueSidebar = ({
   saved: number;
 }) => (
   <aside className="flex flex-col gap-4.5 px-4.5 py-4.5 max-lg:border-t lg:overflow-y-auto lg:border-l">
-    <section className="animate-rise stagger [--i:3]">
+    <section>
       <h2 className="text-label text-muted-foreground font-emphasis mb-2">
         Your critique covers
       </h2>
@@ -247,7 +289,7 @@ const CritiqueSidebar = ({
       </ul>
     </section>
 
-    <section className="animate-rise stagger shadow-hairline rounded-xl px-3.5 py-3 [--i:4]">
+    <section className="shadow-hairline rounded-xl px-3.5 py-3">
       <div className="flex items-baseline justify-between">
         <h2 className="text-label text-muted-foreground font-emphasis">
           Your process so far
@@ -258,7 +300,6 @@ const CritiqueSidebar = ({
         base={44}
         className="mt-2.5 w-full"
         height={64}
-        scale={0.1}
         steps={steps.slice(0, CURRENT + 1)}
         width={262}
       />
@@ -278,7 +319,7 @@ const CritiqueSidebar = ({
       </ul>
     </section>
 
-    <section className="animate-rise stagger bg-muted text-body text-meta rounded-xl px-3.5 py-3 [--i:5]">
+    <section className="bg-muted text-body text-meta rounded-xl px-3.5 py-3">
       <h2 className="text-foreground font-heading mb-1 flex items-center gap-1.75">
         <Icon name="eye" />
         Who sees this
@@ -288,7 +329,7 @@ const CritiqueSidebar = ({
       grades you.
     </section>
 
-    <dl className="text-muted-foreground animate-rise stagger grid grid-cols-[auto_1fr] items-center gap-x-2.5 gap-y-1.75 text-xs [--i:6]">
+    <dl className="text-muted-foreground grid grid-cols-[auto_1fr] items-center gap-x-2.5 gap-y-1.75 text-xs">
       <dt>
         <Kbd>⌘↵</Kbd>
       </dt>
@@ -302,27 +343,28 @@ const CritiqueSidebar = ({
 );
 
 export const StepComposer = () => {
-  const [done, setDone] = useState(() =>
-    steps.map((_, index) => index < CURRENT)
+  const [savedSteps, setSavedSteps] = usePersistentState(
+    "log:essay-2:saved",
+    savedSchema,
+    SAVED_FALLBACK
   );
-  const [verdict, setVerdict] = useState<string | null>("wrong");
-  const [check, setCheck] = useState(
-    "I looked up the 2025 Universities NZ student survey. It reports 64% weekly use of AI tools, and it does not say the use is for assignments."
+  const [draft, setDraft] = usePersistentState(
+    `log:essay-2:draft:${CURRENT + 1}`,
+    draftSchema,
+    DRAFT_FALLBACK
   );
-  const [change, setChange] = useState(
-    "I rewrote the sentence in paragraph 3 to say “every week” and cited the survey"
-  );
-  const [sources, setSources] = useState([
-    "https://www.universitiesnz.ac.nz/student-survey-2025",
-  ]);
+  const { verdict, check, change, sources, marks } = draft;
+  const edit = (patch: Partial<Draft>) =>
+    setDraft((current) => ({ ...current, ...patch }));
   const [source, setSource] = useState("");
-  const [marks, setMarks] = useState<Mark[]>([]);
   const [pending, setPending] = useState<{
     start: number;
     end: number;
     rect: DOMRect;
   } | null>(null);
-  const [viewing, setViewing] = useState(CURRENT);
+  const [stepParam, setStepParam] = useQueryState("step", stepParser);
+  const viewing = Math.min(Math.max(stepParam, 1), steps.length) - 1;
+  const done = steps.map((_, index) => savedSteps.includes(index + 1));
   const answerRef = useRef<HTMLDivElement>(null);
   const verdictLabel = useId();
   const fieldId = useId();
@@ -334,11 +376,18 @@ export const StepComposer = () => {
 
   const save = () => {
     if (complete) {
-      setDone((current) =>
-        current.map((value, index) => value || index === CURRENT)
+      setSavedSteps((current) =>
+        current.includes(CURRENT + 1) ? current : [...current, CURRENT + 1]
       );
     }
   };
+
+  useLayoutEffect(
+    () => () => {
+      setPending(null);
+    },
+    []
+  );
 
   const onShortcut = useEffectEvent((event: KeyboardEvent) => {
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
@@ -348,8 +397,9 @@ export const StepComposer = () => {
   });
 
   useEffect(() => {
-    globalThis.addEventListener("keydown", onShortcut);
-    return () => globalThis.removeEventListener("keydown", onShortcut);
+    const handle = (event: KeyboardEvent) => onShortcut(event);
+    globalThis.addEventListener("keydown", handle);
+    return () => globalThis.removeEventListener("keydown", handle);
   }, []);
 
   const onSelectionEnd = useEffectEvent(() => {
@@ -370,19 +420,20 @@ export const StepComposer = () => {
   });
 
   useEffect(() => {
-    document.addEventListener("pointerup", onSelectionEnd);
-    document.addEventListener("keyup", onSelectionEnd);
+    const handle = () => onSelectionEnd();
+    document.addEventListener("pointerup", handle);
+    document.addEventListener("keyup", handle);
     return () => {
-      document.removeEventListener("pointerup", onSelectionEnd);
-      document.removeEventListener("keyup", onSelectionEnd);
+      document.removeEventListener("pointerup", handle);
+      document.removeEventListener("keyup", handle);
     };
   }, []);
 
   const mark = (kind: MarkKind) => {
     if (pending) {
-      setMarks((current) =>
-        addMark(current, { end: pending.end, kind, start: pending.start })
-      );
+      edit({
+        marks: addMark(marks, { end: pending.end, kind, start: pending.start }),
+      });
     }
     globalThis.getSelection()?.removeAllRanges();
     setPending(null);
@@ -391,7 +442,7 @@ export const StepComposer = () => {
   const addSource = () => {
     const url = source.trim();
     if (URL.canParse(url) && !sources.includes(url)) {
-      setSources((current) => [...current, url]);
+      edit({ sources: [...sources, url] });
       setSource("");
     }
   };
@@ -406,6 +457,12 @@ export const StepComposer = () => {
         ]}
         example
       >
+        {draft === DRAFT_FALLBACK ? null : (
+          <span className="text-muted-foreground text-meta flex items-center gap-1.5">
+            <Icon className="text-success" name="check" />
+            Draft kept on this device
+          </span>
+        )}
         <Link
           className="text-muted-foreground hover:text-foreground text-meta flex items-center gap-1.5"
           href="/privacy"
@@ -416,29 +473,33 @@ export const StepComposer = () => {
       </PageBar>
 
       <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[252px_minmax(0,1fr)_300px] lg:overflow-hidden">
-        <StepRail done={done} onView={setViewing} viewing={viewing} />
+        <StepRail
+          done={done}
+          onView={(index) => setStepParam(index + 1)}
+          viewing={viewing}
+        />
 
         <div className="flex min-h-0 flex-col lg:overflow-y-auto">
           {step && viewing !== CURRENT ? (
             <article className="px-10 py-5.5 max-md:px-4" key={viewing}>
-              <p className="animate-rise text-muted-foreground text-meta flex items-center gap-2">
+              <p className="text-muted-foreground text-meta flex items-center gap-2">
                 <span className="font-mono">
                   Step {viewing + 1} of {steps.length}
                 </span>
                 · {step.time}
               </p>
-              <h1 className="text-title animate-rise stagger mt-1 mb-4.5 font-semibold [--i:1]">
+              <h1 className="text-title mt-1 mb-4.5 font-semibold">
                 {step.title}
               </h1>
-              <Part index={2} number="01" title="What you asked">
+              <Part number="01" title="What you asked">
                 <p className="text-body">{step.asked}</p>
               </Part>
-              <Part index={3} number="02" title="What the AI answered">
+              <Part number="02" title="What the AI answered">
                 <p className="bg-muted shadow-hairline text-body rounded-lg px-3.75 py-3.25 leading-relaxed">
                   <Answer segments={step.answer} />
                 </p>
               </Part>
-              <Part index={4} number="03" title="Your critique">
+              <Part number="03" title="Your critique">
                 <blockquote className="text-reading border-border-strong text-read border-l-2 pl-3 font-serif">
                   {step.critique}
                 </blockquote>
@@ -458,18 +519,17 @@ export const StepComposer = () => {
                 save();
               }}
             >
-              <p className="animate-rise text-muted-foreground text-meta flex items-center gap-2">
+              <p className="text-muted-foreground text-meta flex items-center gap-2">
                 <span className="font-mono">
                   Step {CURRENT + 1} of {steps.length}
                 </span>
                 · Thu 9 Oct ·<Badge variant="ai">Lane 2</Badge>
               </p>
-              <h1 className="text-title animate-rise stagger mt-1 mb-4.5 font-semibold [--i:1]">
+              <h1 className="text-title mt-1 mb-4.5 font-semibold">
                 {steps[CURRENT]?.title}
               </h1>
 
               <Part
-                index={2}
                 meta={
                   <span className="bg-muted shadow-hairline flex h-6 items-center gap-1.5 rounded-md px-2 text-xs">
                     <Icon className="text-ai size-3.5" name="link" />
@@ -485,7 +545,6 @@ export const StepComposer = () => {
               </Part>
 
               <Part
-                index={3}
                 meta={`Imported · ${countWords(answerText)} words`}
                 number="02"
                 title="What the AI answered"
@@ -561,7 +620,6 @@ export const StepComposer = () => {
 
               <Part
                 active
-                index={4}
                 meta="Your grader reads this"
                 number="03"
                 title="Your critique"
@@ -575,7 +633,9 @@ export const StepComposer = () => {
                   </span>
                   <ToggleGroup
                     aria-labelledby={verdictLabel}
-                    onValueChange={(value) => setVerdict(value[0] ?? null)}
+                    onValueChange={(value) =>
+                      edit({ verdict: value[0] ?? null })
+                    }
                     value={verdict ? [verdict] : []}
                   >
                     <ToggleGroupItem value="right">Right</ToggleGroupItem>
@@ -591,7 +651,7 @@ export const StepComposer = () => {
                 </label>
                 <Textarea
                   id={`${fieldId}-check`}
-                  onChange={(event) => setCheck(event.target.value)}
+                  onChange={(event) => edit({ check: event.target.value })}
                   value={check}
                 />
                 <ul className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -606,9 +666,9 @@ export const StepComposer = () => {
                         aria-label={`Remove ${url}`}
                         className="text-faint hover:text-foreground rounded-sm"
                         onClick={() =>
-                          setSources((current) =>
-                            current.filter((item) => item !== url)
-                          )
+                          edit({
+                            sources: sources.filter((item) => item !== url),
+                          })
                         }
                         type="button"
                       >
@@ -645,7 +705,7 @@ export const StepComposer = () => {
                 </label>
                 <Textarea
                   id={`${fieldId}-change`}
-                  onChange={(event) => setChange(event.target.value)}
+                  onChange={(event) => edit({ change: event.target.value })}
                   value={change}
                 />
                 <div className="shadow-hairline mt-3.5 overflow-hidden rounded-lg">

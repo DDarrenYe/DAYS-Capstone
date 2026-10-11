@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSelectedLayoutSegment } from "next/navigation";
-import { useActionState } from "react";
+import { useState, useTransition } from "react";
 
 import { signOut } from "@/app/actions";
 import { Icon } from "@/components/icon";
@@ -18,6 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { clearLocalState } from "@/lib/local-state";
 
 export type UserRole = "student" | "instructor";
 
@@ -73,7 +74,18 @@ export const UserMenu = ({
   userRole: UserRole;
   displayName: string;
 }) => {
-  const [state, action, pending] = useActionState(signOut, { error: "" });
+  const [error, setError] = useState("");
+  const [pending, startTransition] = useTransition();
+  const leave = () =>
+    startTransition(async () => {
+      const result = await signOut();
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      clearLocalState();
+      globalThis.location.assign("/");
+    });
   const pathname = usePathname();
   const role = userRole === "student" ? "Student" : "Grader";
   return (
@@ -113,19 +125,16 @@ export const UserMenu = ({
             Privacy and who sees what
           </DropdownMenuLinkItem>
           <DropdownMenuSeparator />
-          <form action={action}>
-            <DropdownMenuItem
-              nativeButton
-              render={<button aria-label="Sign out" type="submit" />}
-              disabled={pending}
-              closeOnClick={false}
-            >
-              {pending ? "Signing out…" : "Sign out"}
-            </DropdownMenuItem>
-            <p aria-live="polite" className="text-destructive px-2 text-xs">
-              {state.error}
-            </p>
-          </form>
+          <DropdownMenuItem
+            closeOnClick={false}
+            disabled={pending}
+            onClick={leave}
+          >
+            {pending ? "Signing out…" : "Sign out"}
+          </DropdownMenuItem>
+          <p aria-live="polite" className="text-destructive px-2 text-xs">
+            {error}
+          </p>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

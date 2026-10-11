@@ -330,6 +330,8 @@ export interface CohortStudent {
   flags: number;
   status: Status;
   submitted: string;
+  /* Minutes after Monday 00:00 of the due week, so submissions sort by time rather than by label. */
+  submittedAt: number;
   steps: Pick<Step, "words" | "carried" | "critiqueWords" | "flag">[];
   detail: boolean;
 }
@@ -397,6 +399,9 @@ export const cohort: CohortStudent[] = Array.from(
     const traced = known?.traced ?? 0.06 + random() * 0.36;
     const hours = Math.floor(random() * 50);
     const isJohn = name === student.name;
+    const day = isJohn ? 2 : hours % 3;
+    const hour = isJohn ? 16 : 9 + (hours % 14);
+    const minute = isJohn ? 42 : (hours * 7) % 60;
     return {
       caught: known?.caught ?? Math.floor(random() * 5),
       depth,
@@ -419,9 +424,8 @@ export const cohort: CohortStudent[] = Array.from(
               words,
             };
           }),
-      submitted: isJohn
-        ? "Fri 16:42"
-        : `${DAYS[hours % 3]} ${String(9 + (hours % 14)).padStart(2, "0")}:${String((hours * 7) % 60).padStart(2, "0")}`,
+      submitted: `${DAYS[day]} ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+      submittedAt: (day + 2) * 1440 + hour * 60 + minute,
       traced,
     };
   }

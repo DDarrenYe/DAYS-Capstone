@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { parseAsInteger, useQueryState } from "nuqs";
+import { useEffect, useEffectEvent, useState } from "react";
 import type { ReactNode } from "react";
 
 import { Icon } from "@/components/icon";
@@ -29,10 +30,56 @@ import {
   student,
   summary,
 } from "@/lib/example-data";
-import { critiqueOrder, critiqueQuestions, formatPercent } from "@/lib/process";
+import {
+  countWords,
+  critiqueOrder,
+  critiqueQuestions,
+  formatPercent,
+} from "@/lib/process";
+import {
+  stepKey,
+  useFlagDecisions,
+  useReviewed,
+  useStepNotes,
+} from "@/lib/review-state";
 import { cn } from "@/lib/utils";
 
-type Decision = "kept" | "dismissed";
+/* Past this many words, prompts and answers collapse to four lines. ChatGPT replies often run to hundreds. */
+const LONG_TEXT_WORDS = 45;
+
+const Clamped = ({
+  words,
+  children,
+}: {
+  words: number;
+  children: ReactNode;
+}) => {
+  const [open, setOpen] = useState(false);
+  const long = words > LONG_TEXT_WORDS;
+  return (
+    <>
+      <p
+        className={cn(
+          "text-body",
+          long && !open && "line-clamp-4",
+          open && "max-h-96 overflow-y-auto pr-1"
+        )}
+      >
+        {children}
+      </p>
+      {long ? (
+        <button
+          aria-expanded={open}
+          className="text-ai-ink text-meta mt-1 hover:underline"
+          onClick={() => setOpen((current) => !current)}
+          type="button"
+        >
+          {open ? "Show less" : `Show all ${words.toLocaleString("en")} words`}
+        </button>
+      ) : null}
+    </>
+  );
+};
 
 const isTyping = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
@@ -59,47 +106,55 @@ const Field = ({
   </section>
 );
 
+/* Steps are numbered from 1 in the URL, as graders see them. The view opens on the first flagged step. */
+const stepParser = parseAsInteger
+  .withDefault(steps.findIndex((item) => item.flag) + 1 || 1)
+  .withOptions({
+    history: "replace",
+  });
+
 export const Visualiser = () => {
-  const [selected, setSelected] = useState(5);
+  const [stepParam, setStepParam] = useQueryState("step", stepParser);
   const [hovered, setHovered] = useState<number | null>(null);
   const [animate, setAnimate] = useState(false);
   const [traced, setTraced] = useState(true);
-  const [decisions, setDecisions] = useState<Record<number, Decision>>({});
-  const [reviewed, setReviewed] = useState(false);
+  const { decide, decisions } = useFlagDecisions();
+  const { markReviewed, reviewed: reviewedIds } = useReviewed();
+  const { notes, writeNote } = useStepNotes();
+  const selected = Math.min(Math.max(stepParam, 1), steps.length) - 1;
   const focus = hovered ?? selected;
   const step = steps[selected];
+  const key = stepKey(student.name, selected + 1);
+  const reviewed = Boolean(reviewedIds[student.id]);
 
   const select = (index: number, animated: boolean) => {
     setAnimate(animated);
-    setSelected((index + steps.length) % steps.length);
+    setStepParam(((index + steps.length) % steps.length) + 1);
   };
 
+  const onKey = useEffectEvent((event: KeyboardEvent) => {
+    if (isTyping(event.target) || event.metaKey || event.ctrlKey) {
+      return;
+    }
+    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      select(selected + (event.key === "ArrowRight" ? 1 : -1), false);
+    }
+    if (event.key === "r") {
+      markReviewed(student.id, !reviewed);
+    }
+  });
+
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (isTyping(event.target) || event.metaKey || event.ctrlKey) {
-        return;
-      }
-      if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
-        event.preventDefault();
-        setAnimate(false);
-        setSelected(
-          (current) =>
-            (current + (event.key === "ArrowRight" ? 1 : -1) + steps.length) %
-            steps.length
-        );
-      }
-      if (event.key === "r") {
-        setReviewed((current) => !current);
-      }
-    };
-    globalThis.addEventListener("keydown", onKey);
-    return () => globalThis.removeEventListener("keydown", onKey);
+    const handle = (event: KeyboardEvent) => onKey(event);
+    globalThis.addEventListener("keydown", handle);
+    return () => globalThis.removeEventListener("keydown", handle);
   }, []);
 
   if (!step) {
     return null;
   }
-  const decision = decisions[selected];
+  const decision = decisions[key];
 
   return (
     <>
@@ -129,7 +184,7 @@ export const Visualiser = () => {
         </Dialog>
         <Button
           aria-pressed={reviewed}
-          onClick={() => setReviewed((current) => !current)}
+          onClick={() => markReviewed(student.id, !reviewed)}
           variant={reviewed ? "outline" : "default"}
         >
           <Icon
@@ -143,8 +198,8 @@ export const Visualiser = () => {
 
       <div className="flex-1 overflow-y-auto">
         <section className="flex flex-wrap items-start gap-x-3.5 gap-y-4 px-6 pt-4.5 pb-4 max-md:px-4">
-          <Avatar className="animate-rise" name={student.name} size="lg" />
-          <div className="animate-rise stagger min-w-0 flex-1 [--i:1]">
+          <Avatar name={student.name} size="lg" />
+          <div className="min-w-0 flex-1">
             <h1 className="text-title font-semibold">{student.name}</h1>
             <p className="text-muted-foreground mt-0.75 flex flex-wrap items-center gap-1.5">
               <span className="text-label font-mono">{student.id}</span>·
@@ -161,29 +216,27 @@ export const Visualiser = () => {
             </p>
           </div>
           <div className="flex flex-wrap gap-y-3 pt-0.5">
-            <Stat index={2} label="Not traced to logged AI">
+            <Stat label="Not traced to logged AI">
               {formatPercent(summary.untraced)}
               <CompositionBar
                 className="mt-2.25 w-42"
                 traced={1 - summary.untraced}
               />
             </Stat>
-            <Stat index={3} label="AI errors caught">
-              {summary.caught}
-            </Stat>
-            <Stat index={4} label="Critique depth">
+            <Stat label="AI errors caught">{summary.caught}</Stat>
+            <Stat label="Critique depth">
               {summary.depth.toFixed(1)}
               <small className="text-faint text-control font-book ml-0.5 tracking-normal">
                 / 3
               </small>
             </Stat>
-            <Stat className="text-flag" index={5} label="Flags">
+            <Stat className="text-flag" label="Flags">
               {summary.flags}
             </Stat>
           </div>
         </section>
 
-        <Card className="mx-6 max-md:mx-4" entrance="fade" style={{ "--i": 3 }}>
+        <Card className="mx-6 max-md:mx-4">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3.5">
             <h2 className="text-ui font-heading">Process</h2>
             <ul className="text-muted-foreground flex flex-wrap gap-x-3.5 gap-y-1 text-xs">
@@ -206,21 +259,19 @@ export const Visualiser = () => {
               step
             </span>
           </div>
-          <div className="overflow-x-auto px-4 pt-3 pb-2.5">
-            <div className="min-w-180">
-              <ProcessChart
-                animate={animate}
-                onHover={setHovered}
-                onSelect={(index) => select(index, true)}
-                selected={selected}
-                steps={steps}
-              />
-            </div>
+          <div className="px-4 pt-3 pb-2.5">
+            <ProcessChart
+              animate={animate}
+              onHover={setHovered}
+              onSelect={(index) => select(index, true)}
+              selected={selected}
+              steps={steps}
+            />
           </div>
         </Card>
 
         <div className="grid gap-3.5 px-6 pt-3.5 pb-6 max-md:px-4 lg:grid-cols-[minmax(0,1fr)_440px]">
-          <Card entrance="fade" style={{ "--i": 5 }}>
+          <Card>
             <CardHeader>
               <Icon name="essay" />
               <CardTitle>Final essay</CardTitle>
@@ -277,7 +328,8 @@ export const Visualiser = () => {
                             flagged
                               ? "bg-flag-soft text-flag-ink"
                               : "bg-ai-soft text-ai-ink",
-                            !traced && "invisible"
+                            "transition-opacity duration-160",
+                            !traced && "invisible opacity-0"
                           )}
                           onClick={() => select(runStep, true)}
                           type="button"
@@ -293,7 +345,7 @@ export const Visualiser = () => {
             </div>
           </Card>
 
-          <Card entrance="fade" style={{ "--i": 6 }}>
+          <Card>
             <CardHeader>
               <span className="bg-muted shadow-hairline text-label rounded-sm px-1.5 font-mono leading-5">
                 S{selected + 1}
@@ -329,7 +381,7 @@ export const Visualiser = () => {
               {step.flag ? (
                 <div
                   className={cn(
-                    "rounded-lg px-3 py-2.75",
+                    "rounded-lg px-3 py-2.75 transition-colors duration-200",
                     decision === "dismissed"
                       ? "bg-muted shadow-hairline"
                       : "bg-flag-soft shadow-flag-ring"
@@ -337,7 +389,7 @@ export const Visualiser = () => {
                 >
                   <div
                     className={cn(
-                      "font-heading flex items-center gap-1.75",
+                      "font-heading flex items-center gap-1.75 transition-colors duration-200",
                       decision === "dismissed"
                         ? "text-muted-foreground"
                         : "text-flag-ink"
@@ -355,7 +407,7 @@ export const Visualiser = () => {
                   </div>
                   <p
                     className={cn(
-                      "mt-0.75 mb-2.25 ml-5.75",
+                      "mt-0.75 mb-2.25 ml-5.75 transition-colors duration-200",
                       decision === "dismissed"
                         ? "text-muted-foreground"
                         : "text-flag-ink"
@@ -366,15 +418,7 @@ export const Visualiser = () => {
                   <div className="ml-5.75 flex items-center gap-1.5">
                     {decision ? (
                       <Button
-                        onClick={() =>
-                          setDecisions((current) =>
-                            Object.fromEntries(
-                              Object.entries(current).filter(
-                                ([key]) => Number(key) !== selected
-                              )
-                            )
-                          )
-                        }
+                        onClick={() => decide(key)}
                         size="sm"
                         variant="outline"
                       >
@@ -383,26 +427,13 @@ export const Visualiser = () => {
                     ) : (
                       <>
                         <Button
-                          onClick={() =>
-                            setDecisions((current) => ({
-                              ...current,
-                              [selected]: "dismissed",
-                            }))
-                          }
+                          onClick={() => decide(key, "dismissed")}
                           size="sm"
                           variant="outline"
                         >
                           Dismiss
                         </Button>
-                        <Button
-                          onClick={() =>
-                            setDecisions((current) => ({
-                              ...current,
-                              [selected]: "kept",
-                            }))
-                          }
-                          size="sm"
-                        >
+                        <Button onClick={() => decide(key, "kept")} size="sm">
                           Keep flag
                         </Button>
                       </>
@@ -423,7 +454,7 @@ export const Visualiser = () => {
                 label="Asked"
                 meta={<span className="font-mono">{step.time}</span>}
               >
-                <p className="text-body">{step.asked}</p>
+                <Clamped words={countWords(step.asked)}>{step.asked}</Clamped>
               </Field>
               <Field
                 label="AI answered"
@@ -439,9 +470,13 @@ export const Visualiser = () => {
                   </>
                 }
               >
-                <p className="text-body line-clamp-3">
+                <Clamped
+                  words={countWords(
+                    step.answer.map((segment) => segment.text).join("")
+                  )}
+                >
                   <Answer segments={step.answer} />
-                </p>
+                </Clamped>
               </Field>
               <Field label="Critique" meta={`${step.critiqueWords} words`}>
                 <blockquote
@@ -489,9 +524,11 @@ export const Visualiser = () => {
             <div className="mt-auto flex items-center gap-2.5 border-t px-4.5 py-3">
               <Icon className="text-muted-foreground" name="note" />
               <Input
-                aria-label={`Note for ${student.name} on this step`}
-                className="h-8"
+                aria-label={`Note for ${student.name} on step ${selected + 1}`}
+                density="compact"
+                onChange={(event) => writeNote(key, event.target.value)}
                 placeholder={`Note for ${student.name.split(" ")[0]} on this step…`}
+                value={notes[key] ?? ""}
               />
             </div>
           </Card>

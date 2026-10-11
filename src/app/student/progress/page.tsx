@@ -32,19 +32,19 @@ const ProgressPage = () => (
       </Link>
     </PageBar>
     <div className="flex-1 overflow-y-auto px-6 pt-5 pb-6 max-md:px-4">
-      <h1 className="text-title animate-rise font-semibold">Your process</h1>
-      <p className="text-muted-foreground animate-rise stagger mt-1.5 max-w-160 text-pretty [--i:1]">
+      <h1 className="text-title font-semibold">Your process</h1>
+      <p className="text-muted-foreground mt-1.5 max-w-160 text-pretty">
         How you worked with AI on {essayTitle}. Your grader sees the same steps.
         They read your essay as usual; this only shows how you got there.
       </p>
       <div className="mt-5 flex flex-wrap gap-y-3">
-        {figures.map(([label, value], index) => (
-          <Stat index={index + 2} key={label} label={label}>
+        {figures.map(([label, value]) => (
+          <Stat key={label} label={label}>
             {value}
           </Stat>
         ))}
       </div>
-      <Card className="mt-5" entrance="fade" style={{ "--i": 4 }}>
+      <Card className="mt-5">
         <CardHeader>
           <CardTitle>Every step</CardTitle>
           <CardAction>AI words above the line, your critique below</CardAction>
@@ -55,7 +55,6 @@ const ProgressPage = () => (
             base={96}
             height={134}
             labels
-            scale={0.2}
             steps={steps}
             width={720}
           />

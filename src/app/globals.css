@@ -141,10 +141,6 @@
   --tracking-snug: -0.012em;
   --tracking-title: -0.02em;
   --animate-rise: rise 360ms var(--ease-out) both;
-  --animate-fade: fade 300ms ease both;
-  --animate-grow: grow 420ms var(--ease-out) both;
-  --animate-pop: pop 320ms var(--ease-out) both;
-  --animate-widen: widen 600ms var(--ease-out) both;
   --animate-swap: swap 180ms var(--ease-out) both;
 }
 
@@ -249,31 +245,12 @@ body {
   }
 }
 
-@keyframes grow {
-  from {
-    transform: scaleY(0.001);
-  }
-}
-
-@keyframes pop {
-  from {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-}
-
 /* The inspector swap: a short blur bridges the old and new step so they read as one change. */
 @keyframes swap {
   from {
     opacity: 0;
     filter: blur(2px);
     transform: translateY(3px);
-  }
-}
-
-@keyframes widen {
-  from {
-    transform: scaleX(0.001);
   }
 }
 
@@ -313,11 +290,6 @@ body {
 
 @utility icon-accent-stroke {
   stroke: var(--icon-accent, currentColor);
-}
-
-/* Dots in a cohort plot appear eight milliseconds apart, after the cards around them. */
-@utility stagger-fast {
-  animation-delay: calc(var(--i, 0) * 8ms + 140ms);
 }
 
 @utility popup-motion {

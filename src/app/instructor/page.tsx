@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { CohortPlot } from "@/app/instructor/cohort-plot";
+import { ReviewProgress } from "@/app/instructor/review-progress";
 import { SubmissionsTable } from "@/app/instructor/submissions-table";
 import { Icon } from "@/components/icon";
 import { PageBar } from "@/components/shell/page-bar";
@@ -24,8 +26,6 @@ const median = (values: number[]) => {
     : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
 };
 
-const reviewed = cohort.filter((student) => student.status === "done").length;
-const flaggedStudents = cohort.filter((student) => student.flags > 0).length;
 const medianTraced = median(cohort.map((student) => student.traced));
 const reasons = Object.entries(
   Object.groupBy(cohortFlags, (flag) => flag.title)
@@ -58,7 +58,7 @@ const InstructorPage = () => (
 
     <div className="flex-1 overflow-y-auto">
       <section className="flex flex-wrap items-end gap-6 px-6 pt-5 max-md:px-4">
-        <div className="animate-rise">
+        <div>
           <h1 className="text-title font-semibold">{essayTitle}</h1>
           <p className="text-muted-foreground mt-1.75 flex flex-wrap items-center gap-2.5">
             <Badge variant="ai">Lane 2 · AI permitted</Badge>
@@ -73,52 +73,13 @@ const InstructorPage = () => (
             </span>
           </p>
         </div>
-        <div className="animate-rise stagger ml-auto w-60 [--i:2] max-md:ml-0">
-          <div className="text-muted-foreground text-meta mb-1.75 flex justify-between">
-            <span>Review progress</span>
-            <span>
-              <b className="text-foreground font-heading tabular-nums">
-                {reviewed}
-              </b>{" "}
-              of {cohort.length}
-            </span>
-          </div>
-          <p className="sr-only">
-            {reviewed} reviewed, {flaggedStudents} flagged,{" "}
-            {cohort.length - reviewed - flaggedStudents} more to review.
-          </p>
-          <div
-            aria-hidden="true"
-            className="bg-muted flex h-1.5 gap-0.5 overflow-hidden rounded-xs"
-          >
-            <i
-              className="bg-success animate-widen block w-(--share) origin-left"
-              style={{ "--share": `${(reviewed / cohort.length) * 100}%` }}
-            />
-            <i
-              className="bg-flag animate-widen stagger block w-(--share) origin-left"
-              style={{
-                "--i": 2,
-                "--share": `${(flaggedStudents / cohort.length) * 100}%`,
-              }}
-            />
-          </div>
-          <div className="text-muted-foreground mt-1.75 flex justify-between text-xs">
-            <span className="flex items-center gap-1.5">
-              <i className="bg-success block size-1.75 rounded-full" />
-              Reviewed
-            </span>
-            <span className="flex items-center gap-1.5">
-              <i className="bg-flag block size-1.75 rounded-full" />
-              Flagged
-            </span>
-            <span>{cohort.length - reviewed - flaggedStudents} to go</span>
-          </div>
+        <div className="ml-auto w-60 max-md:ml-0">
+          <ReviewProgress students={cohort} />
         </div>
       </section>
 
       <div className="grid gap-3.5 px-6 pt-4.5 max-md:px-4 lg:grid-cols-[minmax(0,1fr)_372px]">
-        <Card entrance="fade" style={{ "--i": 2 }}>
+        <Card>
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-4 pt-3.5">
             <h2 className="text-ui font-heading">Where each submission sits</h2>
             <span className="text-muted-foreground text-meta">
@@ -144,7 +105,7 @@ const InstructorPage = () => (
           </div>
         </Card>
 
-        <Card entrance="fade" style={{ "--i": 3 }}>
+        <Card>
           <CardContent>
             <div className="flex flex-wrap items-baseline gap-x-2.5">
               <h2 className="text-ui font-heading">Look closer</h2>
@@ -167,7 +128,7 @@ const InstructorPage = () => (
                   </span>
                   <span className="bg-muted h-1 w-16 overflow-hidden rounded-full">
                     <i
-                      className="bg-flag animate-widen block h-full w-(--share) origin-left rounded-full"
+                      className="bg-flag block h-full w-(--share) rounded-full"
                       style={{
                         "--share": `${(reason.count / mostReasons) * 100}%`,
                       }}
@@ -214,7 +175,19 @@ const InstructorPage = () => (
         </Card>
       </div>
 
-      <SubmissionsTable students={cohort} />
+      <Suspense
+        fallback={
+          <div className="px-6 pt-4 pb-6 max-md:px-4">
+            <output className="sr-only">Loading submissions…</output>
+            <div
+              aria-hidden="true"
+              className="bg-muted shadow-hairline h-96 animate-pulse rounded-xl motion-reduce:animate-none"
+            />
+          </div>
+        }
+      >
+        <SubmissionsTable students={cohort} />
+      </Suspense>
     </div>
   </>
 );
