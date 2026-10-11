@@ -37,7 +37,7 @@ function PopoverContent({
         <PopoverPrimitive.Popup
           data-slot="popover-content"
           className={cn(
-            "popup-motion bg-popover text-popover-foreground shadow-lift rounded-menu flex w-72 max-w-[calc(100vw-40px)] flex-col gap-2.5 p-3 text-sm outline-hidden",
+            "popup-motion bg-popover text-popover-foreground shadow-lift rounded-menu text-caption flex w-72 max-w-[calc(100vw-40px)] flex-col gap-3 p-4 outline-hidden",
             className
           )}
           {...props}
@@ -51,7 +51,7 @@ function PopoverHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="popover-header"
-      className={cn("flex flex-col gap-0.5 text-sm", className)}
+      className={cn("flex flex-col gap-1", className)}
       {...props}
     />
   );
@@ -61,7 +61,7 @@ function PopoverTitle({ className, ...props }: PopoverPrimitive.Title.Props) {
   return (
     <PopoverPrimitive.Title
       data-slot="popover-title"
-      className={cn("font-semibold", className)}
+      className={cn("text-ui font-semibold", className)}
       {...props}
     />
   );

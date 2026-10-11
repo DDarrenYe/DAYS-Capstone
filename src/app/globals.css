@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
@@ -81,6 +80,7 @@
   --shadow-row-hover: var(--lift), 0 0 0 2.5px var(--ai);
   --shadow-card: 0 0 0 6px rgb(226 238 249 / 70%), inset 0 0 0 1px var(--line);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --animate-note-in: note-in 600ms var(--ease-spring) both;
   --text-display: clamp(40px, 5vw, 68px);
@@ -263,6 +263,13 @@ body {
   &[data-ending-style] {
     transition-duration: 100ms;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-starting-style],
+    &[data-ending-style] {
+      scale: none;
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -270,7 +277,8 @@ body {
   *::before,
   *::after {
     animation: none !important;
-    transition: none !important;
+    transition-property:
+      opacity, color, background-color, border-color, box-shadow !important;
     scroll-behavior: auto !important;
   }
 }
