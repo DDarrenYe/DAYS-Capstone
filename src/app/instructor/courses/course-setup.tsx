@@ -1,7 +1,8 @@
 "use client";
 
+import { revalidateLogic, useForm } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import type { SubmitEvent } from "react";
+import type { ReactNode } from "react";
 
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/ui/badge";
@@ -19,11 +20,19 @@ import {
 import { coursesQuery } from "@/lib/data/queries";
 import type { CourseRows } from "@/lib/data/queries";
 import {
+  assignmentFormSchema,
+  courseSchema,
+  enrolFormSchema,
+} from "@/lib/data/schemas";
+import type { AssignmentFormValues } from "@/lib/data/schemas";
+import {
+  WriteError,
   useCreateAssignment,
   useCreateCourse,
   useEnrolStudents,
   useRemoveStudent,
 } from "@/lib/data/use-mutations";
+import type { AssignmentInput } from "@/lib/data/writes";
 import { createClient } from "@/lib/supabase/browser";
 
 const dueDate = new Intl.DateTimeFormat("en", {
@@ -42,54 +51,174 @@ const outcomeLabels = new Map([
 
 const labelClassName = "text-label text-body font-emphasis";
 
-const submitForm =
-  (submit: (data: FormData, form: HTMLFormElement) => void) =>
-  (event: SubmitEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    submit(new FormData(event.currentTarget), event.currentTarget);
-  };
+interface Issue {
+  message: string;
+}
 
-const field = (data: FormData, name: string) => String(data.get(name) ?? "");
+const firstMessage = (errors: readonly (Issue | undefined)[]) =>
+  errors.find(Boolean)?.message;
 
-const FormError = ({ error }: { error: Error | null }) => (
+const FormError = ({ errors }: { errors: readonly (Issue | undefined)[] }) => (
   <p aria-live="polite" className="text-destructive text-xs empty:hidden">
-    {error?.message}
+    {firstMessage(errors)}
   </p>
 );
 
+interface ControlProps {
+  id: string;
+  "aria-describedby": string | undefined;
+  "aria-invalid": true | undefined;
+}
+
+const FieldShell = ({
+  id,
+  label,
+  errors,
+  children,
+}: {
+  id: string;
+  label: string;
+  errors: readonly (Issue | undefined)[];
+  children: (control: ControlProps) => ReactNode;
+}) => {
+  const message = firstMessage(errors);
+  return (
+    <div className="grid gap-2">
+      <label className={labelClassName} htmlFor={id}>
+        {label}
+      </label>
+      {children({
+        "aria-describedby": message ? `${id}-error` : undefined,
+        "aria-invalid": message ? true : undefined,
+        id,
+      })}
+      <p
+        aria-live="polite"
+        className="text-destructive text-xs empty:hidden"
+        id={`${id}-error`}
+      >
+        {message}
+      </p>
+    </div>
+  );
+};
+
+const submitted = async <T,>(run: () => Promise<T>) => {
+  try {
+    await run();
+    return null;
+  } catch (error) {
+    if (error instanceof WriteError && error.field) {
+      return { fields: { [error.field]: { message: error.message } } };
+    }
+    return {
+      fields: {},
+      form: {
+        message:
+          error instanceof Error ? error.message : "Unable to save. Try again.",
+      },
+    };
+  }
+};
+
 const NewCourseForm = ({ userId }: { userId: string }) => {
-  const { error, isPending, mutate } = useCreateCourse(userId);
+  const { mutateAsync } = useCreateCourse(userId);
+  const form = useForm({
+    defaultValues: { code: "", title: "" },
+    onSubmit: ({ formApi }) => formApi.reset(),
+    validationLogic: revalidateLogic(),
+    validators: {
+      onDynamic: courseSchema,
+      onSubmitAsync: ({ value }) => submitted(() => mutateAsync(value)),
+    },
+  });
   return (
     <form
-      className="grid gap-4 sm:grid-cols-[1fr_2fr_auto] sm:items-end"
-      onSubmit={submitForm((data, form) =>
-        mutate(
-          { code: field(data, "code"), title: field(data, "title") },
-          { onSuccess: () => form.reset() }
-        )
-      )}
+      className="grid gap-4 sm:grid-cols-[1fr_2fr_auto] sm:items-start"
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void form.handleSubmit();
+      }}
     >
-      <div className="grid gap-2">
-        <label className={labelClassName} htmlFor="course-code">
-          Course code
-        </label>
-        <Input id="course-code" maxLength={200} name="code" required />
-      </div>
-      <div className="grid gap-2">
-        <label className={labelClassName} htmlFor="course-title">
-          Course title
-        </label>
-        <Input id="course-title" maxLength={200} name="title" required />
-      </div>
-      <Button disabled={isPending} size="lg" type="submit">
-        {isPending ? "Creating…" : "Create course"}
-      </Button>
+      <form.Field name="code">
+        {(field) => (
+          <FieldShell
+            errors={field.state.meta.errors}
+            id="course-code"
+            label="Course code"
+          >
+            {(control) => (
+              <Input
+                {...control}
+                maxLength={200}
+                name={field.name}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                required
+                value={field.state.value}
+              />
+            )}
+          </FieldShell>
+        )}
+      </form.Field>
+      <form.Field name="title">
+        {(field) => (
+          <FieldShell
+            errors={field.state.meta.errors}
+            id="course-title"
+            label="Course title"
+          >
+            {(control) => (
+              <Input
+                {...control}
+                maxLength={200}
+                name={field.name}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                required
+                value={field.state.value}
+              />
+            )}
+          </FieldShell>
+        )}
+      </form.Field>
+      <form.Subscribe selector={(state) => state.isSubmitting}>
+        {(isSubmitting) => (
+          <div className="grid gap-2">
+            <span
+              aria-hidden="true"
+              className={`${labelClassName} invisible max-sm:hidden`}
+            >
+              &nbsp;
+            </span>
+            <Button disabled={isSubmitting} size="lg" type="submit">
+              {isSubmitting ? "Creating…" : "Create course"}
+            </Button>
+          </div>
+        )}
+      </form.Subscribe>
       <div className="sm:col-span-3">
-        <FormError error={error} />
+        <form.Subscribe selector={(state) => [state.errorMap.onSubmit]}>
+          {(errors) => <FormError errors={errors} />}
+        </form.Subscribe>
       </div>
     </form>
   );
 };
+
+const emptyAssignment: AssignmentFormValues = {
+  brief: "",
+  dueAt: "",
+  lane: "lane_2",
+  title: "",
+};
+
+const lanes: { label: string; value: AssignmentInput["lane"] }[] = [
+  { label: "Lane 2 · AI allowed, students keep an AI log", value: "lane_2" },
+  { label: "Lane 1 · AI restricted", value: "lane_1" },
+];
 
 const NewAssignmentForm = ({
   courseId,
@@ -98,60 +227,131 @@ const NewAssignmentForm = ({
   courseId: string;
   userId: string;
 }) => {
-  const { error, isPending, mutate } = useCreateAssignment(userId);
+  const { mutateAsync } = useCreateAssignment(userId);
+  const form = useForm({
+    defaultValues: emptyAssignment,
+    onSubmit: ({ formApi }) => formApi.reset(),
+    validationLogic: revalidateLogic(),
+    validators: {
+      onDynamic: assignmentFormSchema,
+      onSubmitAsync: ({ value }) =>
+        submitted(() =>
+          mutateAsync({
+            brief: value.brief,
+            courseId,
+            dueAt: value.dueAt ? new Date(value.dueAt).toISOString() : null,
+            lane: value.lane,
+            title: value.title,
+          })
+        ),
+    },
+  });
   return (
     <form
       className="grid gap-4"
-      onSubmit={submitForm((data, form) => {
-        const due = field(data, "dueAt");
-        mutate(
-          {
-            brief: field(data, "brief"),
-            courseId,
-            dueAt: due ? new Date(due).toISOString() : null,
-            lane: field(data, "lane") === "lane_1" ? "lane_1" : "lane_2",
-            title: field(data, "title"),
-          },
-          { onSuccess: () => form.reset() }
-        );
-      })}
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void form.handleSubmit();
+      }}
     >
-      <div className="grid gap-2">
-        <label className={labelClassName} htmlFor={`title-${courseId}`}>
-          Assignment title
-        </label>
-        <Input id={`title-${courseId}`} maxLength={200} name="title" required />
-      </div>
-      <div className="grid gap-2">
-        <label className={labelClassName} htmlFor={`brief-${courseId}`}>
-          Brief
-        </label>
-        <Textarea id={`brief-${courseId}`} name="brief" />
-      </div>
-      <div className="grid gap-2">
-        <label className={labelClassName} htmlFor={`due-${courseId}`}>
-          Due date
-        </label>
-        <Input id={`due-${courseId}`} name="dueAt" type="datetime-local" />
-      </div>
-      <RadioGroup aria-label="Lane" defaultValue="lane_2" name="lane">
-        {[
-          {
-            label: "Lane 2 · AI allowed, students keep an AI log",
-            value: "lane_2",
-          },
-          { label: "Lane 1 · AI restricted", value: "lane_1" },
-        ].map((option) => (
-          <label className="flex items-center gap-2.5" key={option.value}>
-            <RadioGroupItem value={option.value} />
-            {option.label}
-          </label>
-        ))}
-      </RadioGroup>
-      <FormError error={error} />
-      <Button className="w-fit" disabled={isPending} size="lg" type="submit">
-        {isPending ? "Adding…" : "Add assignment"}
-      </Button>
+      <form.Field name="title">
+        {(field) => (
+          <FieldShell
+            errors={field.state.meta.errors}
+            id={`title-${courseId}`}
+            label="Assignment title"
+          >
+            {(control) => (
+              <Input
+                {...control}
+                maxLength={200}
+                name={field.name}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                required
+                value={field.state.value}
+              />
+            )}
+          </FieldShell>
+        )}
+      </form.Field>
+      <form.Field name="brief">
+        {(field) => (
+          <FieldShell
+            errors={field.state.meta.errors}
+            id={`brief-${courseId}`}
+            label="Brief"
+          >
+            {(control) => (
+              <Textarea
+                {...control}
+                name={field.name}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                value={field.state.value}
+              />
+            )}
+          </FieldShell>
+        )}
+      </form.Field>
+      <form.Field name="dueAt">
+        {(field) => (
+          <FieldShell
+            errors={field.state.meta.errors}
+            id={`due-${courseId}`}
+            label="Due date"
+          >
+            {(control) => (
+              <Input
+                {...control}
+                name={field.name}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                type="datetime-local"
+                value={field.state.value}
+              />
+            )}
+          </FieldShell>
+        )}
+      </form.Field>
+      <form.Field name="lane">
+        {(field) => (
+          <RadioGroup
+            aria-label="Lane"
+            onValueChange={(value) => {
+              const parsed = assignmentFormSchema.shape.lane.safeParse(value);
+              if (parsed.success) {
+                field.handleChange(parsed.data);
+              }
+            }}
+            value={field.state.value}
+          >
+            {lanes.map((option) => (
+              <label className="flex items-center gap-2.5" key={option.value}>
+                <RadioGroupItem value={option.value} />
+                {option.label}
+              </label>
+            ))}
+          </RadioGroup>
+        )}
+      </form.Field>
+      <form.Subscribe selector={(state) => [state.errorMap.onSubmit]}>
+        {(errors) => <FormError errors={errors} />}
+      </form.Subscribe>
+      <form.Subscribe selector={(state) => state.isSubmitting}>
+        {(isSubmitting) => (
+          <Button
+            className="w-fit"
+            disabled={isSubmitting}
+            size="lg"
+            type="submit"
+          >
+            {isSubmitting ? "Adding…" : "Add assignment"}
+          </Button>
+        )}
+      </form.Subscribe>
     </form>
   );
 };
@@ -163,32 +363,63 @@ const EnrolForm = ({
   courseId: string;
   userId: string;
 }) => {
-  const { data, error, isPending, mutate } = useEnrolStudents(userId);
+  const { data, mutateAsync } = useEnrolStudents(userId);
+  const form = useForm({
+    defaultValues: { emails: "" },
+    onSubmit: ({ formApi }) => formApi.reset(),
+    validationLogic: revalidateLogic(),
+    validators: {
+      onDynamic: enrolFormSchema,
+      onSubmitAsync: ({ value }) =>
+        submitted(() => mutateAsync({ courseId, emails: value.emails })),
+    },
+  });
   return (
     <form
       className="grid gap-4"
-      onSubmit={submitForm((values, form) =>
-        mutate(
-          { courseId, emails: field(values, "emails") },
-          { onSuccess: () => form.reset() }
-        )
-      )}
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void form.handleSubmit();
+      }}
     >
-      <div className="grid gap-2">
-        <label className={labelClassName} htmlFor={`emails-${courseId}`}>
-          Student email addresses
-        </label>
-        <Textarea
-          id={`emails-${courseId}`}
-          name="emails"
-          placeholder="Paste addresses separated by spaces, commas or new lines"
-          required
-        />
-      </div>
-      <FormError error={error} />
-      <Button className="w-fit" disabled={isPending} size="lg" type="submit">
-        {isPending ? "Enrolling…" : "Enrol students"}
-      </Button>
+      <form.Field name="emails">
+        {(field) => (
+          <FieldShell
+            errors={field.state.meta.errors}
+            id={`emails-${courseId}`}
+            label="Student email addresses"
+          >
+            {(control) => (
+              <Textarea
+                {...control}
+                name={field.name}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                placeholder="Paste addresses separated by spaces, commas or new lines"
+                required
+                value={field.state.value}
+              />
+            )}
+          </FieldShell>
+        )}
+      </form.Field>
+      <form.Subscribe selector={(state) => [state.errorMap.onSubmit]}>
+        {(errors) => <FormError errors={errors} />}
+      </form.Subscribe>
+      <form.Subscribe selector={(state) => state.isSubmitting}>
+        {(isSubmitting) => (
+          <Button
+            className="w-fit"
+            disabled={isSubmitting}
+            size="lg"
+            type="submit"
+          >
+            {isSubmitting ? "Enrolling…" : "Enrol students"}
+          </Button>
+        )}
+      </form.Subscribe>
       {data ? (
         <ul aria-label="Enrolment results" className="text-ui grid gap-1">
           {data.map(({ address, outcome }) => (
@@ -237,7 +468,7 @@ const StudentRow = ({
           </TooltipContent>
         </Tooltip>
       </div>
-      <FormError error={error} />
+      <FormError errors={[error ?? undefined]} />
     </li>
   );
 };

@@ -283,7 +283,7 @@ test("a course is owned by the verified instructor, not the caller's input", asy
       code: "INFOMGMT 399",
       title: "Capstone",
     }),
-    { error: "You already have a course with that code." }
+    { error: "You already have a course with that code.", field: "code" }
   );
 });
 

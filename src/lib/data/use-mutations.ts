@@ -28,10 +28,20 @@ import type {
   WriteResult,
 } from "@/lib/data/writes";
 
+export class WriteError extends Error {
+  field?: string;
+
+  constructor(message: string, field?: string) {
+    super(message);
+    this.name = "WriteError";
+    this.field = field;
+  }
+}
+
 const succeeded = async (pending: Promise<WriteResult>) => {
-  const { error } = await pending;
+  const { error, field } = await pending;
   if (error) {
-    throw new Error(error);
+    throw new WriteError(error, field);
   }
 };
 
@@ -81,9 +91,12 @@ export const useEnrolStudents = (userId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: EnrolInput) => {
-      const { error, results } = await enrolStudents(input);
+      const { error, field, results } = await enrolStudents(input);
       if (error || !results) {
-        throw new Error(error ?? "Unable to save. Try again shortly.");
+        throw new WriteError(
+          error ?? "Unable to save. Try again shortly.",
+          field
+        );
       }
       return results;
     },

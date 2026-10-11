@@ -2,23 +2,24 @@ import "server-only";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-import { assignmentLane, flagReviewState } from "@/db/schema";
+import { flagReviewState } from "@/db/schema";
+import {
+  MAX_TEXT,
+  assignmentSchema,
+  courseSchema,
+  enrolSchema,
+  removeEnrolmentSchema,
+} from "@/lib/data/schemas";
 import type { Database } from "@/lib/supabase/database.types";
 
 type Client = SupabaseClient<Database>;
 
-const MAX_TEXT = 50_000;
 const MAX_STEP_NUMBER = 2_147_483_647;
-const MAX_LABEL = 200;
-const MAX_EMAIL = 320;
-const MAX_ENROLMENTS = 500;
 
 const text = z
   .string()
   .max(MAX_TEXT)
   .refine((value) => value.trim() !== "");
-
-const label = z.string().trim().min(1).max(MAX_LABEL);
 
 const stepSchema = z.object({
   aiErrorEvidence: text.nullish(),
@@ -36,25 +37,6 @@ const reviewSchema = z.object({
   state: z.enum(flagReviewState.enumValues),
 });
 
-const courseSchema = z.object({ code: label, title: label });
-const assignmentSchema = z.object({
-  brief: z.string().max(MAX_TEXT).default(""),
-  courseId: z.guid(),
-  dueAt: z.iso.datetime({ offset: true }).nullish(),
-  lane: z.enum(assignmentLane.enumValues),
-  title: label,
-});
-const enrolSchema = z.object({
-  courseId: z.guid(),
-  emails: z
-    .string()
-    .max(MAX_TEXT)
-    .transform((pasted) => pasted.split(/[\s,;]+/u).filter(Boolean))
-    .pipe(z.array(z.string().max(MAX_EMAIL)).min(1).max(MAX_ENROLMENTS)),
-});
-
-const removeEnrolmentSchema = z.object({ enrolmentId: z.guid() });
-
 export type StepInput = z.input<typeof stepSchema>;
 export type SubmitInput = z.input<typeof submitSchema>;
 export type ReviewInput = z.input<typeof reviewSchema>;
@@ -65,6 +47,7 @@ export type RemoveEnrolmentInput = z.input<typeof removeEnrolmentSchema>;
 
 export interface WriteResult {
   error?: string;
+  field?: string;
 }
 
 export interface EnrolResult extends WriteResult {
@@ -183,9 +166,13 @@ export const writeCourse = async (
     instructor_id: instructorId,
     title: course.title,
   });
-  return error
-    ? failure(error, "You already have a course with that code.")
-    : {};
+  if (error?.code === "23505") {
+    return {
+      error: "You already have a course with that code.",
+      field: "code",
+    };
+  }
+  return error ? failure(error) : {};
 };
 
 export const writeAssignment = async (

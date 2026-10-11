@@ -646,6 +646,7 @@ test("instructors set up a course whose assignments enrolled and invited student
   });
   assert.deepEqual(duplicate, {
     error: "You already have a course with that code.",
+    field: "code",
   });
   const spoofed = await Promise.all([
     writeCourse(s1.client, s1.id, { code: `S-${tag}`, title: "Student" }),
