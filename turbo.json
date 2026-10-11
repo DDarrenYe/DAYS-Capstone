@@ -34,7 +34,7 @@
         "!design/**/*.mp4",
         "!.github/**/*.yml",
         "!public/**/*.svg",
-        "!supabase/**/*.toml",
+        "!supabase/**",
         ".env*"
       ],
       "env": [
@@ -51,6 +51,7 @@
       "inputs": [
         "$TURBO_DEFAULT$",
         "!design/**",
+        "!supabase/**",
         "!**/*.md",
         "!.github/**",
         "!.env*"
@@ -70,7 +71,7 @@
         "!design/**/*.mp4",
         "!.github/**/*.yml",
         "!public/**/*.svg",
-        "!supabase/**/*.toml",
+        "!supabase/**",
         ".env*",
         ".next/dev/types/**"
       ],
@@ -101,6 +102,11 @@
         "next-env.d.ts",
         "src/lib/cn-tables.ts"
       ],
+      "outputLogs": "new-only"
+    },
+    "test:integration:app": {
+      "dependsOn": ["build:app"],
+      "cache": false,
       "outputLogs": "new-only"
     },
     "db:check:app": {

@@ -1,0 +1,42 @@
+"use server";
+
+import { getAccount } from "@/lib/auth";
+import {
+  forbidden,
+  writeReview,
+  writeStep,
+  writeSubmission,
+} from "@/lib/data/writes";
+import type {
+  ReviewInput,
+  StepInput,
+  SubmitInput,
+  WriteResult,
+} from "@/lib/data/writes";
+import { createClient } from "@/lib/supabase/server";
+
+export const saveStep = async (input: StepInput): Promise<WriteResult> => {
+  const account = await getAccount();
+  if (account?.role !== "student") {
+    return forbidden;
+  }
+  return writeStep(await createClient(), input);
+};
+
+export const submitProject = async (
+  input: SubmitInput
+): Promise<WriteResult> => {
+  const account = await getAccount();
+  if (account?.role !== "student") {
+    return forbidden;
+  }
+  return writeSubmission(await createClient(), input);
+};
+
+export const reviewFlag = async (input: ReviewInput): Promise<WriteResult> => {
+  const account = await getAccount();
+  if (account?.role !== "instructor") {
+    return forbidden;
+  }
+  return writeReview(await createClient(), account.id, input);
+};
