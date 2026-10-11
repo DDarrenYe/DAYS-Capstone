@@ -3,17 +3,27 @@
 import { getAccount } from "@/lib/auth";
 import {
   forbidden,
+  writeProject,
   writeReview,
   writeStep,
   writeSubmission,
 } from "@/lib/data/writes";
 import type {
   ReviewInput,
+  StartInput,
   StepInput,
   SubmitInput,
   WriteResult,
 } from "@/lib/data/writes";
 import { createClient } from "@/lib/supabase/server";
+
+export const startProject = async (input: StartInput): Promise<WriteResult> => {
+  const account = await getAccount();
+  if (account?.role !== "student") {
+    return forbidden;
+  }
+  return writeProject(await createClient(), account.id, input);
+};
 
 export const saveStep = async (input: StepInput): Promise<WriteResult> => {
   const account = await getAccount();

@@ -3,10 +3,19 @@ import { test } from "node:test";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { forbidden, writeReview, writeStep, writeSubmission } from "./writes";
-import type { ReviewInput, StepInput, SubmitInput } from "./writes";
+import {
+  forbidden,
+  writeProject,
+  writeReview,
+  writeStep,
+  writeSubmission,
+} from "./writes";
+import type { ReviewInput, StartInput, StepInput, SubmitInput } from "./writes";
 
 const projectId = "20000000-0000-0000-0000-000000000001";
+const assignmentId = "50000000-0000-0000-0000-000000000001";
+const courseId = "60000000-0000-0000-0000-000000000001";
+const studentId = "10000000-0000-0000-0000-000000000001";
 const stepId = "30000000-0000-0000-0000-000000000001";
 const flagId = "40000000-0000-0000-0000-000000000001";
 const reviewerId = "10000000-0000-0000-0000-000000000002";
@@ -22,27 +31,29 @@ interface Recorded {
 const noRow = () => Response.json([]);
 
 const clientWith = (
-  respond: () => Response = () => Response.json([{ id: "x" }])
+  respond: (url: URL) => Response = () => Response.json([{ id: "x" }])
 ) => {
   const requests: Recorded[] = [];
   const client = createClient("https://project.supabase.co", "anonymous-key", {
     auth: { autoRefreshToken: false, persistSession: false },
     global: {
       fetch: (input, init) => {
+        const url = new URL(String(input));
         requests.push({
           body: init?.body ? JSON.parse(String(init.body)) : undefined,
           method: init?.method ?? "GET",
-          url: new URL(String(input)),
+          url,
         });
-        return Promise.resolve(respond());
+        return Promise.resolve(respond(url));
       },
     },
   });
   return { client, requests };
 };
 
-const wire = (json: string): StepInput & SubmitInput & ReviewInput =>
-  JSON.parse(json);
+const wire = (
+  json: string
+): StepInput & SubmitInput & ReviewInput & StartInput => JSON.parse(json);
 
 const step: StepInput = {
   aiTool: "ChatGPT",
@@ -70,6 +81,7 @@ test("invalid input is rejected before the database is contacted", async () => {
   const results = await Promise.all([
     ...invalidSteps.map((invalid) => writeStep(client, invalid)),
     writeSubmission(client, { projectId: "nope" }),
+    writeProject(client, studentId, { assignmentId: "nope" }),
     writeReview(client, reviewerId, { flagId: "nope", state: "dismissed" }),
     writeReview(
       client,
@@ -124,6 +136,63 @@ test("editing a step updates it by ID within its project and never moves it", as
   );
   assert.equal(requests[0]?.body?.student_marked_ai_error, false);
   assert.equal("project_id" in (requests[0]?.body ?? {}), false);
+});
+
+test("opening a Lane 2 assignment creates the caller's project once", async () => {
+  const { client, requests } = clientWith((url) =>
+    url.pathname.endsWith("/assignments")
+      ? Response.json([{ course_id: courseId }])
+      : new Response(null, { status: 201 })
+  );
+  const result = await writeProject(
+    client,
+    studentId,
+    wire(JSON.stringify({ assignmentId, status: "submitted" }))
+  );
+  assert.deepEqual(result, {});
+  assert.equal(requests[0]?.url.searchParams.get("id"), `eq.${assignmentId}`);
+  const [, insert] = requests;
+  assert.equal(insert?.method, "POST");
+  assert.equal(insert?.url.pathname, "/rest/v1/projects");
+  assert.deepEqual(insert?.body, {
+    assignment_id: assignmentId,
+    course_id: courseId,
+    student_id: studentId,
+  });
+});
+
+test("opening an assignment that already has the caller's project is not an error", async () => {
+  const { client, requests } = clientWith((url) =>
+    url.pathname.endsWith("/assignments")
+      ? Response.json([{ course_id: courseId }])
+      : Response.json(
+          { code: "23505", message: "duplicate key" },
+          { status: 409 }
+        )
+  );
+  assert.deepEqual(await writeProject(client, studentId, { assignmentId }), {});
+  assert.equal(requests.at(-1)?.method, "POST");
+});
+
+test("opening an assignment the caller cannot see or that is not Lane 2 is forbidden", async () => {
+  const hidden = clientWith(noRow);
+  assert.deepEqual(
+    await writeProject(hidden.client, studentId, { assignmentId }),
+    forbidden
+  );
+  assert.equal(hidden.requests.length, 1);
+  const lane1 = clientWith((url) =>
+    url.pathname.endsWith("/assignments")
+      ? Response.json([{ course_id: courseId }])
+      : Response.json(
+          { code: "23514", message: "Projects require a Lane 2 assignment" },
+          { status: 400 }
+        )
+  );
+  assert.deepEqual(
+    await writeProject(lane1.client, studentId, { assignmentId }),
+    forbidden
+  );
 });
 
 test("submitting only moves a draft the caller can update", async () => {

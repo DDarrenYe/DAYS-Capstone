@@ -1,43 +1,60 @@
 "use client";
 
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { Clock, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import Link from "next/link";
 
+import { DueLine, LaneBadge } from "@/app/student/assignment-parts";
+import {
+  describeAssignment,
+  noteFor,
+  stepLabel,
+} from "@/app/student/assignment-state";
+import type { AssignmentState } from "@/app/student/assignment-state";
+import { LaneTwoActions } from "@/app/student/lane-two-actions";
+import { useAssignments } from "@/app/student/use-assignments";
+import type { InitialAssignments } from "@/app/student/use-assignments";
 import { Note } from "@/components/shell/note";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { assignmentsQuery } from "@/lib/data/queries";
-import type { AssignmentRows } from "@/lib/data/queries";
-import { createClient } from "@/lib/supabase/browser";
-
-const dueDate = new Intl.DateTimeFormat("en", {
-  day: "numeric",
-  month: "short",
-  weekday: "short",
-});
+import { cn } from "@/lib/utils";
 
 const gridClassName =
   "mt-12 grid grid-cols-3 gap-10 max-[1100px]:gap-6 max-[760px]:grid-cols-1 max-[760px]:gap-12 min-[1100px]:mt-17.5";
 
-const stepLabel = (steps: number) =>
-  `${steps} ${steps === 1 ? "step" : "steps"}`;
-
-export const AssignmentList = ({
+const Actions = ({
+  assignmentId,
+  state,
   userId,
-  initialAssignments,
-  fetchedAt,
 }: {
+  assignmentId: string;
+  state: AssignmentState;
   userId: string;
-  initialAssignments: AssignmentRows;
-  fetchedAt: number;
 }) => {
-  const { data: assignments } = useSuspenseQuery({
-    ...assignmentsQuery(createClient(), userId),
-    initialData: initialAssignments,
-    initialDataUpdatedAt: fetchedAt,
-  });
+  if (state.submitted) {
+    return <Badge variant="success">Submitted</Badge>;
+  }
+  if (!state.aiAllowed) {
+    return (
+      <Link
+        className={buttonVariants({ size: "sm", variant: "outline" })}
+        href={`/student/assignments/${assignmentId}`}
+      >
+        Open
+      </Link>
+    );
+  }
+  return (
+    <LaneTwoActions
+      assignmentId={assignmentId}
+      hasProject={state.hasProject}
+      userId={userId}
+    />
+  );
+};
+
+export const AssignmentList = (props: InitialAssignments) => {
+  const { assignments, now } = useAssignments(props);
   if (assignments.length === 0) {
     return (
       <p className="text-body text-subtitle mt-12">
@@ -46,13 +63,17 @@ export const AssignmentList = ({
       </p>
     );
   }
+  const cards = assignments
+    .map((assignment) => ({
+      assignment,
+      state: describeAssignment(assignment, now),
+    }))
+    .toSorted((a, b) => Number(a.state.submitted) - Number(b.state.submitted));
   return (
     <section aria-label="Your assignments" className={gridClassName}>
-      {assignments.map((assignment) => {
-        const [project] = assignment.projects;
-        const steps = project?.iterations[0]?.count ?? 0;
-        const submitted = project?.status === "submitted";
-        const aiAllowed = assignment.lane === "lane_2";
+      {cards.map(({ assignment, state }) => {
+        const { aiAllowed, steps } = state;
+        const note = noteFor(state);
         return (
           <article
             className="rise-in relative flex min-w-0 flex-col gap-6 [--i:2] [--paper-rotation:-1.4deg] nth-2:[--i:3] nth-2:[--paper-rotation:1.2deg] nth-3:[--i:4] nth-3:[--paper-rotation:-0.8deg]"
@@ -67,27 +88,21 @@ export const AssignmentList = ({
                 {assignment.course.code}
               </CardHeader>
               <CardContent>
-                <Badge variant={aiAllowed ? "ai" : "neutral"}>
-                  {aiAllowed ? "Lane 2 · AI allowed" : "Lane 1 · AI restricted"}
-                </Badge>
+                <LaneBadge aiAllowed={aiAllowed} />
                 <h2 className="text-ink text-panel mt-2.5 font-bold">
                   {assignment.title}
                 </h2>
-                {assignment.due_at ? (
-                  <p className="text-muted-foreground flex items-center gap-2">
-                    <Clock aria-hidden="true" size={18} />
-                    <time dateTime={assignment.due_at} suppressHydrationWarning>
-                      Due {dueDate.format(new Date(assignment.due_at))}
-                    </time>
-                  </p>
-                ) : null}
+                <DueLine dueAt={assignment.due_at} state={state} />
                 <ul
                   aria-label={`${stepLabel(steps)} logged`}
                   className="flex min-h-2.5 flex-wrap gap-2"
                 >
                   {Array.from({ length: steps }, (_, stepIndex) => (
                     <li
-                      className="bg-ai h-2.5 w-6.5 rounded-full"
+                      className={cn(
+                        "h-2.5 w-6.5 rounded-full",
+                        stepIndex % 2 === 0 ? "bg-human" : "bg-ai"
+                      )}
                       key={`${assignment.id}-${stepIndex}`}
                     />
                   ))}
@@ -99,33 +114,17 @@ export const AssignmentList = ({
                 </p>
                 <p className="text-body">{assignment.brief}</p>
                 <div className="mt-auto">
-                  {submitted ? (
-                    <Badge variant="success">Submitted</Badge>
-                  ) : (
-                    <Link
-                      className={buttonVariants({
-                        size: "sm",
-                        variant: aiAllowed ? "default" : "outline",
-                      })}
-                      href="/student/log"
-                    >
-                      {aiAllowed ? "Add steps" : "Open"}
-                    </Link>
-                  )}
+                  <Actions
+                    assignmentId={assignment.id}
+                    state={state}
+                    userId={props.userId}
+                  />
                 </div>
               </CardContent>
             </Card>
-            {submitted ? (
-              <Note tone="mint" placement="assignment">
-                Submitted. Nice work.
-              </Note>
-            ) : (
-              <Note tone={aiAllowed ? "yellow" : "sky"} placement="assignment">
-                {aiAllowed
-                  ? `${stepLabel(steps)} so far. Keep logging!`
-                  : "Lane 1: no AI here"}
-              </Note>
-            )}
+            <Note placement="assignment" tone={note.tone}>
+              {note.text}
+            </Note>
           </article>
         );
       })}

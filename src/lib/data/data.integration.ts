@@ -17,12 +17,19 @@ import {
   assignmentsQuery,
   invalidateAfterReview,
   invalidateAfterSave,
+  invalidateAfterStart,
   invalidateAfterSubmit,
   projectLogQuery,
   reviewsQuery,
   submissionsQuery,
 } from "./queries";
-import { forbidden, writeReview, writeStep, writeSubmission } from "./writes";
+import {
+  forbidden,
+  writeProject,
+  writeReview,
+  writeStep,
+  writeSubmission,
+} from "./writes";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonymousKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -263,6 +270,10 @@ const removeFixture = async () => {
   const users = [...created.users];
   await admin.from("analysis_results").delete().in("project_id", projects);
   await admin.from("projects").delete().in("id", projects);
+  await admin
+    .from("projects")
+    .delete()
+    .in("assignment_id", [...created.assignments]);
   await admin.from("enrolments").delete().in("course_id", courses);
   await admin
     .from("assignments")
@@ -424,6 +435,67 @@ test("a read cannot run with a session that belongs to someone else", async () =
   const cached = queryClient.getQueryCache().getAll();
   assert.equal(cached.length, 3);
   assert.ok(cached.every(({ state }) => state.data === undefined));
+});
+
+test("opening a Lane 2 assignment creates one project and refreshes the assignment list", async () => {
+  const { p1, s1, s2, s3, teacherA } = await fixture;
+  const { course_id: courseId } = await must(
+    admin.from("projects").select("course_id").eq("id", p1).single()
+  );
+  const [lane2, lane1] = await must(
+    admin
+      .from("assignments")
+      .insert([
+        { course_id: courseId, lane: "lane_2", title: `${tag} Fresh essay` },
+        { course_id: courseId, lane: "lane_1", title: `${tag} Fresh lab` },
+      ])
+      .select("id")
+  );
+  const [lane2Id, lane1Id] = [lane2?.id ?? "", lane1?.id ?? ""];
+  created.assignments.add(lane2Id).add(lane1Id);
+  const projectsOf = (assignmentId: string) =>
+    must(
+      admin
+        .from("projects")
+        .select("id, student_id, status")
+        .eq("assignment_id", assignmentId)
+    );
+  const queryClient = newQueryClient();
+  const assignments = assignmentsQuery(s1.client, s1.id);
+  const stop = watch(queryClient, assignments);
+  const projectCount = async () => {
+    const list = await queryClient.query(assignments);
+    return list.find(({ id }) => id === lane2Id)?.projects.length;
+  };
+  assert.equal(await projectCount(), 0);
+  const opens = await Promise.all([
+    writeProject(s1.client, s1.id, { assignmentId: lane2Id }),
+    writeProject(s1.client, s1.id, { assignmentId: lane2Id }),
+  ]);
+  assert.deepEqual(opens, [{}, {}]);
+  assert.deepEqual(
+    await writeProject(s1.client, s1.id, { assignmentId: lane2Id }),
+    {}
+  );
+  const rows = await projectsOf(lane2Id);
+  assert.deepEqual(
+    rows.map(({ status, student_id }) => [status, student_id]),
+    [["draft", s1.id]]
+  );
+  assert.equal(await projectCount(), 0);
+  await invalidateAfterStart(queryClient, s1.id);
+  assert.equal(await projectCount(), 1);
+  const rejected = await Promise.all([
+    writeProject(s1.client, s1.id, { assignmentId: lane1Id }),
+    writeProject(s3.client, s3.id, { assignmentId: lane2Id }),
+    writeProject(teacherA.client, teacherA.id, { assignmentId: lane2Id }),
+    writeProject(s2.client, s1.id, { assignmentId: lane2Id }),
+  ]);
+  assert.deepEqual(rejected, [forbidden, forbidden, forbidden, forbidden]);
+  assert.deepEqual(await projectsOf(lane1Id), []);
+  const remaining = await projectsOf(lane2Id);
+  assert.equal(remaining.length, 1);
+  stop();
 });
 
 test("saving a step refreshes the log and assignment progress", async () => {

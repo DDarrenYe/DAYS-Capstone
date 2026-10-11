@@ -19,9 +19,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SegmentedNav } from "@/components/ui/segmented-nav";
 
-const navigation = {
+interface NavigationItem {
+  also?: string;
+  label: string;
+  segment: string | null;
+}
+
+const navigation: Record<"student" | "instructor", NavigationItem[]> = {
   student: [
-    { segment: null, label: "Assignments" },
+    { also: "assignments", segment: null, label: "Assignments" },
     { segment: "log", label: "My log" },
     { segment: "progress", label: "Progress" },
   ],
@@ -33,17 +39,26 @@ const navigation = {
   ],
 };
 
+const matches = (item: NavigationItem, segment: string | null) =>
+  item.segment === segment || (segment !== null && item.also === segment);
+
 interface RoleProps {
   userRole: "student" | "instructor";
 }
 
-export const RoleNavigation = ({ userRole }: RoleProps) => {
-  const segment = useSelectedLayoutSegment();
+const NavigationTabs = ({
+  userRole,
+  segment,
+}: RoleProps & { segment?: string | null }) => {
   const isStudent = userRole === "student";
   const items = navigation[userRole];
   return (
     <SegmentedNav
-      activeIndex={items.findIndex((item) => item.segment === segment)}
+      activeIndex={
+        segment === undefined
+          ? -1
+          : items.findIndex((item) => matches(item, segment))
+      }
       aria-label={`${isStudent ? "Student" : "Instructor"} navigation`}
       className="max-[1100px]:order-3 max-[1100px]:w-fit max-[760px]:w-full"
       items={items.map((item) => ({
@@ -54,21 +69,40 @@ export const RoleNavigation = ({ userRole }: RoleProps) => {
   );
 };
 
+export const RoleNavigation = ({ userRole }: RoleProps) => {
+  const segment = useSelectedLayoutSegment();
+  return <NavigationTabs segment={segment} userRole={userRole} />;
+};
+
+export const RoleNavigationFallback = ({ userRole }: RoleProps) => (
+  <NavigationTabs userRole={userRole} />
+);
+
+const BreadcrumbTrail = ({
+  userRole,
+  label,
+}: RoleProps & { label?: string }) => (
+  <nav
+    aria-label="Breadcrumb"
+    className="text-muted-foreground text-caption flex gap-3 [&_a:hover]:underline"
+  >
+    <Link href={`/${userRole}`}>
+      {userRole === "student" ? "Student" : "Instructor"}
+    </Link>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{label}</span>
+  </nav>
+);
+
 export const Breadcrumbs = ({ userRole }: RoleProps) => {
   const segment = useSelectedLayoutSegment();
-  const current = navigation[userRole].find((item) => item.segment === segment);
-  const isStudent = userRole === "student";
-  return (
-    <nav
-      aria-label="Breadcrumb"
-      className="text-muted-foreground text-caption flex gap-3 [&_a:hover]:underline"
-    >
-      <Link href={`/${userRole}`}>{isStudent ? "Student" : "Instructor"}</Link>
-      <span aria-hidden="true">/</span>
-      <span aria-current="page">{current?.label}</span>
-    </nav>
-  );
+  const current = navigation[userRole].find((item) => matches(item, segment));
+  return <BreadcrumbTrail label={current?.label} userRole={userRole} />;
 };
+
+export const BreadcrumbsFallback = ({ userRole }: RoleProps) => (
+  <BreadcrumbTrail userRole={userRole} />
+);
 
 export const UserMenu = ({
   userRole,

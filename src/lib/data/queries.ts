@@ -127,6 +127,11 @@ const invalidate = (queryClient: QueryClient, ...keys: QueryKey[]) =>
     keys.map((queryKey) => queryClient.invalidateQueries({ queryKey }))
   );
 
+export const invalidateAfterStart = (
+  queryClient: QueryClient,
+  userId: string
+) => invalidate(queryClient, queryKeys.assignments(userId));
+
 export const invalidateAfterSave = (
   queryClient: QueryClient,
   userId: string,

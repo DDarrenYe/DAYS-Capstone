@@ -6,7 +6,9 @@ import { AccountMenu } from "@/components/shell/account-menu";
 import { Brand } from "@/components/shell/brand";
 import {
   Breadcrumbs,
+  BreadcrumbsFallback,
   RoleNavigation,
+  RoleNavigationFallback,
 } from "@/components/shell/shell-navigation";
 import { Badge } from "@/components/ui/badge";
 
@@ -29,7 +31,9 @@ export const AppShell = ({
       </a>
       <header className="flex flex-wrap items-center justify-between gap-6 px-18 py-4.5 max-[1100px]:px-8 max-[760px]:gap-5 max-[760px]:p-5">
         <Brand href={`/${userRole}`} />
-        <RoleNavigation userRole={userRole} />
+        <Suspense fallback={<RoleNavigationFallback userRole={userRole} />}>
+          <RoleNavigation userRole={userRole} />
+        </Suspense>
         <div className="flex items-center gap-3.5 max-[760px]:w-full max-[760px]:justify-between">
           <Badge variant={isStudent ? "human" : "ai"}>
             {isStudent ? "Student" : "Instructor"}
@@ -50,7 +54,9 @@ export const AppShell = ({
         id="main-content"
         tabIndex={-1}
       >
-        <Breadcrumbs userRole={userRole} />
+        <Suspense fallback={<BreadcrumbsFallback userRole={userRole} />}>
+          <Breadcrumbs userRole={userRole} />
+        </Suspense>
         {children}
       </main>
       <footer className="text-muted-foreground flex justify-between gap-6 px-18 py-6 text-sm leading-normal max-[1100px]:px-10 max-[760px]:flex-wrap max-[760px]:px-6 [&_a:hover]:underline">

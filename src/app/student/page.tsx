@@ -1,23 +1,11 @@
-import { cacheLife } from "next/cache";
 import { Suspense } from "react";
 
 import {
   AssignmentList,
   AssignmentsSkeleton,
 } from "@/app/student/assignment-list";
+import { getAssignments } from "@/app/student/assignments";
 import { requireRole } from "@/lib/auth";
-import { assignmentsQuery } from "@/lib/data/queries";
-import { createClient } from "@/lib/supabase/server";
-
-const getAssignments = async (userId: string) => {
-  "use cache: private";
-  cacheLife({ stale: 300 });
-  const assignments = await assignmentsQuery(
-    await createClient(),
-    userId
-  ).queryFn();
-  return { assignments, fetchedAt: Date.now() };
-};
 
 const Assignments = async () => {
   const { id } = await requireRole("student");

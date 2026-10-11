@@ -26,6 +26,7 @@ const stepSchema = z.object({
   stepNumber: z.int().min(1).max(MAX_STEP_NUMBER),
 });
 const submitSchema = z.object({ projectId: z.guid() });
+const startSchema = z.object({ assignmentId: z.guid() });
 const reviewSchema = z.object({
   flagId: z.guid(),
   state: z.enum(flagReviewState.enumValues),
@@ -33,6 +34,7 @@ const reviewSchema = z.object({
 
 export type StepInput = z.input<typeof stepSchema>;
 export type SubmitInput = z.input<typeof submitSchema>;
+export type StartInput = z.input<typeof startSchema>;
 export type ReviewInput = z.input<typeof reviewSchema>;
 
 export interface WriteResult {
@@ -42,13 +44,7 @@ export interface WriteResult {
 const invalidInput: WriteResult = { error: "Check the details and try again." };
 export const forbidden: WriteResult = { error: "You can't make that change." };
 
-const settle = (
-  row: { id: string } | null,
-  error: PostgrestError | null
-): WriteResult => {
-  if (!error) {
-    return row ? {} : forbidden;
-  }
+const fail = (error: PostgrestError): WriteResult => {
   if (error.code === "42501" || error.code === "23514") {
     return forbidden;
   }
@@ -57,6 +53,16 @@ const settle = (
   }
   console.error("Database write failed", error);
   return { error: "Unable to save. Try again shortly." };
+};
+
+const settle = (
+  row: { id: string } | null,
+  error: PostgrestError | null
+): WriteResult => {
+  if (error) {
+    return fail(error);
+  }
+  return row ? {} : forbidden;
 };
 
 export const writeStep = async (
@@ -91,6 +97,31 @@ export const writeStep = async (
         .select("id")
         .maybeSingle();
   return settle(data, error);
+};
+
+export const writeProject = async (
+  client: Client,
+  studentId: string,
+  input: StartInput
+): Promise<WriteResult> => {
+  const { data: start, success } = startSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { data: assignment, error: readError } = await client
+    .from("assignments")
+    .select("course_id")
+    .eq("id", start.assignmentId)
+    .maybeSingle();
+  if (readError || !assignment) {
+    return readError ? fail(readError) : forbidden;
+  }
+  const { error } = await client.from("projects").insert({
+    assignment_id: start.assignmentId,
+    course_id: assignment.course_id,
+    student_id: studentId,
+  });
+  return !error || error.code === "23505" ? {} : fail(error);
 };
 
 export const writeSubmission = async (
