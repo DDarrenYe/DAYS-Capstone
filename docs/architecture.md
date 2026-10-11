@@ -174,7 +174,7 @@ flowchart LR
     s4["4 Critique each step"]:::planned
     s5["5 Type or upload the final essay"]:::planned
     s6["6 Submit"]:::planned
-    s1 --> s2 -.-> s3 -.-> s4 -.-> s5 -.-> s6
+    s1 -.-> s2 -.-> s3 -.-> s4 -.-> s5 -.-> s6
   end
 
   subgraph app["Next.js server (trusted)"]
@@ -282,13 +282,14 @@ Matching and export stay inside the app. We haven't fixed what the reflection ch
 | --- | --- |
 | Sign-in, sign-out, role routing | Working. Unit tests cover the proxy, account and credential helpers. |
 | Schema, constraints, triggers, RLS and grants | Working and covered by `supabase/tests`. The app only reads `profiles` so far. |
+| Seed data | Working, local only. `supabase/seed.sql` builds one course, eight accounts and eight example projects, listed in `supabase/README.md`. The pages don't show any of it yet, and `match_results` is left empty until the matcher exists. |
 | Student assignments page | Prototype. Three hard-coded cards, and "Add steps" opens a placeholder. |
 | My log, progress, privacy | Placeholders. No data and no consent text. |
 | Instructor overview and essay plot | Prototype. Names and percentages are hard-coded from the mockups. The flags and reports pages are placeholders. |
 | Import, critique, final essay, submit | Not built. The tables and locks are ready. |
 | Matching, reflection check, grader decisions, export | Not built. The tables, versions and review history are ready. |
 
-## Gaps found while writing this
+## What's still missing
 
 - **Instructors can't read student names.** `profiles` only lets a user read their own row. The submissions table in [#28](https://github.com/DDarrenYe/DAYS-Capstone/issues/28) needs names, so we need a server read or a new policy.
 - **The database doesn't check that a log is complete.** A student client can set `status = 'submitted'` on an empty draft. Only the lock after submitting is enforced. [#23](https://github.com/DDarrenYe/DAYS-Capstone/issues/23) should add the check, in a database function if we want direct writes rejected too.
