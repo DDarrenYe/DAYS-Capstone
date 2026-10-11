@@ -10,6 +10,7 @@ type Client = SupabaseClient<Database>;
 
 export const queryKeys = {
   assignments: (userId: string) => ["users", userId, "assignments"] as const,
+  courses: (userId: string) => ["users", userId, "courses"] as const,
   project: (userId: string, projectId: string) =>
     ["users", userId, "projects", projectId] as const,
   projectLog: (userId: string, projectId: string) =>
@@ -55,6 +56,26 @@ const readAssignments = async (client: Client) =>
 
 export type AssignmentRows = Awaited<ReturnType<typeof readAssignments>>;
 
+const readCourses = async (client: Client) =>
+  unwrap(
+    await client
+      .from("courses")
+      .select(
+        "id, code, title, assignments(id, title, due_at, lane), enrolments(id, email, student_id)"
+      )
+      .order("created_at")
+      .order("due_at", {
+        ascending: true,
+        nullsFirst: false,
+        referencedTable: "assignments",
+      })
+      .order("created_at", { referencedTable: "assignments" })
+      .order("email", { referencedTable: "enrolments" }),
+    "courses"
+  );
+
+export type CourseRows = Awaited<ReturnType<typeof readCourses>>;
+
 const readProjectLog = async (client: Client, projectId: string) =>
   unwrap(
     await client
@@ -95,6 +116,11 @@ const readReviews = async (client: Client, projectId: string) =>
 export const assignmentsQuery = (client: Client, userId: string) => ({
   queryFn: () => asUser(client, userId, readAssignments),
   queryKey: queryKeys.assignments(userId),
+});
+
+export const coursesQuery = (client: Client, userId: string) => ({
+  queryFn: () => asUser(client, userId, readCourses),
+  queryKey: queryKeys.courses(userId),
 });
 
 export const projectLogQuery = (
@@ -160,3 +186,8 @@ export const invalidateAfterReview = (
     queryKeys.project(userId, projectId),
     queryKeys.submissions(userId)
   );
+
+export const invalidateAfterSetup = (
+  queryClient: QueryClient,
+  userId: string
+) => invalidate(queryClient, queryKeys.courses(userId));

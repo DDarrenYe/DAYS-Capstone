@@ -2,13 +2,24 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { reviewFlag, saveStep, submitProject } from "@/lib/data/actions";
+import {
+  createAssignment,
+  createCourse,
+  enrolStudents,
+  reviewFlag,
+  saveStep,
+  submitProject,
+} from "@/lib/data/actions";
 import {
   invalidateAfterReview,
   invalidateAfterSave,
+  invalidateAfterSetup,
   invalidateAfterSubmit,
 } from "@/lib/data/queries";
 import type {
+  AssignmentInput,
+  CourseInput,
+  EnrolInput,
   ReviewInput,
   StepInput,
   SubmitInput,
@@ -45,5 +56,35 @@ export const useReviewFlag = (userId: string, projectId: string) => {
   return useMutation({
     mutationFn: (input: ReviewInput) => succeeded(reviewFlag(input)),
     onSuccess: () => invalidateAfterReview(queryClient, userId, projectId),
+  });
+};
+
+export const useCreateCourse = (userId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CourseInput) => succeeded(createCourse(input)),
+    onSuccess: () => invalidateAfterSetup(queryClient, userId),
+  });
+};
+
+export const useCreateAssignment = (userId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AssignmentInput) => succeeded(createAssignment(input)),
+    onSuccess: () => invalidateAfterSetup(queryClient, userId),
+  });
+};
+
+export const useEnrolStudents = (userId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: EnrolInput) => {
+      const { error, results } = await enrolStudents(input);
+      if (error || !results) {
+        throw new Error(error ?? "Unable to save. Try again shortly.");
+      }
+      return results;
+    },
+    onSuccess: () => invalidateAfterSetup(queryClient, userId),
   });
 };
