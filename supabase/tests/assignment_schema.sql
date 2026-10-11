@@ -1,6 +1,11 @@
 begin;
 select plan(50);
 
+truncate public.grader_notes, public.flag_reviews, public.flags, public.analysis_results,
+  public.final_versions, public.iterations, public.projects, public.assignments,
+  public.enrolments, public.courses, public.profiles;
+delete from auth.users;
+
 insert into auth.users (id) values
   ('00000000-0000-0000-0000-000000000001'),
   ('00000000-0000-0000-0000-000000000002'),
