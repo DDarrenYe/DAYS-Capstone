@@ -19,11 +19,12 @@
     "typegen:app": "next typegen",
     "test": "turbo run test:app db:check:app",
     "test:app": "bun test --conditions=react-server",
-    "test:integration": "bun run build && bun --env-file=.env.local test --conditions=react-server ./src/lib/data/data.integration.ts ./src/lib/supabase/secrets.integration.ts",
+    "test:integration": "turbo run test:integration:app",
+    "test:integration:app": "bun --env-file=.env.local test --conditions=react-server ./src/lib/data/data.integration.ts ./src/lib/supabase/secrets.integration.ts",
     "db:reset": "supabase db reset --local",
     "db:test": "supabase test db --local",
     "db:generate": "drizzle-kit generate",
-    "db:types": "supabase gen types --local --lang typescript > src/lib/supabase/database.types.ts && vp check --fix src/lib/supabase/database.types.ts",
+    "db:types": "supabase gen types --local --lang typescript > node_modules/.database.types.ts && mv node_modules/.database.types.ts src/lib/supabase/database.types.ts && vp check --fix src/lib/supabase/database.types.ts",
     "db:migrate": "supabase migration up --local",
     "db:check": "turbo run db:check:app",
     "db:check:app": "drizzle-kit check"
@@ -32,7 +33,6 @@
     "@base-ui/react": "1.8.0",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.117.3",
-    "@tanstack/query-core": "5.104.1",
     "@tanstack/react-query": "5.104.1",
     "class-variance-authority": "0.7.1",
     "cn": "0.4.0",
@@ -50,6 +50,7 @@
   "devDependencies": {
     "@shadcn/lint": "0.2.0",
     "@tailwindcss/turbopack": "4.3.3",
+    "@tanstack/query-core": "5.104.1",
     "@types/node": "20.19.43",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
@@ -63,10 +64,6 @@
     "vite-plus": "1.1.0"
   },
   "packageManager": "bun@1.3.14",
-  "ignoreScripts": [
-    "sharp",
-    "unrs-resolver"
-  ],
   "trustedDependencies": [
     "sharp",
     "unrs-resolver"
