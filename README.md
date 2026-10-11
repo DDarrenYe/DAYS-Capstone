@@ -2,11 +2,11 @@
 
 This is our INFOMGMT 399 capstone (Proposal 1). Students import or paste their AI chats, critique each step using three questions, and submit the final essay. Graders can see which parts match the logged AI answers, read the reflection checks, add notes or feedback, and export a PDF or CSV. Unmatched text doesn't prove who wrote it.
 
-Plan: [docs/plan.md](docs/plan.md). Schema and data flow: [docs/architecture.md](docs/architecture.md). Issues: [docs/issue-plan.json](docs/issue-plan.json) and the GitHub tracker. Mockups: [design/mockups](design/mockups), screenshots in [design/screenshots](design/screenshots). Product film (100 s, 1080p60): [design/ai-interaction-analytics-showcase.mp4](design/ai-interaction-analytics-showcase.mp4).
+Plan: [docs/plan.md](docs/plan.md). Schema and data flow: [docs/architecture.md](docs/architecture.md). Issues: [docs/issue-plan.json](docs/issue-plan.json) and the GitHub tracker. Design system: [DESIGN.md](DESIGN.md). Design files, including the earlier prototype and its product film: [design/](design/README.md).
 
 ## Current status
 
-We have the nine-screen prototype and showcase ready. The app has the Next.js scaffold and shared UI, with password sign-in and role-based sessions. We still need to build saving data, chat import, text matching, reflection checks, grader decisions and exports. The plan follows the existing 45 GitHub issues; the scaffold task is already done.
+The app has password sign-in, role-based sessions and every student and grader screen in the Margin design. The student assignments page reads Supabase; the other screens run on shared example data in `src/lib/example-data.ts` and show an "Example data" badge. Drafts and grader decisions are kept in the browser until their tables exist. We still need to save logs to the database, import chats, match text, run reflection checks, record grader decisions and export real reports. The plan follows the 45 GitHub issues.
 
 ## Stack
 
@@ -55,7 +55,7 @@ Password sign-in does not send an email. Local database seeding creates these co
 
 On a fresh stack, seeds run automatically. For an existing disposable stack, `bun run db:reset` applies migrations and seeds, deleting its local data. To preserve existing data, apply `supabase/seed.sql` to this checkout's local database as its administrator instead; fixed IDs and `on conflict` clauses leave records that already exist untouched, so it does not reset existing passwords. The seed also creates the INFOMGMT 399 course, assignments, drafts, submissions and flag reviews described in `supabase/README.md`, which lists each scenario ID.
 
-Students land on `/student` (assignments); instructors land on `/instructor` (the current instructor shell). The proxy is an optimistic check: it reads the session cookie, persists refreshed session cookies, and redirects signed-out users away from protected routes. It never queries Supabase for the user or the role. The account menu in each role shell calls `requireRole`, which verifies the user and reads the role from the profile stored in Postgres (not editable user metadata), then sends signed-out or cross-role users to the right place. That check streams in behind its own `Suspense` boundary, so it does not gate the page content. Sign out is in the account menu. The server client is read-only during rendering; Server Actions use `createClient({ writeCookies: true })`. Every page that reads data and every mutation must call `requireRole` itself and enforce ownership/RLS; the shell check is not authorization. The current pages show fictional example content only.
+Students land on `/student` (assignments); instructors land on `/instructor` (the current instructor shell). The proxy is an optimistic check: it reads the session cookie, persists refreshed session cookies, and redirects signed-out users away from protected routes. It never queries Supabase for the user or the role. The account menu in each role shell calls `requireRole`, which verifies the user and reads the role from the profile stored in Postgres (not editable user metadata), then sends signed-out or cross-role users to the right place. That check streams in behind its own `Suspense` boundary, so it does not gate the page content. Sign out is in the account menu; it reloads the page and clears drafts kept in the browser, so nothing carries over to the next person on a shared computer. The server client is read-only during rendering; Server Actions use `createClient({ writeCookies: true })`. Every page that reads data and every mutation must call `requireRole` itself and enforce ownership/RLS; the shell check is not authorization. Apart from student assignments, the pages show fictional example content.
 
 This version signs in provisioned accounts. Public signup and self-service password recovery are not included; users contact their instructor for help. Do not deploy the demo seed or reuse its known password for real accounts.
 
@@ -121,8 +121,8 @@ Components go in `src/components/ui/`.
 
 ## Design
 
-The app uses a light sky background, white cards, and paper sheets for documents and AI output. Sticky notes hold comments: yellow for student critiques, pink for reflection-check flags, mint for AI errors caught, and sky for grader notes. AI text is blue; student text is tangerine.
+The design system is called Margin, and [DESIGN.md](DESIGN.md) is the source of truth for its colours, type, components and motion. Warm paper and ink neutrals do most of the work. Colour only carries meaning: cobalt for text that matches a logged AI answer, vermilion for a reflection-check flag, green for an AI error the student caught, and amber for work waiting on a grader. Anything a student wrote is set in a serif, so a grader always knows whose words they're reading.
 
 Students and graders see the same three questions: was the AI right or wrong, how did you check, and what did you change? The main percentage shows how much of the final essay doesn't match any logged AI answer. It doesn't prove that the student wrote those parts.
 
-Animations are short: content blurs and rises into view, and notes appear with a spring. See `design/mockups/style.css` for the design tokens mapped to shadcn's CSS variables.
+Signed-in pages don't animate in, because graders open them dozens of times a session; motion comes from what you click. Tokens live in `src/app/globals.css`, and components add variants instead of being restyled where they're used. See [design/README.md](design/README.md) for the static reference pages and the earlier prototype.
