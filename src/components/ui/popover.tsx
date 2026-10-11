@@ -37,7 +37,7 @@ function PopoverContent({
         <PopoverPrimitive.Popup
           data-slot="popover-content"
           className={cn(
-            "popup-motion bg-popover text-popover-foreground shadow-lift rounded-menu text-caption flex w-72 max-w-[calc(100vw-40px)] flex-col gap-3 p-4 outline-hidden",
+            "popup-motion bg-popover text-popover-foreground shadow-lift rounded-navigation text-caption flex w-72 max-w-[calc(100vw-40px)] flex-col gap-3 p-5 outline-hidden",
             className
           )}
           {...props}

@@ -66,7 +66,7 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
     <TabsPrimitive.Tab
       data-slot="tabs-trigger"
       className={cn(
-        "text-body focus-visible:ring-ring/50 not-data-active:hover:text-foreground data-active:text-foreground group-data-[variant=default]/tabs-list:data-active:text-card rounded-navigation relative z-10 inline-flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 px-4.5 text-base font-semibold whitespace-nowrap transition-colors duration-150 ease-out outline-none group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "text-body focus-visible:ring-ring/50 not-data-active:hover:text-foreground data-active:text-foreground group-data-[variant=default]/tabs-list:data-active:text-card rounded-navigation text-ui relative z-10 inline-flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 px-4.5 font-semibold whitespace-nowrap transition-colors duration-150 ease-out outline-none group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}

@@ -109,7 +109,7 @@ export const UserMenu = ({
             >
               {pending ? "Signing out…" : "Sign out"}
             </DropdownMenuItem>
-            <p aria-live="polite" className="text-destructive px-2 text-sm">
+            <p aria-live="polite" className="text-destructive px-4.5 text-sm">
               {state.error}
             </p>
           </form>

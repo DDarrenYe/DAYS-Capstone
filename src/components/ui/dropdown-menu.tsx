@@ -5,7 +5,7 @@ import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { cn } from "@/lib/utils";
 
 const itemClassName =
-  "data-highlighted:bg-subtle block w-full cursor-default rounded-lg px-2 py-2.5 text-left outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50";
+  "text-body data-highlighted:bg-accent data-highlighted:text-foreground rounded-navigation flex min-h-10 w-full cursor-default items-center px-4.5 text-left font-semibold outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50";
 
 function DropdownMenu({ ...props }: MenuPrimitive.Root.Props) {
   return <MenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
@@ -39,7 +39,7 @@ function DropdownMenuContent({
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
           className={cn(
-            "popup-motion bg-popover text-popover-foreground shadow-lift rounded-menu max-h-(--available-height) min-w-32 overflow-y-auto p-3 outline-none",
+            "popup-motion bg-popover text-popover-foreground shadow-lift rounded-navigation max-h-(--available-height) min-w-32 overflow-y-auto p-1.5 outline-none",
             className
           )}
           {...props}
@@ -60,7 +60,10 @@ function DropdownMenuLabel({
   return (
     <MenuPrimitive.GroupLabel
       data-slot="dropdown-menu-label"
-      className={cn("text-muted-foreground p-2 text-sm", className)}
+      className={cn(
+        "text-muted-foreground text-kicker px-4.5 py-2 font-semibold",
+        className
+      )}
       {...props}
     />
   );
@@ -96,7 +99,7 @@ function DropdownMenuSeparator({
   return (
     <MenuPrimitive.Separator
       data-slot="dropdown-menu-separator"
-      className={cn("bg-border -mx-1 my-1 h-px", className)}
+      className={cn("bg-border mx-3 my-1.5 h-px", className)}
       {...props}
     />
   );
