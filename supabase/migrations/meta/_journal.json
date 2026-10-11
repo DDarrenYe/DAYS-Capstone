@@ -15,6 +15,13 @@
       "when": 1791578221530,
       "tag": "20261009203701_role_course_access",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791722330480,
+      "tag": "20261011123850_instructor_setup",
+      "breakpoints": true
     }
   ]
 }

@@ -3,8 +3,22 @@ import { test } from "node:test";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { forbidden, writeReview, writeStep, writeSubmission } from "./writes";
-import type { ReviewInput, StepInput, SubmitInput } from "./writes";
+import {
+  forbidden,
+  writeAssignment,
+  writeCourse,
+  writeEnrolments,
+  writeReview,
+  writeStep,
+  writeSubmission,
+} from "./writes";
+import type {
+  AssignmentInput,
+  CourseInput,
+  ReviewInput,
+  StepInput,
+  SubmitInput,
+} from "./writes";
 
 const projectId = "20000000-0000-0000-0000-000000000001";
 const stepId = "30000000-0000-0000-0000-000000000001";
@@ -41,7 +55,9 @@ const clientWith = (
   return { client, requests };
 };
 
-const wire = (json: string): StepInput & SubmitInput & ReviewInput =>
+const wire = (
+  json: string
+): StepInput & SubmitInput & ReviewInput & CourseInput & AssignmentInput =>
   JSON.parse(json);
 
 const step: StepInput = {
@@ -194,4 +210,134 @@ test("duplicate step numbers and unexpected failures return safe messages", asyn
   } finally {
     console.error = log;
   }
+});
+
+const assignment = {
+  brief: "Write it",
+  courseId: projectId,
+  dueAt: "2026-12-01T06:00:00.000Z",
+  lane: "lane_2",
+  title: "Essay",
+} as const;
+
+const invalidAssignment = (changes: Record<string, string>) =>
+  wire(JSON.stringify({ ...assignment, ...changes }));
+
+const denied = () =>
+  clientWith(() =>
+    Response.json({ code: "42501", message: "denied" }, { status: 403 })
+  ).client;
+
+test("setup input is rejected before the database is contacted", async () => {
+  const { client, requests } = clientWith();
+  const results = await Promise.all([
+    writeCourse(client, reviewerId, { code: "  ", title: "Title" }),
+    writeCourse(client, reviewerId, { code: "A", title: "x".repeat(201) }),
+    writeAssignment(client, invalidAssignment({ courseId: "nope" })),
+    writeAssignment(client, invalidAssignment({ lane: "lane_3" })),
+    writeAssignment(client, invalidAssignment({ title: " " })),
+    writeAssignment(client, invalidAssignment({ dueAt: "2026-12-01" })),
+    writeEnrolments(client, { courseId: "nope", emails: "a@example.com" }),
+    writeEnrolments(client, { courseId: projectId, emails: " , ; " }),
+    writeEnrolments(client, {
+      courseId: projectId,
+      emails: Array.from({ length: 501 }, (_, i) => `s${i}@example.com`).join(
+        " "
+      ),
+    }),
+  ]);
+  for (const result of results) {
+    assert.deepEqual(result, { error: "Check the details and try again." });
+  }
+  assert.equal(requests.length, 0);
+});
+
+test("a course is owned by the verified instructor, not the caller's input", async () => {
+  const { client, requests } = clientWith();
+  const result = await writeCourse(
+    client,
+    reviewerId,
+    wire(
+      JSON.stringify({
+        code: " INFOMGMT 399 ",
+        instructor_id: "someone-else",
+        title: "Capstone",
+      })
+    )
+  );
+  assert.deepEqual(result, {});
+  assert.equal(requests[0]?.method, "POST");
+  assert.equal(requests[0]?.url.pathname, "/rest/v1/courses");
+  assert.deepEqual(requests[0]?.body, {
+    code: "INFOMGMT 399",
+    instructor_id: reviewerId,
+    title: "Capstone",
+  });
+  const duplicate = clientWith(() =>
+    Response.json({ code: "23505", message: "duplicate key" }, { status: 409 })
+  );
+  assert.deepEqual(
+    await writeCourse(duplicate.client, reviewerId, {
+      code: "INFOMGMT 399",
+      title: "Capstone",
+    }),
+    { error: "You already have a course with that code." }
+  );
+});
+
+test("an assignment is inserted with only the allowed columns", async () => {
+  const { client, requests } = clientWith();
+  const result = await writeAssignment(
+    client,
+    wire(JSON.stringify({ ...assignment, instructor_id: "someone-else" }))
+  );
+  assert.deepEqual(result, {});
+  assert.equal(requests[0]?.url.pathname, "/rest/v1/assignments");
+  assert.deepEqual(requests[0]?.body, {
+    brief: "Write it",
+    course_id: projectId,
+    due_at: "2026-12-01T06:00:00.000Z",
+    lane: "lane_2",
+    title: "Essay",
+  });
+  const undated = clientWith();
+  await writeAssignment(undated.client, {
+    courseId: projectId,
+    lane: "lane_1",
+    title: "Lab",
+  });
+  assert.deepEqual(undated.requests[0]?.body, {
+    brief: "",
+    course_id: projectId,
+    due_at: null,
+    lane: "lane_1",
+    title: "Lab",
+  });
+});
+
+test("pasted addresses are split and sent to the enrolment function", async () => {
+  const { client, requests } = clientWith(() =>
+    Response.json([{ address: "a@example.com", outcome: "invited" }])
+  );
+  const result = await writeEnrolments(client, {
+    courseId: projectId,
+    emails: "a@example.com, B@example.com;\nc@example.com  d",
+  });
+  assert.deepEqual(result, {
+    results: [{ address: "a@example.com", outcome: "invited" }],
+  });
+  assert.equal(requests[0]?.url.pathname, "/rest/v1/rpc/enrol_students");
+  assert.deepEqual(requests[0]?.body, {
+    course: projectId,
+    emails: ["a@example.com", "B@example.com", "c@example.com", "d"],
+  });
+});
+
+test("setup writes the database rejects read as forbidden", async () => {
+  const results = await Promise.all([
+    writeCourse(denied(), reviewerId, { code: "A", title: "B" }),
+    writeAssignment(denied(), assignment),
+    writeEnrolments(denied(), { courseId: projectId, emails: "a@example.com" }),
+  ]);
+  assert.deepEqual(results, [forbidden, forbidden, forbidden]);
 });

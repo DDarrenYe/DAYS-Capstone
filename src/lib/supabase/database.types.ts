@@ -577,7 +577,13 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      enrol_students: {
+        Args: { course: string; emails: string[] };
+        Returns: {
+          address: string;
+          outcome: string;
+        }[];
+      };
     };
     Enums: {
       analysis_status: "pending" | "running" | "completed" | "failed";

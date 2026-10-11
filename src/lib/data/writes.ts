@@ -2,18 +2,23 @@ import "server-only";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-import { flagReviewState } from "@/db/schema";
+import { assignmentLane, flagReviewState } from "@/db/schema";
 import type { Database } from "@/lib/supabase/database.types";
 
 type Client = SupabaseClient<Database>;
 
 const MAX_TEXT = 50_000;
 const MAX_STEP_NUMBER = 2_147_483_647;
+const MAX_LABEL = 200;
+const MAX_EMAIL = 320;
+const MAX_ENROLMENTS = 500;
 
 const text = z
   .string()
   .max(MAX_TEXT)
   .refine((value) => value.trim() !== "");
+
+const label = z.string().trim().min(1).max(MAX_LABEL);
 
 const stepSchema = z.object({
   aiErrorEvidence: text.nullish(),
@@ -31,32 +36,60 @@ const reviewSchema = z.object({
   state: z.enum(flagReviewState.enumValues),
 });
 
+const courseSchema = z.object({ code: label, title: label });
+const assignmentSchema = z.object({
+  brief: z.string().max(MAX_TEXT).default(""),
+  courseId: z.guid(),
+  dueAt: z.iso.datetime({ offset: true }).nullish(),
+  lane: z.enum(assignmentLane.enumValues),
+  title: label,
+});
+const enrolSchema = z.object({
+  courseId: z.guid(),
+  emails: z
+    .string()
+    .max(MAX_TEXT)
+    .transform((pasted) => pasted.split(/[\s,;]+/u).filter(Boolean))
+    .pipe(z.array(z.string().max(MAX_EMAIL)).min(1).max(MAX_ENROLMENTS)),
+});
+
 export type StepInput = z.input<typeof stepSchema>;
 export type SubmitInput = z.input<typeof submitSchema>;
 export type ReviewInput = z.input<typeof reviewSchema>;
+export type CourseInput = z.input<typeof courseSchema>;
+export type AssignmentInput = z.input<typeof assignmentSchema>;
+export type EnrolInput = z.input<typeof enrolSchema>;
 
 export interface WriteResult {
   error?: string;
 }
 
+export interface EnrolResult extends WriteResult {
+  results?: { address: string; outcome: string }[];
+}
+
 const invalidInput: WriteResult = { error: "Check the details and try again." };
 export const forbidden: WriteResult = { error: "You can't make that change." };
+
+const failure = (error: PostgrestError, duplicate?: string): WriteResult => {
+  if (error.code === "42501" || error.code === "23514") {
+    return forbidden;
+  }
+  if (error.code === "23505" && duplicate) {
+    return { error: duplicate };
+  }
+  console.error("Database write failed", error);
+  return { error: "Unable to save. Try again shortly." };
+};
 
 const settle = (
   row: { id: string } | null,
   error: PostgrestError | null
 ): WriteResult => {
-  if (!error) {
-    return row ? {} : forbidden;
+  if (error) {
+    return failure(error, "That step number is already used.");
   }
-  if (error.code === "42501" || error.code === "23514") {
-    return forbidden;
-  }
-  if (error.code === "23505") {
-    return { error: "That step number is already used." };
-  }
-  console.error("Database write failed", error);
-  return { error: "Unable to save. Try again shortly." };
+  return row ? {} : forbidden;
 };
 
 export const writeStep = async (
@@ -131,4 +164,56 @@ export const writeReview = async (
     .select("id")
     .maybeSingle();
   return settle(data, error);
+};
+
+export const writeCourse = async (
+  client: Client,
+  instructorId: string,
+  input: CourseInput
+): Promise<WriteResult> => {
+  const { data: course, success } = courseSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { error } = await client.from("courses").insert({
+    code: course.code,
+    instructor_id: instructorId,
+    title: course.title,
+  });
+  return error
+    ? failure(error, "You already have a course with that code.")
+    : {};
+};
+
+export const writeAssignment = async (
+  client: Client,
+  input: AssignmentInput
+): Promise<WriteResult> => {
+  const { data: assignment, success } = assignmentSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { error } = await client.from("assignments").insert({
+    brief: assignment.brief,
+    course_id: assignment.courseId,
+    due_at: assignment.dueAt ?? null,
+    lane: assignment.lane,
+    title: assignment.title,
+  });
+  return error ? failure(error) : {};
+};
+
+export const writeEnrolments = async (
+  client: Client,
+  input: EnrolInput
+): Promise<EnrolResult> => {
+  const { data: enrolment, success } = enrolSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { data, error } = await client.rpc("enrol_students", {
+    course: enrolment.courseId,
+    emails: enrolment.emails,
+  });
+  return error ? failure(error) : { results: data };
 };

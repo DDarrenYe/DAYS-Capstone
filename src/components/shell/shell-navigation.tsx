@@ -30,6 +30,7 @@ const navigation = {
     { segment: "visualiser", label: "Visualiser" },
     { segment: "flags", label: "Flags" },
     { segment: "reports", label: "Reports" },
+    { segment: "courses", label: "Courses" },
   ],
 };
 

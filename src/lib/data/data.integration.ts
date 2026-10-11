@@ -22,7 +22,15 @@ import {
   reviewsQuery,
   submissionsQuery,
 } from "./queries";
-import { forbidden, writeReview, writeStep, writeSubmission } from "./writes";
+import {
+  forbidden,
+  writeAssignment,
+  writeCourse,
+  writeEnrolments,
+  writeReview,
+  writeStep,
+  writeSubmission,
+} from "./writes";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonymousKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -609,4 +617,105 @@ test("reviewing a flag refreshes reviews and keeps the decision history", async 
     ["dismissed", "open"]
   );
   stop();
+});
+
+const outcomes = (results: { address: string; outcome: string }[] = []) =>
+  Object.fromEntries(results.map(({ address, outcome }) => [address, outcome]));
+
+test("instructors set up a course whose assignments enrolled and invited students then see", async () => {
+  const { s1, teacherA, teacherB } = await fixture;
+  const code = `C-${tag}`;
+  assert.deepEqual(
+    await writeCourse(teacherA.client, teacherA.id, { code, title: "Setup" }),
+    {}
+  );
+  const course = await must(
+    admin
+      .from("courses")
+      .select("id")
+      .eq("instructor_id", teacherA.id)
+      .eq("code", code)
+      .single()
+  );
+  created.courses.add(course.id);
+  const duplicate = await writeCourse(teacherA.client, teacherA.id, {
+    code,
+    title: "Again",
+  });
+  assert.deepEqual(duplicate, {
+    error: "You already have a course with that code.",
+  });
+  const spoofed = await Promise.all([
+    writeCourse(s1.client, s1.id, { code: `S-${tag}`, title: "Student" }),
+    writeCourse(teacherB.client, teacherA.id, {
+      code: `X-${tag}`,
+      title: "Spoofed",
+    }),
+  ]);
+  assert.deepEqual(spoofed, [forbidden, forbidden]);
+
+  const title = `${tag} Setup essay`;
+  const assignment = {
+    brief: "Write it",
+    courseId: course.id,
+    dueAt: "2026-12-01T06:00:00.000Z",
+    lane: "lane_2",
+    title,
+  } as const;
+  assert.deepEqual(await writeAssignment(teacherA.client, assignment), {});
+  assert.deepEqual(
+    await writeAssignment(teacherB.client, assignment),
+    forbidden
+  );
+  assert.deepEqual(await writeAssignment(s1.client, assignment), forbidden);
+  const rows = await must(
+    admin.from("assignments").select("id").eq("course_id", course.id)
+  );
+  assert.equal(rows.length, 1);
+  for (const { id } of rows) {
+    created.assignments.add(id);
+  }
+
+  const lateEmail = `${tag}-late@example.test`;
+  const first = await writeEnrolments(teacherA.client, {
+    courseId: course.id,
+    emails: `${s1.email.toUpperCase()}, ${lateEmail}\n${s1.email} ${teacherB.email} nope`,
+  });
+  assert.deepEqual(outcomes(first.results), {
+    [lateEmail]: "invited",
+    nope: "invalid",
+    [s1.email]: "enrolled",
+    [teacherB.email]: "not_a_student",
+  });
+  const again = await writeEnrolments(teacherA.client, {
+    courseId: course.id,
+    emails: `${s1.email} ${lateEmail}`,
+  });
+  assert.deepEqual(outcomes(again.results), {
+    [lateEmail]: "duplicate",
+    [s1.email]: "duplicate",
+  });
+  const foreign = { courseId: course.id, emails: "friend@example.test" };
+  assert.deepEqual(await writeEnrolments(teacherB.client, foreign), forbidden);
+  assert.deepEqual(await writeEnrolments(s1.client, foreign), forbidden);
+
+  const late = await createAccount("late", "student");
+  const queryClient = newQueryClient();
+  const seen = await Promise.all(
+    [s1, late].map(({ client, id }) =>
+      queryClient.query(assignmentsQuery(client, id))
+    )
+  );
+  for (const visible of seen) {
+    const row = visible.find((candidate) => candidate.title === title);
+    assert.equal(row?.lane, "lane_2");
+    assert.equal(row?.due_at, "2026-12-01T06:00:00+00:00");
+  }
+  const profiles = await must(
+    admin.from("profiles").select("id, role").in("id", [late.id, teacherB.id])
+  );
+  assert.deepEqual(
+    Object.fromEntries(profiles.map(({ id, role }) => [id, role])),
+    { [late.id]: "student", [teacherB.id]: "instructor" }
+  );
 });
