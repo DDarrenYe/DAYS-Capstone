@@ -164,11 +164,11 @@ export const AssignmentCard = ({
               AI is restricted here. There is no AI log to keep.
             </p>
           )}
-          <div className="mt-auto flex min-h-11 flex-wrap items-end gap-2 border-t">
+          <div className="mt-auto flex flex-wrap items-center gap-2 border-t pt-3.5">
             {aiAllowed ? (
               <>
                 {submitted ? (
-                  <Badge className="self-center" variant="success">
+                  <Badge variant="success">
                     <Icon name="check" />
                     Submitted
                   </Badge>
