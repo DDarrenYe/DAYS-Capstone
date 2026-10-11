@@ -32,7 +32,7 @@ bunx --no-install supabase status --env --output-format text --override-name API
 
 Copy those four values into `.env.local`. Next.js reloads environment files when they change.
 
-Open http://localhost:3000.
+Open the URL `bun dev` prints. [Portless](https://portless.sh) serves each checkout at its own HTTPS address, so worktrees never fight over a port: the main checkout is `https://days-capstone.localhost` and a worktree on branch `feat/chat-import` is `https://chat-import.days-capstone.localhost`. Portless needs Node.js 24 or newer. The first run starts its proxy on port 443 and asks for your password once to bind it and trust its local certificate. Run `bunx portless doctor` if a URL doesn't load (`bunx portless hosts sync` fixes Safari), or `PORTLESS=0 bun dev` to skip the proxy and use http://localhost:3000.
 
 `bun run db:status` shows the local API, database, Studio, and Mailpit URLs. Ports are assigned per checkout and branch, so use the printed URLs rather than assuming default ports. Auth emails stay in Mailpit instead of going to real inboxes. Each teammate has their own database.
 
