@@ -1,17 +1,39 @@
 import { Input as InputPrimitive } from "@base-ui/react/input";
-import * as React from "react";
+import { cva } from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
+import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+const inputVariants = cva(
+  "bg-card text-foreground placeholder:text-faint shadow-field focus-visible:shadow-focus aria-invalid:shadow-invalid w-full min-w-0 rounded-md transition-shadow duration-150 ease-out outline-none focus-visible:outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+  {
+    defaultVariants: { density: "default", inset: "none" },
+    variants: {
+      density: {
+        compact: "text-meta h-7.5 px-2.5",
+        default: "text-ui h-9 px-3",
+      },
+      inset: {
+        icon: "pl-8",
+        none: "",
+      },
+    },
+  }
+);
+
+function Input({
+  className,
+  type,
+  density,
+  inset,
+  ...props
+}: React.ComponentProps<"input"> & VariantProps<typeof inputVariants>) {
   return (
     <InputPrimitive
       type={type}
       data-slot="input"
-      className={cn(
-        "bg-card text-foreground placeholder:text-muted-foreground shadow-halo-input focus-visible:shadow-input-focus aria-invalid:shadow-input-invalid h-14 w-full min-w-0 rounded-full px-5.5 text-lg transition-shadow duration-200 ease-out outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
-        className
-      )}
+      className={cn(inputVariants({ density, inset }), className)}
       {...props}
     />
   );

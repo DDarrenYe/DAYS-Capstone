@@ -13,10 +13,10 @@ export const SignInForm = () => {
     <form
       aria-describedby="sign-in-error"
       action={action}
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-3.5"
     >
-      <div className="grid gap-2">
-        <label className="text-body font-semibold" htmlFor="email">
+      <div className="grid gap-1.5">
+        <label className="text-label text-body font-emphasis" htmlFor="email">
           Email
         </label>
         <Input
@@ -30,8 +30,11 @@ export const SignInForm = () => {
           maxLength={254}
         />
       </div>
-      <div className="grid gap-2">
-        <label className="text-body font-semibold" htmlFor="password">
+      <div className="grid gap-1.5">
+        <label
+          className="text-label text-body font-emphasis"
+          htmlFor="password"
+        >
           Password
         </label>
         <Input
@@ -45,17 +48,17 @@ export const SignInForm = () => {
       </div>
       <p
         aria-live="polite"
-        className="text-destructive text-sm"
+        className="text-destructive min-h-4 text-xs empty:hidden"
         id="sign-in-error"
       >
         {state.error}
       </p>
-      <Button className="w-fit" disabled={pending} type="submit">
+      <Button className="w-full" disabled={pending} size="lg" type="submit">
         {pending ? "Signing in…" : "Sign in"}
       </Button>
-      <p className="text-muted-foreground text-base">
-        Use the account provided by your instructor. For help signing in,
-        contact your instructor.
+      <p className="text-muted-foreground text-xs">
+        Use the account your instructor gave you. For help signing in, contact
+        your instructor.
       </p>
     </form>
   );

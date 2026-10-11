@@ -37,7 +37,7 @@ function PopoverContent({
         <PopoverPrimitive.Popup
           data-slot="popover-content"
           className={cn(
-            "popup-motion bg-popover text-popover-foreground shadow-lift rounded-navigation text-caption flex w-72 max-w-[calc(100vw-40px)] flex-col gap-3 p-5 outline-hidden",
+            "popup-motion bg-popover text-popover-foreground shadow-pop flex w-72 max-w-[calc(100vw-40px)] flex-col gap-2 rounded-xl p-3.5 outline-hidden",
             className
           )}
           {...props}
@@ -61,7 +61,7 @@ function PopoverTitle({ className, ...props }: PopoverPrimitive.Title.Props) {
   return (
     <PopoverPrimitive.Title
       data-slot="popover-title"
-      className={cn("text-ui font-semibold", className)}
+      className={cn("text-ui font-heading", className)}
       {...props}
     />
   );
@@ -74,7 +74,7 @@ function PopoverDescription({
   return (
     <PopoverPrimitive.Description
       data-slot="popover-description"
-      className={cn("text-muted-foreground", className)}
+      className={cn("text-muted-foreground text-xs", className)}
       {...props}
     />
   );

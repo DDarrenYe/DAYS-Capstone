@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Margin · Essay 2 · Step 7</title>
+<link rel="stylesheet" href="concept.css">
+<style>
+  .work { flex: 1; min-height: 0; display: grid; grid-template-columns: 252px 1fr 300px; }
+  .rail { border-right: 1px solid var(--border); padding: 18px 12px; display: flex; flex-direction: column; gap: 2px; }
+  .rail .label { padding: 0 10px 8px; }
+  .st { display: grid; grid-template-columns: 22px 1fr; gap: 0 10px; padding: 7px 10px; border-radius: 8px; position: relative; }
+  .st b { font-weight: 500; font-size: 13px; color: var(--body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .st span:last-child { grid-column: 2; font-size: 11.5px; color: var(--faint); }
+  .st .node { grid-row: span 2; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 500 10.5px var(--mono); background: var(--muted); color: var(--muted-foreground); box-shadow: inset 0 0 0 1px var(--border); }
+  .st.done .node { background: var(--primary); color: var(--primary-foreground); box-shadow: none; }
+  .st.thin .node { background: var(--flag-soft); color: var(--flag-ink); box-shadow: inset 0 0 0 1px var(--flag-line); }
+  .st.now { background: var(--ai-wash); box-shadow: inset 0 0 0 1px var(--ai-soft); }
+  .st.now .node { background: var(--ai); color: #fff; box-shadow: 0 0 0 3px var(--ai-soft); }
+  .st.now b { color: var(--foreground); }
+  .st:not(:last-of-type)::after { content: ""; position: absolute; left: 20.5px; top: 31px; height: 14px; width: 1px; background: var(--border-strong); }
+  .rail .btn { margin-top: 12px; }
+
+  .compose { overflow: hidden; padding: 22px 40px 0; display: flex; flex-direction: column; }
+  .compose .kicker { display: flex; gap: 8px; align-items: center; color: var(--muted-foreground); font-size: 12.5px; }
+  .compose h1 { font-size: 21px; font-weight: 600; letter-spacing: -0.02em; margin: 4px 0 18px; }
+  .part { display: grid; grid-template-columns: 26px 1fr; gap: 0 14px; position: relative; padding-bottom: 26px; }
+  .part.raised { z-index: 2; }
+  .part::before { content: ""; position: absolute; left: 12.5px; top: 28px; bottom: 4px; width: 1px; background: var(--border); }
+  .part:last-of-type::before { display: none; }
+  .part .num { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font: 500 11px var(--mono); background: var(--card); box-shadow: inset 0 0 0 1px var(--border-strong); color: var(--body); }
+  .part.active .num { background: var(--primary); color: var(--primary-foreground); box-shadow: none; }
+  .part header { display: flex; align-items: center; gap: 10px; height: 26px; margin-bottom: 8px; }
+  .part header .section-title { font-size: 13.5px; }
+  .part header .right { margin-left: auto; display: flex; gap: 8px; align-items: center; color: var(--muted-foreground); font-size: 12px; }
+  .box { border-radius: 9px; box-shadow: inset 0 0 0 1px var(--input); padding: 11px 14px; color: var(--foreground); line-height: 1.55; background: var(--card); }
+  .answer { background: var(--muted); box-shadow: inset 0 0 0 1px var(--border); padding: 13px 15px; color: var(--body); font-size: 14px; line-height: 1.65; position: relative; }
+  .answer .sel { background: var(--ai-select); color: var(--foreground); border-radius: 2px; padding: 1px 0; }
+  .answer .marked { box-shadow: inset 0 -1.5px 0 var(--ai-line); background: var(--ai-wash); border-radius: 2px; }
+  .hint { margin-top: 7px; font-size: 12px; color: var(--muted-foreground); display: flex; gap: 6px; align-items: center; }
+
+  .pop {
+    position: absolute; z-index: 4; width: 252px; padding: 4px; border-radius: 10px; background: var(--card); box-shadow: var(--shadow-pop);
+    transform-origin: 24px -6px; animation: pop-in 180ms var(--ease-out) both 500ms;
+  }
+  @keyframes pop-in { from { opacity: 0; transform: translateY(-2px) scale(0.97); } }
+  .pop .ttl { padding: 6px 8px 4px; font-size: 11.5px; color: var(--faint); }
+  .pop .item { display: flex; align-items: center; gap: 9px; height: 32px; padding: 0 8px; border-radius: 6px; font-weight: 450; color: var(--foreground); }
+  .pop .item kbd { margin-left: auto; }
+  .pop .item.hl { background: var(--muted); }
+  .pop .item svg { color: var(--muted-foreground); }
+  .pop .sep { height: 1px; background: var(--border); margin: 4px 2px; }
+
+  .verdict { display: flex; gap: 10px; align-items: center; margin-bottom: 4px; }
+  .verdict .seg button { height: 26px; padding: 0 12px; }
+  .verdict .seg button.on.wrong { color: var(--flag-ink); }
+  .q { margin-top: 14px; }
+  .q .label { display: block; margin-bottom: 5px; color: var(--body); }
+  .q .box { font: 400 15.5px/1.55 var(--serif); color: var(--reading); padding: 10px 14px; }
+  .diff { margin-top: 14px; border-radius: 9px; box-shadow: inset 0 0 0 1px var(--border); overflow: hidden; }
+  .diff header { margin: 0; height: 34px; padding: 0 12px; background: var(--muted); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted-foreground); }
+  .diff header .right { font-size: 12px; }
+  .diff .line { display: grid; grid-template-columns: 22px 1fr; padding: 8px 12px; font: 400 15px/1.5 var(--serif); }
+  .diff .line span:first-child { font: 500 12px/22px var(--mono); }
+  .diff .old { background: var(--flag-soft); color: var(--flag-ink); }
+  .diff .old del { text-decoration-color: rgb(200 67 27 / 45%); }
+  .diff .old span:first-child { color: var(--flag); }
+  .diff .new { background: var(--ok-soft); color: var(--ok); }
+  .diff .new span:first-child { color: var(--ok); }
+  .q .box.focus { box-shadow: 0 0 0 1px var(--ring), 0 0 0 4px rgb(62 95 208 / 12%); }
+  .caret { display: inline-block; width: 1.5px; height: 1.05em; background: var(--ai); vertical-align: -0.16em; margin-left: 1px; animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .src { display: inline-flex; align-items: center; gap: 6px; height: 24px; margin-top: 8px; padding: 0 8px 0 6px; border-radius: 6px; font-size: 12px; color: var(--body); background: var(--muted); box-shadow: inset 0 0 0 1px var(--border); font-family: var(--sans); }
+  .src svg { color: var(--ai); }
+
+  .bar { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 12px 0 16px; border-top: 1px solid var(--border); }
+  .bar .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+  .side { border-left: 1px solid var(--border); padding: 18px 18px; display: flex; flex-direction: column; gap: 18px; background: linear-gradient(var(--card), var(--card)); }
+  .meter { display: flex; flex-direction: column; gap: 8px; }
+  .meter .row { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--body); }
+  .meter .tick { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: var(--ok-soft); color: var(--ok); animation: tick-in 260ms var(--ease-out) both; animation-delay: calc(var(--i) * 70ms + 400ms); }
+  @keyframes tick-in { from { opacity: 0; transform: scale(0.8); } }
+  .meter .row .muted { margin-left: auto; font-size: 11.5px; }
+  .mini { padding: 12px 14px; }
+  .trust { padding: 12px 14px; background: var(--muted); border-radius: 10px; color: var(--body); font-size: 12.5px; line-height: 1.55; }
+  .trust b { display: flex; gap: 7px; align-items: center; font-weight: 560; color: var(--foreground); margin-bottom: 4px; }
+  .keys { display: grid; grid-template-columns: auto 1fr; gap: 7px 10px; font-size: 12px; color: var(--muted-foreground); align-items: center; }
+  .keys kbd { justify-self: start; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="workspace"><span data-logo></span><div><b>Margin</b><span>INFOMGMT 399 · Sem 2</span></div><span class="chev" data-icon="updown" data-size="14"></span></div>
+    <nav class="nav-group">
+      <a class="nav-item"><span data-icon="book"></span>Assignments<span class="count">3</span></a>
+      <a class="nav-item active"><span data-icon="log"></span>My log</a>
+      <a class="nav-item"><span data-icon="progress"></span>Progress</a>
+    </nav>
+    <nav class="nav-group">
+      <div class="nav-label">Due soon</div>
+      <a class="nav-item" style="color:var(--foreground);font-weight:520"><i class="dot" style="background:var(--ai)"></i>Essay 2<span class="count">Fri</span></a>
+      <a class="nav-item"><i class="dot" style="background:var(--border-strong)"></i>Final reflection<span class="count">Oct 31</span></a>
+    </nav>
+    <div class="me"><span class="avatar">JD</span><div><b>John Doe</b><span>Student</span></div></div>
+  </aside>
+
+  <main class="inset">
+    <div class="topbar">
+      <button class="btn btn-ghost btn-icon"><span data-icon="panel"></span></button>
+      <div class="crumbs">Essay 2<span class="sep">/</span>My log<span class="sep">/</span><b>Step 7</b></div>
+      <div class="right">
+        <span class="muted" style="font-size:12.5px;display:inline-flex;gap:6px;align-items:center"><span data-icon="check" data-size="14" style="color:var(--ok)"></span>Draft saved</span>
+        <span class="vr"></span>
+        <button class="btn btn-outline"><span data-icon="eye" data-size="15"></span>See what your grader sees</button>
+      </div>
+    </div>
+
+    <div class="work">
+      <nav class="rail fade" id="rail"><div class="label">Essay 2 · 9 steps</div></nav>
+
+      <section class="compose">
+        <div class="kicker rise"><span class="mono">Step 7 of 9</span>·<span>Thu 9 Oct</span>·<span class="badge ai">Lane 2</span></div>
+        <h1 class="rise" style="--i:1">Fix a misquoted statistic</h1>
+
+        <div class="part rise" style="--i:2">
+          <span class="num">01</span>
+          <div>
+            <header><span class="section-title">What you asked</span><div class="right"><span class="src" style="margin:0"><span data-icon="link" data-size="13"></span>chatgpt.com/share/6f2a…</span></div></header>
+            <div class="box">Is it true that nine in ten students use AI for assignments?</div>
+          </div>
+        </div>
+
+        <div class="part raised rise" style="--i:3">
+          <span class="num">02</span>
+          <div style="position:relative">
+            <header><span class="section-title">What the AI answered</span><div class="right">Imported · 220 words</div></header>
+            <div class="box answer">Yes, surveys consistently show that <span class="sel">around 90% of students use AI tools</span> for their assignments, with most reporting weekly use. Institutions are adapting by <span class="marked">allowing AI in open assessment</span> while keeping supervised tasks secure.</div>
+            <div class="pop" style="left:262px;top:72px">
+              <div class="ttl">Mark this passage</div>
+              <div class="item hl" style="--icon-accent:var(--flag)"><span data-icon="wrong"></span>It’s wrong<kbd>1</kbd></div>
+              <div class="item" style="--icon-accent:var(--review)"><span data-icon="unsourced"></span>No source I could find<kbd>2</kbd></div>
+              <div class="item" style="--icon-accent:var(--ai)"><span data-icon="used"></span>I used this in my essay<kbd>3</kbd></div>
+              <div class="sep"></div>
+              <div class="item" style="color:var(--muted-foreground)"><span data-icon="note"></span>Add a note<kbd>N</kbd></div>
+            </div>
+            <div class="hint">Select any part of the answer to mark it.</div>
+          </div>
+        </div>
+
+        <div class="part active rise" style="--i:4">
+          <span class="num">03</span>
+          <div>
+            <header><span class="section-title">Your critique</span><div class="right">Your grader reads this</div></header>
+            <div class="verdict"><span class="label" style="color:var(--body)">Was the AI right?</span><div class="seg"><button>Right</button><button>Partly</button><button class="on wrong">Wrong</button></div></div>
+            <div class="q"><span class="label">How did you check it?</span>
+              <div class="box">I looked up the 2025 Universities NZ student survey. It reports 64% weekly use of AI tools, and it does not say the use is for assignments.<br><span class="src"><span data-icon="link" data-size="13"></span>universitiesnz.ac.nz · Student survey 2025</span></div>
+            </div>
+            <div class="q"><span class="label">What did you change?</span>
+              <div class="box focus">I rewrote the sentence in paragraph 3 to say “every week” and cited the survey<span class="caret"></span></div>
+            </div>
+            <div class="diff">
+              <header><span data-icon="essay" data-size="14"></span>In your essay · ¶3<div class="right">Matched from essay2-final.docx</div></header>
+              <div class="line old"><span>−</span><del>Nine in ten students now use AI for their assignments.</del></div>
+              <div class="line new"><span>+</span><span>Most students already use AI tools every week (Universities NZ, 2025).</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bar">
+          <button class="btn btn-ghost">Discard changes</button>
+          <div class="right"><span class="muted" style="font-size:12px">Next: Tighten the wording</span><button class="btn btn-primary">Save step<kbd>⌘↵</kbd></button></div>
+        </div>
+      </section>
+
+      <aside class="side">
+        <div class="meter rise" style="--i:3">
+          <span class="label">Your critique covers</span>
+          <div class="row"><span class="tick" style="--i:0"><span data-icon="check" data-size="12"></span></span>Whether the AI was right</div>
+          <div class="row"><span class="tick" style="--i:1"><span data-icon="check" data-size="12"></span></span>How you checked<span class="muted">1 source</span></div>
+          <div class="row"><span class="tick" style="--i:2"><span data-icon="check" data-size="12"></span></span>What you changed</div>
+        </div>
+
+        <div class="mini card rise" style="--i:4">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="label">Your process so far</span><span class="mono faint">7 steps</span></div>
+          <div id="mini" style="margin-top:10px"></div>
+          <div style="display:flex;gap:12px;margin-top:8px;font-size:11.5px;color:var(--muted-foreground)"><span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--ai-soft);margin-right:5px"></i>AI</span><span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--ai);margin-right:5px"></i>Used</span><span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--human);margin-right:5px"></i>Critique</span></div>
+        </div>
+
+        <div class="trust rise" style="--i:5">
+          <b><span data-icon="eye" data-size="15"></span>Who sees this</b>
+          Your grader sees each prompt, answer and critique as you log them. A reflection check may ask them to look closer at a thin critique. It never grades you.
+        </div>
+
+        <div class="keys rise" style="--i:6">
+          <kbd>⌘↵</kbd><span>Save step</span>
+          <kbd>1–3</kbd><span>Mark a selected passage</span>
+          <kbd>⌥↑↓</kbd><span>Move between steps</span>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<script src="concept.js"></script>
+<script>
+hydrateIcons();
+const rail = document.getElementById("rail");
+const state = (i) => (i === 6 ? "now" : i > 6 ? "" : STEPS[i].flag ? "thin" : "done");
+rail.insertAdjacentHTML("beforeend", STEPS.map((s, i) => `<div class="st ${state(i)}"><span class="node">${i < 6 && !STEPS[i].flag ? icon("check", 12) : i + 1}</span><b>${s.title}</b><span>${i === 6 ? "Writing critique" : i > 6 ? "Not started" : s.flag ? "Critique could say more" : `${s.time.split(" · ")[0]}`}</span></div>`).join("") + `<button class="btn btn-outline"><span data-icon="plus" data-size="15"></span>New step</button>`);
+hydrateIcons(rail);
+
+const mini = document.getElementById("mini");
+mini.innerHTML = processBars(STEPS.slice(0, 7), { width: mini.clientWidth, height: 64, base: 44, scale: 0.1 });
+</script>
+</body>
+</html>

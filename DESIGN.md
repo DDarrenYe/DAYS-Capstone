@@ -1,0 +1,394 @@
+---
+version: alpha
+name: Margin
+description: The design system for AI-Interaction Analytics, a Lane 2 grading tool where students log and critique their AI use and graders review the process.
+colors:
+  primary: "#18191B"
+  on-primary: "#FAFAF8"
+  neutral: "#F4F4F0"
+  surface: "#FFFFFF"
+  on-surface: "#151618"
+  body: "#3B3D41"
+  reading: "#26272A"
+  muted: "#F3F3EF"
+  muted-foreground: "#6B6D72"
+  faint: "#9C9DA1"
+  well: "#ECEBE6"
+  border: "#E7E6E1"
+  border-strong: "#D9D8D2"
+  input: "#DCDBD5"
+  human: "#2B2C30"
+  human-soft: "#E6E5E0"
+  traced: "#3E5FD0"
+  traced-ink: "#2A45A6"
+  traced-soft: "#DFE5FA"
+  traced-wash: "#F2F4FD"
+  traced-line: "#A9B8EE"
+  traced-select: "#CDD7FA"
+  flag: "#C8431B"
+  flag-ink: "#A3350F"
+  flag-soft: "#FBEDE7"
+  flag-line: "#F0C3B1"
+  caught: "#2C7A50"
+  caught-soft: "#E5F1E9"
+  review: "#C98A1B"
+  review-ink: "#7A5410"
+  review-soft: "#F6ECD5"
+  error: "#C8431B"
+typography:
+  display:
+    fontFamily: Inter
+    fontSize: 52px
+    fontWeight: 600
+    lineHeight: 1.04
+    letterSpacing: -0.025em
+  title:
+    fontFamily: Inter
+    fontSize: 21px
+    fontWeight: 600
+    lineHeight: 1.2
+    letterSpacing: -0.02em
+  stat:
+    fontFamily: Inter
+    fontSize: 22px
+    fontWeight: 580
+    lineHeight: 1.1
+    letterSpacing: -0.025em
+    fontFeature: '"tnum"'
+  figure:
+    fontFamily: Inter
+    fontSize: 17px
+    fontWeight: 580
+    lineHeight: 1.2
+    letterSpacing: -0.02em
+  heading:
+    fontFamily: Inter
+    fontSize: 13.5px
+    fontWeight: 580
+    lineHeight: 1.5
+    letterSpacing: -0.012em
+  body:
+    fontFamily: Inter
+    fontSize: 13.5px
+    fontWeight: 400
+    lineHeight: 1.5
+    letterSpacing: -0.003em
+    fontFeature: '"cv11", "ss01", "ss03"'
+  control:
+    fontFamily: Inter
+    fontSize: 13px
+    fontWeight: 520
+    lineHeight: 1.4
+  meta:
+    fontFamily: Inter
+    fontSize: 12.5px
+    fontWeight: 400
+    lineHeight: 1.45
+  label:
+    fontFamily: Inter
+    fontSize: 11.5px
+    fontWeight: 520
+    lineHeight: 1.4
+  reading:
+    fontFamily: Newsreader
+    fontSize: 15.5px
+    fontWeight: 400
+    lineHeight: 1.64
+  reading-quote:
+    fontFamily: Newsreader
+    fontSize: 15px
+    fontWeight: 400
+    lineHeight: 1.55
+  mono:
+    fontFamily: Geist Mono
+    fontSize: 11.5px
+    fontWeight: 400
+    lineHeight: 1.4
+  micro:
+    fontFamily: Geist Mono
+    fontSize: 10.5px
+    fontWeight: 500
+    lineHeight: 1.4
+rounded:
+  xs: 2px
+  sm: 4.8px
+  md: 6.4px
+  lg: 8px
+  xl: 10px
+  2xl: 14px
+  full: 9999px
+spacing:
+  base: 4px
+  xs: 4px
+  sm: 8px
+  md: 16px
+  lg: 24px
+  xl: 32px
+  sidebar: 236px
+  inset: 8px
+  page-gutter: 24px
+  page-gutter-mobile: 16px
+  card-padding: 16px
+components:
+  button-primary:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.on-primary}"
+    typography: "{typography.control}"
+    rounded: "{rounded.md}"
+    height: 30px
+    padding: 11px
+  button-outline:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.on-surface}"
+    typography: "{typography.control}"
+    rounded: "{rounded.md}"
+    height: 30px
+    padding: 11px
+  button-outline-hover:
+    backgroundColor: "{colors.muted}"
+  button-ghost:
+    textColor: "{colors.body}"
+    rounded: "{rounded.md}"
+    height: 30px
+  button-sm:
+    height: 26px
+    padding: 9px
+  input:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.on-surface}"
+    typography: "{typography.body}"
+    rounded: "{rounded.md}"
+    height: 36px
+    padding: 12px
+  textarea:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.reading}"
+    typography: "{typography.reading}"
+    rounded: "{rounded.lg}"
+    padding: 14px
+  card:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.xl}"
+    padding: 16px
+  badge-traced:
+    backgroundColor: "{colors.traced-wash}"
+    textColor: "{colors.traced-ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.full}"
+    height: 20px
+  badge-flag:
+    backgroundColor: "{colors.flag-soft}"
+    textColor: "{colors.flag-ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.full}"
+    height: 20px
+  badge-caught:
+    backgroundColor: "{colors.caught-soft}"
+    textColor: "{colors.caught}"
+    typography: "{typography.label}"
+    rounded: "{rounded.full}"
+    height: 20px
+  tooltip:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.on-primary}"
+    rounded: "{rounded.md}"
+    padding: 10px
+  popover:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.xl}"
+    padding: 4px
+  dialog:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.2xl}"
+    padding: 20px
+  badge-review:
+    backgroundColor: "{colors.review-soft}"
+    textColor: "{colors.review-ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.full}"
+    height: 20px
+  status-dot-review:
+    backgroundColor: "{colors.review}"
+    rounded: "{rounded.full}"
+    size: 6px
+  status-dot-flag:
+    backgroundColor: "{colors.flag}"
+    rounded: "{rounded.full}"
+    size: 6px
+  sidebar:
+    backgroundColor: "{colors.neutral}"
+    textColor: "{colors.body}"
+    width: 236px
+  table-header:
+    textColor: "{colors.muted-foreground}"
+    height: 34px
+  metadata:
+    textColor: "{colors.faint}"
+    typography: "{typography.mono}"
+  divider:
+    backgroundColor: "{colors.border}"
+    height: 1px
+  divider-strong:
+    backgroundColor: "{colors.border-strong}"
+    height: 1px
+  input-outline:
+    backgroundColor: "{colors.input}"
+    width: 1px
+  focus-ring:
+    backgroundColor: "{colors.traced}"
+    width: 2px
+  avatar:
+    backgroundColor: "{colors.human-soft}"
+    textColor: "{colors.body}"
+    rounded: "{rounded.full}"
+    size: 26px
+  chart-ai-answer:
+    backgroundColor: "{colors.traced-soft}"
+    rounded: "{rounded.xs}"
+  chart-reached-essay:
+    backgroundColor: "{colors.traced}"
+    rounded: "{rounded.xs}"
+  chart-critique:
+    backgroundColor: "{colors.human}"
+    rounded: "{rounded.xs}"
+  chart-critique-flagged:
+    backgroundColor: "{colors.flag}"
+    rounded: "{rounded.xs}"
+  essay-traced:
+    backgroundColor: "{colors.traced-wash}"
+    textColor: "{colors.reading}"
+    typography: "{typography.reading}"
+  essay-traced-underline:
+    backgroundColor: "{colors.traced-line}"
+    height: 1.5px
+  essay-traced-hover:
+    backgroundColor: "{colors.traced-soft}"
+  essay-flagged-underline:
+    backgroundColor: "{colors.flag-line}"
+    height: 1.5px
+  text-selection:
+    backgroundColor: "{colors.traced-select}"
+  report-well:
+    backgroundColor: "{colors.well}"
+    padding: 28px
+---
+
+# Margin
+
+## Overview
+
+Margin is the design system for AI-Interaction Analytics, a grading tool for Lane 2 assessment. Students log each AI prompt, the answer and their critique of it. Graders see the whole process at a glance and where a critique was thin.
+
+It should feel like a serious, quiet working tool, closer to a well-made editor than a dashboard. Graders open it dozens of times in a sitting, so it stays dense, calm and fast. Paper and ink do most of the work. Colour is rare, and when it appears it means something.
+
+Two ideas run through everything:
+
+- **The margin.** The name and the logo come from the margin of a page, where a reader notes what matters. The filled dot in the logo and the icons marks the thing worth noticing.
+- **Reading is not UI.** Anything a student wrote (an essay, a critique, a reflection) is set in a serif. Everything the product says is set in a sans. A grader always knows whose words they are reading.
+
+The source of truth for values is `src/app/globals.css`, and the shadcn primitives in `src/components/ui/` apply them. Static reference pages live in `design/concept/`.
+
+## Colors
+
+The palette is warm neutrals with four meaning colours. A meaning colour is never decoration, and no two meanings share a colour.
+
+- **Ink (#18191B):** primary actions, headings and the student's own work in charts. Primary buttons are ink, not a brand colour.
+- **Paper (#F4F4F0):** the canvas and sidebar. Content sits on a white **Sheet (#FFFFFF)** inset beside it.
+- **Body (#3B3D41)** for running text, **Muted foreground (#6B6D72)** for secondary text and **Faint (#9C9DA1)** for metadata like IDs and axis ticks only.
+- **Traced cobalt (#3E5FD0):** text that matches a logged AI answer, and nothing else. It also marks the current step and focus rings. Its soft tints (#DFE5FA, #F2F4FD) highlight traced passages, and the line tint (#A9B8EE) underlines them.
+- **Flag vermilion (#C8431B):** the reflection check asking a grader to look closer. It also marks errors and invalid fields, because both mean "look here".
+- **Caught green (#2C7A50):** an AI error the student caught. It is the one colour of praise in the product.
+- **Review amber (#C98A1B):** work waiting for a grader.
+- **Human (#2B2C30):** the student's critique in process charts, so it reads as the same ink as their writing.
+
+## Typography
+
+Three families with fixed jobs:
+
+- **Inter** runs the interface. It uses `cv11`, `ss01` and `ss03`, and tabular figures wherever numbers line up. The base size is 13.5px, which suits a dense tool used on a laptop all day.
+- **Newsreader** sets anything a student wrote: the final essay, critiques and the critique fields while typing. Body reading text is 15.5px with 1.64 line height.
+- **Geist Mono** carries student IDs, timestamps, step numbers (`S6`) and keyboard hints.
+
+Weights are deliberate in-between values: 450 for book text in menus, 520 for emphasis and labels, 580 for headings and figures, 600 for page titles. Avoid 700.
+
+Page titles are 21px. The display size, used on landing and privacy only, scales with `clamp(34px, 4.2vw, 52px)`. In-app headings never go above the title size.
+
+## Layout
+
+The signed-in app is a fixed shell: a 236px paper sidebar on the left, and the page on a white sheet inset 8px from the window edge with a 10px radius. On screens under 768px the sidebar becomes a top bar and the sheet fills the width.
+
+Every page starts with a page bar: breadcrumbs on the left, the page's own actions on the right, and an "Example data" badge on screens not yet connected to Supabase. Content below uses a 24px gutter (16px on phones).
+
+Spacing follows Tailwind's 4px scale. Cards pad 16px. Related items group by hairline dividers inside one card rather than by separate cards. Data screens are dense on purpose. A grader should see the chart, the essay and the selected step without scrolling on a laptop.
+
+## Elevation & Depth
+
+Margin is nearly flat. Hierarchy comes from paper against sheet, and from hairlines, not shadows.
+
+- Cards and fields use a 1px inset hairline (`--border`, #E7E6E1), not a drop shadow.
+- The inset page sheet has a very soft card shadow to lift it off the paper.
+- Only things that float get a real shadow: popovers, menus and tooltips use the `pop` shadow, and dialogs use the deeper `dialog` shadow with a 34% ink backdrop.
+- The report preview uses a paper shadow so it reads as a printed A4 page.
+
+## Shapes
+
+Corners are small and consistent. The base radius is 8px.
+
+- 6.4px (`md`) for buttons, inputs and tooltips
+- 8px (`lg`) for textareas and inline panels
+- 10px (`xl`) for cards, popovers and menus
+- 14px (`2xl`) for dialogs
+- Full for badges, status dots and avatars
+
+Chart bars use 2 to 3px corners so they still read as data, not as buttons.
+
+## Components
+
+Every component is a shadcn primitive on Base UI in `src/components/ui/`, restyled on these tokens. Pages never restyle a primitive with `className`. If a screen needs a different look, add a variant in the component file. The shadcn lint rules enforce this and forbid arbitrary values.
+
+- **Buttons:** primary (ink), outline (white with a strong hairline), ghost, secondary, destructive and link. Sizes are 30px default, 26px small and 36px large. Keyboard hints sit inside the button as a `Kbd`.
+- **Badges:** 20px pills. Use `ai` for Lane 2 and traced text, `flag` for flags, `success` for caught errors and submissions, `review` for waiting work, `outline` for "Example data".
+- **Inputs:** 36px by default, and a `compact` 30px density for toolbars. An `icon` inset leaves room for a leading icon. Focus shows a 1px cobalt ring with a soft 4px halo.
+- **Textareas:** set in Newsreader, because a student is writing.
+- **Toggle group:** the segmented control for verdicts and filters. The pressed item lifts onto white.
+- **Toggle:** a filter chip, dashed while off and solid once pressed.
+- **Switch, radio group, tooltip, popover, dropdown menu and dialog** wrap the Base UI primitives and keep their keyboard, focus and dismissal behaviour.
+- **Process chart** (`ProcessChart` and the static `ProcessBars`): AI words rise above the baseline in a soft cobalt, the part that reached the essay in solid cobalt, and the critique hangs below on the same scale in ink, or vermilion when flagged. A thin critique looks thin. The scale fits the longest answer, rounded up to a readable figure, so a 2,000-word ChatGPT reply never overflows. Up to 12 steps each column shows its title; beyond that columns compact to at least 14px, titles move to the tooltip and every fifth step is numbered. When even that doesn't fit, the plot scrolls sideways with the axis fixed. Sparklines in a table share one maximum so rows compare fairly.
+- **Submissions table:** TanStack Table with sortable headers. Search, the flagged filter and sort live in the URL through nuqs, so Back from a student restores the view and any view can be linked. With no sort chosen, rows stay in "look closer first" order.
+- **Stat:** a label above a 22px tabular figure. Neighbouring stats are divided by a hairline.
+
+## Iconography
+
+Icons are a custom duotone set in `src/components/icon.tsx`, not a library. Draw new ones to the same rules:
+
+- 20px grid, 1.5px stroke, round caps and joins, 2.25px corner radius, live area 3.25 to 16.75.
+- A soft body filled with the stroke colour at 14% opacity.
+- One accent detail coloured by `--icon-accent` (cobalt for traced, vermilion for flags, amber for review), applied with the `icon-ai`, `icon-flag` and `icon-review` utilities.
+- Small touches carry the character: the flag waves, the lens has a shine, finished log steps are filled dots.
+
+## Motion
+
+Motion follows Emil Kowalski's rules, judged by how often a grader sees it.
+
+- **Signed-in pages don't animate in.** Graders open the Visualiser around 41 times a session, so content and charts appear immediately. Only landing and privacy, which people see rarely, rise in with a 40ms stagger.
+- **Motion comes from what the user does.** Clicking a step slides the selection band (240ms, `ease-in-out`), swaps the inspector with a 2px blur (180ms) and moves the essay highlight (160ms).
+- **Keyboard actions never animate.** Arrow keys move the selection with no transition.
+- **Easing:** `--ease-out` is `cubic-bezier(0.23, 1, 0.32, 1)` for anything entering, and `--ease-in-out` is `cubic-bezier(0.77, 0, 0.175, 1)` for movement on screen. Hover and colour changes use the default ease-shaped curve. Never use `ease-in`.
+- **Durations:** button press 140ms (`scale(0.97)`), tooltips 125ms, menus and popovers 160ms in and 100ms out, dialogs 220ms in and 150ms out. Keep UI motion under 300ms.
+- **Origins:** popovers and menus scale from their trigger with Base UI's `--transform-origin`. Dialogs stay centred. Nothing scales from 0; entrances start at 0.96 to 0.97 with opacity.
+- **Tooltips** wait 300ms the first time, then open instantly while one is already showing.
+- **Reduced motion** keeps fades and colour changes and drops anything that moves or scales.
+- Animate only `transform`, `opacity`, colours and shadows. Never `transition: all`.
+
+## Do's and Don'ts
+
+- Do use cobalt only for text traced to a logged AI answer, the current step and focus. Don't use it for links, decoration or charts of other data.
+- Do set anything a student wrote in Newsreader, and everything else in Inter.
+- Do call the 68% figure "Not traced to logged AI". Don't call it the student's own words, originality or an AI-detection score. Matching text is a prompt for judgement, not proof of authorship.
+- Do describe flags as asking a grader to look closer. Don't imply a flag changes a grade.
+- Do add a component variant when a screen needs a new look. Don't restyle primitives at the call site or use arbitrary Tailwind values.
+- Do show a page bar with breadcrumbs on every signed-in page, and the "Example data" badge until the page reads real data.
+- Do keep data visible on arrival. Don't add entrance animations to pages graders revisit.
+- Don't use more than one meaning colour on a single element, and don't use a meaning colour as a background for a whole section.
+- Don't use 700 weights, heavy shadows or radii above 14px.
+- Do keep Faint (#9C9DA1) to metadata. It is too light for anything a grader has to read.

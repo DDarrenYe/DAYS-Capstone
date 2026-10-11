@@ -4,40 +4,34 @@ import type { VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const avatarVariants = cva(
-  "text-foreground inline-grid shrink-0 place-items-center rounded-full font-semibold",
+  "text-body bg-human-soft inline-grid shrink-0 place-items-center rounded-full font-semibold",
   {
-    defaultVariants: { size: "default", tone: "human" },
+    defaultVariants: { size: "default" },
     variants: {
       size: {
-        sm: "text-kicker ring-card size-8.5 ring-3",
-        default: "text-caption size-10",
-        lg: "text-panel size-20",
-      },
-      tone: {
-        human: "bg-human-soft",
-        ai: "bg-ai-soft",
-        success: "bg-success-soft",
-        lilac: "bg-lilac",
-        rose: "bg-rose",
-        tint: "bg-tint",
-        plain: "bg-subtle text-body shadow-hairline",
+        default: "text-micro size-6.5",
+        lg: "size-10 text-sm",
       },
     },
   }
 );
 
+export const initials = (name: string) =>
+  name
+    .split(/\s+/u)
+    .map((part) => [...part][0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
 export const Avatar = ({
   size,
-  tone,
   className,
-  children,
-}: { className?: string; children: string } & VariantProps<
+  name,
+}: { className?: string; name: string } & VariantProps<
   typeof avatarVariants
 >) => (
-  <span
-    aria-hidden="true"
-    className={cn(avatarVariants({ size, tone }), className)}
-  >
-    {children}
+  <span aria-hidden="true" className={cn(avatarVariants({ size }), className)}>
+    {initials(name)}
   </span>
 );

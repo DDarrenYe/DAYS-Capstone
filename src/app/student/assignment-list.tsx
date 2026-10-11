@@ -1,13 +1,12 @@
 "use client";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Clock, FileText } from "lucide-react";
 import Link from "next/link";
 
-import { Note } from "@/components/shell/note";
+import { Icon } from "@/components/icon";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { assignmentsQuery } from "@/lib/data/queries";
 import type { AssignmentRows } from "@/lib/data/queries";
 import { createClient } from "@/lib/supabase/browser";
@@ -19,7 +18,7 @@ const dueDate = new Intl.DateTimeFormat("en", {
 });
 
 const gridClassName =
-  "mt-12 grid grid-cols-3 gap-10 max-[1100px]:gap-6 max-[760px]:grid-cols-1 max-[760px]:gap-12 min-[1100px]:mt-17.5";
+  "mt-5 grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5";
 
 const stepLabel = (steps: number) =>
   `${steps} ${steps === 1 ? "step" : "steps"}`;
@@ -40,7 +39,7 @@ export const AssignmentList = ({
   });
   if (assignments.length === 0) {
     return (
-      <p className="text-body text-subtitle mt-12">
+      <p className="text-muted-foreground mt-8">
         No assignments yet. They appear here once your instructor adds you to a
         course.
       </p>
@@ -54,79 +53,90 @@ export const AssignmentList = ({
         const submitted = project?.status === "submitted";
         const aiAllowed = assignment.lane === "lane_2";
         return (
-          <article
-            className="rise-in relative flex min-w-0 flex-col gap-6 [--i:2] [--paper-rotation:-1.4deg] nth-2:[--i:3] nth-2:[--paper-rotation:1.2deg] nth-3:[--i:4] nth-3:[--paper-rotation:-0.8deg]"
-            key={assignment.id}
-          >
-            <Card
-              variant="paper"
-              className="min-h-140 flex-1 rotate-(--paper-rotation) max-[760px]:min-h-105"
-            >
-              <CardHeader>
-                <FileText aria-hidden="true" size={22} />{" "}
-                {assignment.course.code}
-              </CardHeader>
-              <CardContent>
-                <Badge variant={aiAllowed ? "ai" : "neutral"}>
-                  {aiAllowed ? "Lane 2 · AI allowed" : "Lane 1 · AI restricted"}
-                </Badge>
-                <h2 className="text-ink text-panel mt-2.5 font-bold">
-                  {assignment.title}
-                </h2>
-                {assignment.due_at ? (
-                  <p className="text-muted-foreground flex items-center gap-2">
-                    <Clock aria-hidden="true" size={18} />
-                    <time dateTime={assignment.due_at} suppressHydrationWarning>
+          <Card key={assignment.id}>
+            <CardContent className="flex flex-1 flex-col">
+              <div className="flex flex-1 flex-col gap-3.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-faint text-label font-mono">
+                    {assignment.course.code}
+                  </span>
+                  <Badge
+                    className="ml-auto"
+                    variant={aiAllowed ? "ai" : "default"}
+                  >
+                    {aiAllowed
+                      ? "Lane 2 · AI allowed"
+                      : "Lane 1 · AI restricted"}
+                  </Badge>
+                </div>
+                <div>
+                  <h2 className="tracking-snug text-base font-semibold">
+                    {assignment.title}
+                  </h2>
+                  {assignment.due_at ? (
+                    <time
+                      className="text-muted-foreground text-meta mt-0.5 block"
+                      dateTime={assignment.due_at}
+                      suppressHydrationWarning
+                    >
                       Due {dueDate.format(new Date(assignment.due_at))}
                     </time>
-                  </p>
-                ) : null}
-                <ul
-                  aria-label={`${stepLabel(steps)} logged`}
-                  className="flex min-h-2.5 flex-wrap gap-2"
-                >
-                  {Array.from({ length: steps }, (_, stepIndex) => (
-                    <li
-                      className="bg-ai h-2.5 w-6.5 rounded-full"
-                      key={`${assignment.id}-${stepIndex}`}
-                    />
-                  ))}
-                </ul>
-                <p className="font-semibold">
-                  {aiAllowed
-                    ? `${stepLabel(steps)} logged`
-                    : "No AI log needed"}
+                  ) : null}
+                </div>
+                <p className="text-body line-clamp-3 text-pretty">
+                  {assignment.brief}
                 </p>
-                <p className="text-body">{assignment.brief}</p>
-                <div className="mt-auto">
+                {aiAllowed ? (
+                  <div>
+                    <ul
+                      aria-label={`${stepLabel(steps)} logged`}
+                      className="flex min-h-1.5 flex-wrap gap-1"
+                    >
+                      {Array.from({ length: steps }, (_, step) => (
+                        <li
+                          className="bg-primary h-1.5 w-4 rounded-full"
+                          key={`${assignment.id}-${step + 1}`}
+                        />
+                      ))}
+                    </ul>
+                    <p className="text-muted-foreground mt-1.5 text-xs">
+                      {stepLabel(steps)} logged
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-xs">
+                    No AI log needed
+                  </p>
+                )}
+                <div className="mt-auto flex h-11 items-end gap-2 border-t">
                   {submitted ? (
-                    <Badge variant="success">Submitted</Badge>
+                    <Badge variant="success">
+                      <Icon name="check" />
+                      Submitted
+                    </Badge>
                   ) : (
                     <Link
                       className={buttonVariants({
-                        size: "sm",
                         variant: aiAllowed ? "default" : "outline",
                       })}
                       href="/student/log"
                     >
                       {aiAllowed ? "Add steps" : "Open"}
+                      <Icon name="right" />
                     </Link>
                   )}
+                  {aiAllowed && steps > 0 ? (
+                    <Link
+                      className="text-muted-foreground hover:text-foreground text-meta ml-auto"
+                      href="/student/progress"
+                    >
+                      See progress
+                    </Link>
+                  ) : null}
                 </div>
-              </CardContent>
-            </Card>
-            {submitted ? (
-              <Note tone="mint" placement="assignment">
-                Submitted. Nice work.
-              </Note>
-            ) : (
-              <Note tone={aiAllowed ? "yellow" : "sky"} placement="assignment">
-                {aiAllowed
-                  ? `${stepLabel(steps)} so far. Keep logging!`
-                  : "Lane 1: no AI here"}
-              </Note>
-            )}
-          </article>
+              </div>
+            </CardContent>
+          </Card>
         );
       })}
     </section>
@@ -139,7 +149,7 @@ export const AssignmentsSkeleton = () => (
     <div aria-hidden="true" className={gridClassName}>
       {["first", "second", "third"].map((position) => (
         <div
-          className="bg-card/70 shadow-hairline min-h-140 animate-pulse rounded-2xl motion-reduce:animate-none max-[760px]:min-h-105"
+          className="bg-muted shadow-hairline h-62 animate-pulse rounded-xl motion-reduce:animate-none"
           key={position}
         />
       ))}

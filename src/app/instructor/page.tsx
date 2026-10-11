@@ -1,164 +1,193 @@
-import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
-import { EssayPlot } from "@/app/instructor/essay-plot";
-import { Avatar } from "@/components/shell/avatar";
+import { CohortPlot } from "@/app/instructor/cohort-plot";
+import { ReviewProgress } from "@/app/instructor/review-progress";
+import { SubmissionsTable } from "@/app/instructor/submissions-table";
+import { Icon } from "@/components/icon";
+import { PageBar } from "@/components/shell/page-bar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  assignmentName,
+  cohort,
+  cohortFlags,
+  cohortSize,
+  essayTitle,
+} from "@/lib/example-data";
+import { formatPercent } from "@/lib/process";
 
-const flagged = [
-  {
-    initials: "JD",
-    name: "John Doe",
-    tone: "human",
-    summary: "2 flagged · 68% not from logged AI",
-    flags: ["Step 6 · 0 of 3", "Step 8 · reads like AI"],
-  },
-  {
-    initials: "AK",
-    name: "Alex Kim",
-    tone: "success",
-    summary: "1 flagged · 81% not from logged AI",
-    flags: ["Step 3 · 1 of 3"],
-  },
-] as const;
+const median = (values: number[]) => {
+  const sorted = values.toSorted((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2
+    ? (sorted[middle] ?? 0)
+    : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+};
 
-const ready = [
-  { initials: "JR", tone: "ai" },
-  { initials: "SL", tone: "lilac" },
-  { initials: "PS", tone: "rose" },
-  { initials: "TN", tone: "tint" },
-  { initials: "ML", tone: "success" },
-  { initials: "RB", tone: "human" },
-  { initials: "EW", tone: "ai" },
-] as const;
-
-const kicker = "text-kicker tracking-kicker font-bold uppercase";
+const medianTraced = median(cohort.map((student) => student.traced));
+const reasons = Object.entries(
+  Object.groupBy(cohortFlags, (flag) => flag.title)
+)
+  .map(([title, flags = []]) => ({ count: flags.length, title }))
+  .toSorted((a, b) => b.count - a.count);
+const mostReasons = Math.max(...reasons.map((reason) => reason.count));
 
 const InstructorPage = () => (
   <>
-    <h1 className="text-display rise-in mt-4.5 font-bold">Essay 2</h1>
-    <p className="text-body text-subtitle rise-in mt-3 [--i:1]">
-      48 submitted. Two need a closer look first.
-    </p>
-    <div className="mt-11 grid grid-cols-[minmax(0,800px)_1fr] items-start gap-10 max-[1100px]:grid-cols-1">
-      <section
-        aria-label="Example submissions to review"
-        className="rise-in relative flex flex-col gap-3.5 [--i:2]"
+    <PageBar
+      crumbs={[
+        { href: "/instructor", label: assignmentName },
+        { label: "Submissions" },
+      ]}
+      example
+    >
+      <Link
+        className={buttonVariants({ variant: "outline" })}
+        href="/instructor/reports"
       >
-        <div
-          aria-hidden="true"
-          className="text-ai absolute -top-8.5 left-105 z-3 flex -rotate-3 items-start gap-1.5 text-2xl font-semibold whitespace-nowrap max-[1100px]:hidden"
-        >
-          <span>read these two first</span>
-          <svg
-            className="overflow-visible"
-            fill="none"
-            height="40"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2.6"
-            viewBox="0 0 114 40"
-            width="114"
-          >
-            <path
-              className="draw-in [--len:140]"
-              d="M2 34 C40 10 80 6 110 24 M110 24 l-13 -2 M110 24 l-3 -12"
-            />
-          </svg>
+        <Icon name="export" />
+        Export
+      </Link>
+      <Link className={buttonVariants()} href="/instructor/visualiser">
+        Review next
+        <Icon name="right" />
+      </Link>
+    </PageBar>
+
+    <div className="flex-1 overflow-y-auto">
+      <section className="flex flex-wrap items-end gap-6 px-6 pt-5 max-md:px-4">
+        <div>
+          <h1 className="text-title font-semibold">{essayTitle}</h1>
+          <p className="text-muted-foreground mt-1.75 flex flex-wrap items-center gap-2.5">
+            <Badge variant="ai">Lane 2 · AI permitted</Badge>
+            <span>Due Fri 10 Oct, 23:59</span>·
+            <span>
+              {cohort.length} of {cohortSize} submitted
+            </span>
+            ·
+            <span>
+              Median {median(cohort.map((student) => student.steps.length))}{" "}
+              steps
+            </span>
+          </p>
         </div>
-        <h2 className={`${kicker} text-destructive`}>
-          Look closer first{" "}
-          <span className="text-muted-foreground">· about 6 min</span>
-        </h2>
-        <ol className="mb-5.5 grid gap-4">
-          {flagged.map((student, index) => (
-            <li key={student.name}>
-              <Link
-                className={`bg-card shadow-lift hover:shadow-row-hover grid min-h-28 grid-cols-[3.5rem_minmax(0,1fr)_auto_1.5rem] items-center gap-4 rounded-2xl py-3 pr-7 pl-7.5 transition-all duration-150 ease-out hover:-translate-y-0.75 max-[760px]:grid-cols-[3.5rem_minmax(0,1fr)_1.5rem] max-[760px]:px-5 ${index === 0 ? "shadow-row-hover" : ""}`}
-                href="/instructor/flags"
-              >
-                <Avatar className="size-14 text-xl" tone={student.tone}>
-                  {student.initials}
-                </Avatar>
-                <span>
-                  <b className="text-ink text-panel block font-bold">
-                    {student.name}
-                  </b>
-                  <small className="text-muted-foreground text-ui block whitespace-nowrap max-[760px]:whitespace-normal">
-                    {student.summary}
-                  </small>
-                </span>
-                <span className="flex flex-wrap gap-2.5 max-[760px]:col-start-2 max-[760px]:col-end-4 max-[760px]:row-start-2">
-                  {student.flags.map((flag) => (
-                    <Badge key={flag} size="sm" variant="flagged">
-                      {flag}
-                    </Badge>
-                  ))}
-                </span>
-                <ChevronRight
-                  aria-hidden="true"
-                  className="text-muted-foreground size-6"
-                />
-              </Link>
-            </li>
-          ))}
-        </ol>
-        <h2 className={`${kicker} text-muted-foreground`}>
-          Ready to mark · 46
-        </h2>
-        <div className="bg-card/70 shadow-hairline grid min-h-25 grid-cols-[auto_1fr_auto] items-center gap-6 rounded-2xl px-6 py-4 max-[760px]:grid-cols-1 max-[760px]:justify-items-start">
-          <span aria-hidden="true" className="flex">
-            {ready.map((student) => (
-              <Avatar
-                className="-mr-2"
-                key={student.initials}
-                size="sm"
-                tone={student.tone}
-              >
-                {student.initials}
-              </Avatar>
-            ))}
-            <Avatar className="-mr-2" size="sm" tone="plain">
-              +39
-            </Avatar>
-          </span>
-          <span>
-            <b className="block text-xl font-semibold">
-              No flags, critiques look solid
-            </b>
-            <small className="text-muted-foreground text-lg">
-              Mark them in the usual way
-            </small>
-          </span>
-          <Link
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-            href="/instructor/reports"
-          >
-            Mark in order
-          </Link>
+        <div className="ml-auto w-60 max-md:ml-0">
+          <ReviewProgress students={cohort} />
         </div>
       </section>
-      <div className="rise-in [--i:3]">
-        <Card size="lg">
+
+      <div className="grid gap-3.5 px-6 pt-4.5 max-md:px-4 lg:grid-cols-[minmax(0,1fr)_372px]">
+        <Card>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-4 pt-3.5">
+            <h2 className="text-ui font-heading">Where each submission sits</h2>
+            <span className="text-muted-foreground text-meta">
+              Each dot is a student
+            </span>
+            <ul className="text-muted-foreground ml-auto flex gap-3.5 text-xs">
+              <li className="flex items-center gap-1.5">
+                <i className="bg-human block size-2 rounded-full" />
+                Submitted
+              </li>
+              <li className="flex items-center gap-1.5">
+                <i className="bg-flag block size-2 rounded-full" />
+                Flagged
+              </li>
+              <li className="flex items-center gap-1.5">
+                <i className="ring-ai block size-2 rounded-full ring-2" />
+                Open in Visualiser
+              </li>
+            </ul>
+          </div>
+          <div className="px-4 pb-2">
+            <CohortPlot median={medianTraced} students={cohort} />
+          </div>
+        </Card>
+
+        <Card>
           <CardContent>
-            <div className="grid gap-2">
-              <h2 className="text-ink text-panel font-bold">
-                Not from logged AI, per essay
-              </h2>
-              <p className="text-muted-foreground text-base font-medium">
-                Each dot is one student&apos;s essay.
-              </p>
-              <EssayPlot />
-              <p className="text-muted-foreground text-base font-medium">
-                48 essays, each compared against its logged AI answers
-              </p>
+            <div className="flex flex-wrap items-baseline gap-x-2.5">
+              <h2 className="text-ui font-heading">Look closer</h2>
+              <span className="text-muted-foreground text-meta">
+                Suggested by the reflection check
+              </span>
             </div>
+            <ul className="mt-2">
+              {reasons.map((reason) => (
+                <li
+                  className="flex h-9.5 items-center gap-2.5 border-t first:border-t-0"
+                  key={reason.title}
+                >
+                  <Icon className="text-flag" name="flag" />
+                  <Link className="hover:underline" href="/instructor/flags">
+                    {reason.title}
+                  </Link>
+                  <span className="font-heading ml-auto tabular-nums">
+                    {reason.count}
+                  </span>
+                  <span className="bg-muted h-1 w-16 overflow-hidden rounded-full">
+                    <i
+                      className="bg-flag block h-full w-(--share) rounded-full"
+                      style={{
+                        "--share": `${(reason.count / mostReasons) * 100}%`,
+                      }}
+                    />
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-muted-foreground text-meta mt-3 mb-3 text-pretty">
+              Flags only ask you to look closer. They never change a grade, and
+              you can dismiss any of them.
+            </p>
+            <dl className="grid grid-cols-3 border-t pt-3">
+              {[
+                [
+                  "Errors caught",
+                  (
+                    cohort.reduce(
+                      (total, student) => total + student.caught,
+                      0
+                    ) / cohort.length
+                  ).toFixed(1),
+                ],
+                [
+                  "Critique depth",
+                  median(cohort.map((student) => student.depth)).toFixed(1),
+                ],
+                ["Traced to AI", formatPercent(medianTraced)],
+              ].map(([label, value]) => (
+                <div
+                  className="border-l pl-3.5 first:border-l-0 first:pl-0"
+                  key={label}
+                >
+                  <dt className="text-label text-muted-foreground font-emphasis">
+                    {label}
+                  </dt>
+                  <dd className="text-figure font-heading tracking-title mt-0.5 tabular-nums">
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </CardContent>
         </Card>
       </div>
+
+      <Suspense
+        fallback={
+          <div className="px-6 pt-4 pb-6 max-md:px-4">
+            <output className="sr-only">Loading submissions…</output>
+            <div
+              aria-hidden="true"
+              className="bg-muted shadow-hairline h-96 animate-pulse rounded-xl motion-reduce:animate-none"
+            />
+          </div>
+        }
+      >
+        <SubmissionsTable students={cohort} />
+      </Suspense>
     </div>
   </>
 );

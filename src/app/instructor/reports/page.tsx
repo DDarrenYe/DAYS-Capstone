@@ -1,12 +1,20 @@
-import { ShellSection } from "@/components/shell/shell-section";
+import { ReportBuilder } from "@/components/report/report-builder";
+import { PageBar } from "@/components/shell/page-bar";
+import { assignmentName } from "@/lib/example-data";
 
 const ReportsPage = () => (
-  <ShellSection
-    title="Reports"
-    description="Review the learning process, step by step."
-    tone="sky"
-    note="Use the logged process to guide your review."
-  />
+  <>
+    <PageBar
+      crumbs={[
+        { href: "/instructor", label: assignmentName },
+        { label: "Reports" },
+      ]}
+      example
+    />
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <ReportBuilder />
+    </div>
+  </>
 );
 
 export default ReportsPage;

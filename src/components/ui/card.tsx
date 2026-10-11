@@ -1,24 +1,13 @@
-import * as React from "react";
+import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-function Card({
-  className,
-  size = "default",
-  variant = "default",
-  ...props
-}: React.ComponentProps<"div"> & {
-  size?: "default" | "sm" | "lg";
-  variant?: "default" | "paper";
-}) {
+function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
-      data-size={size}
-      data-variant={variant}
       className={cn(
-        "group/card bg-card text-card-foreground shadow-card flex flex-col gap-(--card-spacing) overflow-hidden rounded-3xl py-(--card-spacing) text-sm [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=lg]:[--card-spacing:--spacing(7)] data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
-        variant === "paper" && "shadow-lift gap-0 rounded-lg p-0",
+        "bg-card text-card-foreground shadow-hairline flex flex-col overflow-hidden rounded-xl",
         className
       )}
       {...props}
@@ -31,8 +20,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-header"
       className={cn(
-        "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-(--card-spacing) has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-(--card-spacing)",
-        "group-data-[variant=paper]/card:bg-subtle group-data-[variant=paper]/card:text-body group-data-[variant=paper]/card:[&_svg]:text-ai-ink group-data-[variant=paper]/card:text-caption/paper group-data-[variant=paper]/card:flex group-data-[variant=paper]/card:min-h-13 group-data-[variant=paper]/card:items-center group-data-[variant=paper]/card:gap-3 group-data-[variant=paper]/card:rounded-t-lg group-data-[variant=paper]/card:px-5.5 group-data-[variant=paper]/card:py-3.5 group-data-[variant=paper]/card:font-semibold group-data-[variant=paper]/card:[&_svg]:shrink-0",
+        "flex min-h-11 shrink-0 items-center gap-2.5 border-b px-4",
         className
       )}
       {...props}
@@ -40,24 +28,27 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+function CardTitle({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"h2">) {
   return (
-    <div
+    <h2
       data-slot="card-title"
-      className={cn(
-        "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
-        className
-      )}
+      className={cn("text-ui font-heading tracking-snug", className)}
       {...props}
-    />
+    >
+      {children}
+    </h2>
   );
 }
 
-function CardDescription({ className, ...props }: React.ComponentProps<"div">) {
+function CardDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
-    <div
+    <p
       data-slot="card-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-muted-foreground text-xs", className)}
       {...props}
     />
   );
@@ -68,7 +59,7 @@ function CardAction({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-action"
       className={cn(
-        "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
+        "text-muted-foreground text-meta ml-auto flex items-center gap-2",
         className
       )}
       {...props}
@@ -80,11 +71,7 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-content"
-      className={cn(
-        "px-(--card-spacing)",
-        "group-data-[variant=paper]/card:leading-paper group-data-[variant=paper]/card:text-ui/paper group-data-[variant=paper]/card:flex group-data-[variant=paper]/card:flex-1 group-data-[variant=paper]/card:flex-col group-data-[variant=paper]/card:items-start group-data-[variant=paper]/card:gap-4.5 group-data-[variant=paper]/card:p-7 max-[1100px]:group-data-[variant=paper]/card:p-5.5",
-        className
-      )}
+      className={cn("px-4 py-3.5", className)}
       {...props}
     />
   );
@@ -94,10 +81,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-footer"
-      className={cn(
-        "bg-muted/50 flex items-center rounded-b-xl border-t p-(--card-spacing)",
-        className
-      )}
+      className={cn("flex items-center gap-2.5 border-t px-4 py-3", className)}
       {...props}
     />
   );

@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Margin · John Doe · Essay 2</title>
+<link rel="stylesheet" href="concept.css">
+<style>
+  .head { display: flex; align-items: flex-start; gap: 14px; padding: 18px 24px 16px; }
+  .head h1 { font-size: 21px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+  .head .meta { margin-top: 3px; color: var(--muted-foreground); display: flex; gap: 6px; align-items: center; }
+  .head .summary { margin-top: 8px; max-width: 640px; color: var(--body); line-height: 1.55; }
+  .stats { margin-left: auto; display: flex; padding-top: 2px; }
+  .stat { padding: 0 22px; border-left: 1px solid var(--border); min-width: 120px; }
+  .stat:first-child { border-left: 0; }
+  .stat .v { margin-top: 4px; font-size: 22px; font-weight: 560; letter-spacing: -0.025em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stat .v small { font-size: 13px; color: var(--faint); font-weight: 450; letter-spacing: 0; margin-left: 2px; }
+  .stat.flagged .v { color: var(--flag); }
+  .stat .comp { width: 168px; margin-top: 9px; }
+
+  .process { margin: 0 24px; padding: 14px 16px 10px; }
+  .process header { display: flex; align-items: center; gap: 16px; }
+  .legend { display: flex; gap: 14px; color: var(--muted-foreground); font-size: 12px; margin-left: 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 9px; height: 9px; border-radius: 2px; }
+  .process header .seg { margin-left: auto; }
+  #chart { position: relative; margin-top: 2px; height: 204px; }
+  #chart svg { overflow: visible; }
+  .col { cursor: pointer; }
+  .col .band { fill: transparent; transition: fill 120ms ease; }
+  @media (hover: hover) and (pointer: fine) { .col:hover .band { fill: rgb(21 22 24 / 2.5%); } }
+  .sel-band { fill: var(--muted); transition: transform 240ms var(--ease-in-out); }
+  .sel-band.instant { transition: none; }
+  .col .ai { fill: var(--ai-soft); }
+  .col .carry { fill: var(--ai); }
+  .col .crit { fill: var(--human); }
+  .col.flagged .crit { fill: var(--flag); }
+  .bar { transform-box: fill-box; animation: grow 420ms var(--ease-out) both; animation-delay: calc(var(--i) * 24ms + 80ms); }
+  .bar.up { transform-origin: 50% 100%; }
+  .bar.down { transform-origin: 50% 0%; }
+  @keyframes grow { from { transform: scaleY(0.001); } }
+  .axis-label { font: 500 10.5px var(--mono); fill: var(--faint); }
+  .step-no { font: 500 11px var(--mono); fill: var(--faint); }
+  .step-title { font: 450 12px var(--sans); fill: var(--muted-foreground); letter-spacing: -0.005em; }
+  .col.sel .step-no, .col.sel .step-title { fill: var(--foreground); }
+  .day { font: 500 11px var(--sans); fill: var(--muted-foreground); }
+
+  .tip {
+    position: absolute; pointer-events: none; z-index: 5; width: 216px; padding: 9px 11px;
+    background: var(--primary); color: var(--primary-foreground); border-radius: 8px; font-size: 12px; line-height: 1.45;
+    box-shadow: var(--shadow-pop); transform-origin: var(--origin, 50% 100%);
+    opacity: 0; transform: translateY(2px) scale(0.97); transition: opacity 125ms ease-out, transform 125ms var(--ease-out);
+  }
+  .tip.on { opacity: 1; transform: none; }
+  .tip.instant { transition-duration: 0ms; }
+  .tip b { font-weight: 560; }
+  .tip .row { display: flex; justify-content: space-between; color: rgb(250 250 248 / 70%); font-variant-numeric: tabular-nums; }
+  .tip .row span:last-child { color: var(--primary-foreground); }
+
+  .split { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 452px; gap: 14px; padding: 14px 24px 16px; }
+  .essay { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .panel-head { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px 0 16px; border-bottom: 1px solid var(--border); flex: none; }
+  .panel-head .right { margin-left: auto; display: flex; align-items: center; gap: 9px; color: var(--muted-foreground); font-size: 12.5px; }
+  .paper { overflow: hidden; padding: 18px 40px 0 72px; flex: 1; position: relative; }
+  .paper::after { content: ""; position: absolute; inset: auto 0 0; height: 48px; background: linear-gradient(transparent, #fff); }
+  .paper p { font: 400 15.5px/1.64 var(--serif); font-variation-settings: "opsz" 16; color: var(--reading); margin-bottom: 14px; position: relative; text-wrap: pretty; }
+  .paper .pn { position: absolute; left: -52px; top: 4px; font: 500 10.5px var(--mono); color: var(--border-strong); }
+  .t { background: var(--ai-wash); box-shadow: inset 0 -1.5px 0 var(--ai-line); border-radius: 2px; -webkit-box-decoration-break: clone; box-decoration-break: clone; padding: 1px 0; transition: background-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease; }
+  .t .tag { position: absolute; left: -30px; margin-top: 4px; font: 500 10px/16px var(--mono); color: var(--ai-ink); background: var(--ai-soft); border-radius: 4px; padding: 0 4px; }
+  .t.flagged { box-shadow: inset 0 -1.5px 0 var(--flag-line); }
+  .t.flagged .tag { background: var(--flag-soft); color: var(--flag-ink); }
+  .paper.focus .t:not(.hot) { opacity: 0.55; }
+  .t.hot { background: var(--ai-soft); box-shadow: inset 0 -2px 0 var(--ai); }
+  .t.hot.flagged { background: var(--flag-soft); box-shadow: inset 0 -2px 0 var(--flag); }
+
+  .inspector { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .inspector .body { padding: 14px 18px; display: flex; flex-direction: column; gap: 13px; overflow: hidden; transition: opacity 180ms ease, filter 180ms ease, transform 180ms var(--ease-out); }
+  .inspector .body.swap { opacity: 0; filter: blur(2px); transform: translateY(3px); transition-duration: 0ms; }
+  .step-pill { font: 500 11px/20px var(--mono); padding: 0 6px; border-radius: 5px; background: var(--muted); box-shadow: inset 0 0 0 1px var(--border); color: var(--body); }
+  .inspector h2 { font-size: 14px; font-weight: 580; letter-spacing: -0.012em; }
+  .alert { border-radius: 8px; padding: 11px 12px; background: var(--flag-soft); box-shadow: inset 0 0 0 1px var(--flag-line); }
+  .alert .ttl { display: flex; align-items: center; gap: 7px; color: var(--flag-ink); font-weight: 580; }
+  .alert p { margin: 3px 0 9px 23px; color: var(--flag-ink); line-height: 1.5; }
+  .alert .actions { margin-left: 23px; display: flex; gap: 6px; align-items: center; }
+  .alert .actions .btn-outline { box-shadow: 0 0 0 1px var(--flag-line); }
+  .alert .by { margin-left: auto; font-size: 11.5px; color: color-mix(in srgb, var(--flag-ink) 60%, transparent); }
+  .caught { border-radius: 8px; padding: 9px 12px; background: var(--ok-soft); color: var(--ok); display: flex; gap: 8px; align-items: center; font-weight: 540; }
+  .field .row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .field .row .muted { margin-left: auto; font-size: 11.5px; }
+  .field .text { color: var(--body); line-height: 1.55; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+  .field .quote { font: 400 15px/1.55 var(--serif); color: var(--reading); padding-left: 12px; border-left: 2px solid var(--border-strong); }
+  .field.flagged .quote { border-left-color: var(--flag); }
+  .field mark { background: var(--ai-soft); color: inherit; box-shadow: inset 0 -1.5px 0 var(--ai-line); border-radius: 2px; }
+  .field s { text-decoration-color: var(--ok); text-decoration-thickness: 1.5px; color: var(--muted-foreground); }
+  .checks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .checks span { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px 0 5px; border-radius: 999px; font-size: 12px; color: var(--ok); background: var(--ok-soft); }
+  .checks i { width: 15px; height: 15px; border-radius: 50%; display: grid; place-items: center; background: var(--card); color: var(--ok); }
+  .checks .no { color: var(--muted-foreground); background: none; box-shadow: inset 0 0 0 1px var(--border); }
+  .checks .no i { background: var(--muted); color: var(--faint); }
+  .note-input { margin-top: auto; border-top: 1px solid var(--border); padding: 12px 18px 14px; display: flex; gap: 10px; align-items: center; }
+  .note-input .box { flex: 1; height: 32px; border-radius: 7px; box-shadow: inset 0 0 0 1px var(--input); display: flex; align-items: center; padding: 0 10px; color: var(--faint); }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="workspace"><span data-logo></span><div><b>Margin</b><span>INFOMGMT 399 · Sem 2</span></div><span class="chev" data-icon="updown" data-size="14"></span></div>
+    <div class="search"><span data-icon="search" data-size="14"></span>Search students<kbd>⌘K</kbd></div>
+    <nav class="nav-group">
+      <a class="nav-item"><span data-icon="queue"></span>Review queue<span class="count">18</span></a>
+      <a class="nav-item active"><span data-icon="submissions"></span>Submissions<span class="count">41</span></a>
+      <a class="nav-item"><span data-icon="flag"></span>Flags<span class="count">6</span></a>
+      <a class="nav-item"><span data-icon="report"></span>Reports</a>
+    </nav>
+    <nav class="nav-group">
+      <div class="nav-label">Assignments</div>
+      <a class="nav-item"><i class="dot" style="background:var(--border-strong)"></i>Essay 1<span class="count">Closed</span></a>
+      <a class="nav-item" style="color:var(--foreground);font-weight:520"><i class="dot" style="background:var(--ai)"></i>Essay 2<span class="count">Lane 2</span></a>
+      <a class="nav-item"><i class="dot" style="background:var(--border-strong)"></i>Final reflection<span class="count">Oct 31</span></a>
+    </nav>
+    <div class="me"><span class="avatar">JD</span><div><b>Jane Doe</b><span>Grader</span></div></div>
+  </aside>
+
+  <main class="inset">
+    <div class="topbar">
+      <button class="btn btn-ghost btn-icon"><span data-icon="panel"></span></button>
+      <div class="crumbs">Essay 2<span class="sep">/</span>Submissions<span class="sep">/</span><b>John Doe</b></div>
+      <div class="right">
+        <span class="muted num" style="font-size:12.5px">4 of 41</span>
+        <button class="btn btn-outline btn-icon btn-sm" style="width:26px"><span data-icon="up" data-size="14"></span></button>
+        <button class="btn btn-outline btn-icon btn-sm" style="width:26px"><span data-icon="down" data-size="14"></span></button>
+        <span class="vr"></span>
+        <button class="btn btn-outline"><span data-icon="export" data-size="15"></span>Export PDF</button>
+        <button class="btn btn-primary"><span data-icon="check" data-size="15"></span>Mark reviewed<kbd>R</kbd></button>
+      </div>
+    </div>
+
+    <section class="head">
+      <span class="avatar lg rise">JD</span>
+      <div class="rise" style="--i:1">
+        <h1>John Doe</h1>
+        <div class="meta"><span class="mono">s1203391</span>·<span>Submitted Fri 10 Oct, 16:42</span>·<span>9 steps over 5 days</span></div>
+        <p class="summary">Caught an invented source, a wrong date and a misquoted statistic. Two late steps were accepted with little or no critique, and one of them reached the conclusion word for word.</p>
+      </div>
+      <div class="stats">
+        <div class="stat rise" style="--i:2"><div class="label">Not traced to logged AI</div><div class="v">68%</div><div class="comp"><i class="h" style="width:68%"></i><i class="a" style="width:32%"></i></div></div>
+        <div class="stat rise" style="--i:3"><div class="label">AI errors caught</div><div class="v">3</div></div>
+        <div class="stat rise" style="--i:4"><div class="label">Critique depth</div><div class="v">2.0<small>/ 3</small></div></div>
+        <div class="stat flagged rise" style="--i:5"><div class="label">Flags</div><div class="v">2</div></div>
+      </div>
+    </section>
+
+    <section class="process card fade" style="--i:3">
+      <header>
+        <span class="section-title">Process</span>
+        <div class="legend">
+          <span><i style="background:var(--ai-soft)"></i>AI answer</span>
+          <span><i style="background:var(--ai)"></i>Reached the essay</span>
+          <span><i style="background:var(--human)"></i>Student critique</span>
+          <span><i style="background:var(--ok);border-radius:50%"></i>AI error caught</span>
+          <span><i style="background:var(--flag);border-radius:50%"></i>Flagged</span>
+        </div>
+        <div class="seg"><button class="on">Words</button><button>Time</button></div>
+      </header>
+      <div id="chart"><div class="tip" id="tip"></div></div>
+    </section>
+
+    <section class="split">
+      <div class="essay card fade" style="--i:5">
+        <div class="panel-head">
+          <span data-icon="essay" data-size="16"></span><span class="section-title">Final essay</span>
+          <span class="mono faint">essay2-final.docx · 1,204 words</span>
+          <div class="right">Show AI-traced text<span class="switch on"></span></div>
+        </div>
+        <div class="paper" id="paper">
+          <p><span class="pn">¶1</span>Generative AI now writes fluent essays in seconds, so universities can no longer out-design it. Sydney's answer, introduced in 2023, is <span class="t" data-step="2"><span class="tag">S3</span>the two-lane model: secure, supervised assessment in Lane 1, and open use of AI in Lane 2, where students are marked on how they use it.</span></p>
+          <p><span class="pn">¶2</span>This essay argues that Lane 2 only works if graders can see the thinking behind the work. A student who catches a source the AI invented is doing exactly the evaluation the model was designed to reward.</p>
+          <p><span class="pn">¶3</span><span class="t" data-step="4"><span class="tag">S5</span>Most students already use AI tools every week, and staff report that raw chat logs are too long to read across a large cohort.</span> A structured log changes that: every prompt, answer and critique becomes a step, so a grader can audit the process in minutes rather than hours.</p>
+          <p><span class="pn">¶4</span>Critics argue that logs can be faked. That is true of any self-report, but a log that has to name the error, the check and the change is much harder to fake than a reflective paragraph written the night before.</p>
+          <p><span class="pn">¶5</span><span class="t flagged" data-step="5"><span class="tag">S6</span>Ultimately, the two-lane model represents a transformative shift that empowers students to engage critically with emerging technologies while safeguarding academic integrity.</span> <span class="t" data-step="8"><span class="tag">S9</span>If universities want Lane 2 to mean something, they have to make the messy middle visible.</span></p>
+        </div>
+      </div>
+
+      <aside class="inspector card fade" style="--i:6">
+        <div class="panel-head">
+          <span class="step-pill" id="pill">S6</span><span class="section-title" id="ttl"></span>
+          <div class="right">
+            <button class="btn btn-ghost btn-icon btn-sm" style="width:26px" data-nav="-1"><span data-icon="left" data-size="14"></span></button>
+            <button class="btn btn-ghost btn-icon btn-sm" style="width:26px" data-nav="1"><span data-icon="right" data-size="14"></span></button>
+          </div>
+        </div>
+        <div class="body" id="body"></div>
+        <div class="note-input"><span class="avatar">JD</span><div class="box">Note for John on this step…</div><kbd>N</kbd></div>
+      </aside>
+    </section>
+  </main>
+</div>
+
+<script src="concept.js"></script>
+<script>
+hydrateIcons();
+const chart = document.getElementById("chart");
+const tip = document.getElementById("tip");
+const paper = document.getElementById("paper");
+let selected = 5;
+
+const W = chart.clientWidth, H = 204;
+const base = 92, k = 0.19, colW = W / STEPS.length, barW = 26;
+const days = [...new Set(STEPS.map((s) => s.day))];
+
+let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect class="sel-band instant" id="selBand" x="22" y="0" width="${colW - 12}" height="${H - 26}" rx="8"/>`;
+for (const [y, label] of [[base - 400 * k, "400"], [base - 200 * k, "200"]]) {
+  svg += `<line x1="34" x2="${W}" y1="${y}" y2="${y}" stroke="var(--border)" stroke-dasharray="2 4"/><text class="axis-label" x="0" y="${y + 3}">${label}</text>`;
+}
+STEPS.forEach((s, i) => {
+  const cx = colW * i + colW / 2 + 16, x = cx - barW / 2;
+  const up = s.words * k, carry = s.carried * k, down = Math.max(s.critique * k, 1.5);
+  svg += `<g class="col${s.flag ? " flagged" : ""}" data-i="${i}">
+    <rect class="band" x="${cx - colW / 2 + 6}" y="0" width="${colW - 12}" height="${H - 26}" rx="8"/>
+    <rect class="bar up ai" style="--i:${i}" x="${x}" y="${base - up}" width="${barW}" height="${up}" rx="3"/>
+    ${carry ? `<rect class="bar up carry" style="--i:${i + 2}" x="${x}" y="${base - carry}" width="${barW}" height="${carry}" rx="3"/>` : ""}
+    <rect class="bar down crit" style="--i:${i + 3}" x="${x}" y="${base + 2}" width="${barW}" height="${down}" rx="2"/>
+    ${s.caught ? `<circle cx="${cx}" cy="${base + 36}" r="4" fill="var(--ok)"/>` : ""}
+    ${s.flag ? `<circle cx="${cx}" cy="${base + 36}" r="4" fill="var(--flag)"/><circle cx="${cx}" cy="${base + 36}" r="7.5" fill="none" stroke="var(--flag)" stroke-opacity=".25" stroke-width="3"/>` : ""}
+    <text class="step-no" x="${cx}" y="${base + 62}" text-anchor="middle">S${i + 1}</text>
+    <text class="step-title" x="${cx}" y="${base + 78}" text-anchor="middle">${s.title}</text>
+  </g>`;
+});
+svg += `<line x1="34" x2="${W}" y1="${base + 1}" y2="${base + 1}" stroke="var(--border-strong)"/>`;
+for (const d of days) {
+  const idx = STEPS.map((s, i) => (s.day === d ? i : -1)).filter((i) => i >= 0);
+  const x1 = colW * idx[0] + 22 + 16, x2 = colW * (idx.at(-1) + 1) - 22 + 16, y = H - 12;
+  svg += `<path d="M${x1} ${y - 6} v5 H${x2} v-5" fill="none" stroke="var(--border-strong)"/><text class="day" x="${(x1 + x2) / 2}" y="${y + 12}" text-anchor="middle">${d}</text>`;
+}
+chart.insertAdjacentHTML("afterbegin", svg + "</svg>");
+
+const cols = [...chart.querySelectorAll(".col")];
+let tipOpen = false;
+for (const col of cols) {
+  const i = +col.dataset.i, s = STEPS[i];
+  col.addEventListener("mouseenter", () => {
+    focusEssay(i);
+    tip.innerHTML = `<b>S${i + 1} · ${s.title}</b><div class="row" style="margin-top:5px"><span>AI answer</span><span>${s.words} words</span></div><div class="row"><span>Reached the essay</span><span>${s.carried} words</span></div><div class="row"><span>Critique</span><span>${s.critique} words</span></div>`;
+    const cx = colW * i + colW / 2 + 16;
+    const left = Math.min(Math.max(cx - 108, 0), W - 216);
+    tip.style.left = `${left}px`;
+    tip.style.setProperty("--origin", `${cx - left}px 100%`);
+    tip.style.top = `${base - s.words * k - 100}px`;
+    tip.classList.toggle("instant", tipOpen);
+    tip.classList.add("on");
+    tipOpen = true;
+  });
+  col.addEventListener("mouseleave", () => { tip.classList.remove("on"); tipOpen = false; focusEssay(selected); });
+  col.addEventListener("click", () => select(i));
+}
+for (const b of document.querySelectorAll("[data-nav]")) b.addEventListener("click", () => select((selected + +b.dataset.nav + STEPS.length) % STEPS.length));
+
+function focusEssay(i) {
+  const spans = paper.querySelectorAll(".t");
+  let any = false;
+  for (const t of spans) { const hot = +t.dataset.step === i; t.classList.toggle("hot", hot); any ||= hot; }
+  paper.classList.toggle("focus", any);
+}
+
+const QUESTIONS = ["Right or wrong", "How it was checked", "What changed"];
+function render(instant = true) {
+  const band = document.getElementById("selBand");
+  band.classList.toggle("instant", instant);
+  band.style.transform = `translateX(${colW * selected}px)`;
+  const s = STEPS[selected];
+  document.getElementById("pill").textContent = `S${selected + 1}`;
+  document.getElementById("ttl").textContent = s.title;
+  document.getElementById("body").innerHTML = `
+    ${s.flag ? `<div class="alert"><div class="ttl">${icon("flag", 15)}${s.flag.title}</div><p>${s.flag.body}</p><div class="actions"><button class="btn btn-outline btn-sm">Dismiss</button><button class="btn btn-primary btn-sm">Keep flag</button><span class="by">Reflection check · suggested</span></div></div>` : ""}
+    ${s.caught ? `<div class="caught">${icon("caught", 16)}Student caught an AI error: ${s.caught.toLowerCase()}</div>` : ""}
+    <div class="field"><div class="row"><span class="label">Asked</span><span class="muted mono">${s.time}</span></div><div class="text">${s.asked}</div></div>
+    <div class="field"><div class="row"><span class="label">AI answered</span><span class="muted">${s.words} words${s.carried ? ` · <span style="color:var(--ai-ink)">${s.carried} reached the essay</span>` : ""}</span></div><div class="text" style="-webkit-line-clamp:2">${s.answer}</div></div>
+    <div class="field${s.flag ? " flagged" : ""}"><div class="row"><span class="label">Critique</span><span class="muted">${s.critique} words</span></div><div class="quote">${s.critiqueText}</div>
+      <div class="checks">${QUESTIONS.map((q, n) => `<span class="${s.checks[n] ? "" : "no"}"><i>${icon(s.checks[n] ? "check" : "x", 10)}</i>${q}</span>`).join("")}</div></div>`;
+  cols.forEach((c, n) => c.classList.toggle("sel", n === selected));
+  focusEssay(selected);
+}
+function select(i) {
+  selected = i;
+  const body = document.getElementById("body");
+  body.classList.add("swap");
+  requestAnimationFrame(() => { render(false); requestAnimationFrame(() => body.classList.remove("swap")); });
+}
+addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  selected = (selected + (e.key === "ArrowRight" ? 1 : -1) + STEPS.length) % STEPS.length;
+  render();
+});
+render();
+</script>
+</body>
+</html>

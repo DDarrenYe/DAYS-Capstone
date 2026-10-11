@@ -5,6 +5,7 @@ import {
   AssignmentList,
   AssignmentsSkeleton,
 } from "@/app/student/assignment-list";
+import { PageBar } from "@/components/shell/page-bar";
 import { requireRole } from "@/lib/auth";
 import { assignmentsQuery } from "@/lib/data/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -33,13 +34,17 @@ const Assignments = async () => {
 
 const StudentPage = () => (
   <>
-    <h1 className="text-display rise-in mt-4.5 font-bold">Assignments</h1>
-    <p className="text-body text-subtitle rise-in mt-3 [--i:1]">
-      Your tasks this semester. Lane 2 ones keep an AI log.
-    </p>
-    <Suspense fallback={<AssignmentsSkeleton />}>
-      <Assignments />
-    </Suspense>
+    <PageBar crumbs={[{ label: "Assignments" }]} />
+    <div className="flex-1 overflow-y-auto px-6 pt-5 pb-6 max-md:px-4">
+      <h1 className="text-title font-semibold">Assignments</h1>
+      <p className="text-muted-foreground mt-1.5">
+        Your tasks this semester. Lane 2 tasks keep an AI log; Lane 1 tasks
+        restrict AI.
+      </p>
+      <Suspense fallback={<AssignmentsSkeleton />}>
+        <Assignments />
+      </Suspense>
+    </div>
   </>
 );
 

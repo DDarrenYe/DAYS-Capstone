@@ -5,7 +5,7 @@ import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { cn } from "@/lib/utils";
 
 const itemClassName =
-  "text-body data-highlighted:bg-accent data-highlighted:text-foreground rounded-navigation flex min-h-10 w-full cursor-default items-center px-4.5 text-left font-semibold outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50";
+  "text-foreground data-highlighted:bg-muted flex h-8 w-full cursor-default items-center gap-2.25 rounded-md px-2 text-left font-book outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_kbd]:ml-auto [&_svg]:text-muted-foreground";
 
 function DropdownMenu({ ...props }: MenuPrimitive.Root.Props) {
   return <MenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
@@ -20,17 +20,19 @@ function DropdownMenuContent({
   alignOffset = 0,
   side = "bottom",
   sideOffset = 8,
+  anchor,
   className,
   ...props
 }: MenuPrimitive.Popup.Props &
   Pick<
     MenuPrimitive.Positioner.Props,
-    "align" | "alignOffset" | "side" | "sideOffset"
+    "align" | "alignOffset" | "anchor" | "side" | "sideOffset"
   >) {
   return (
     <MenuPrimitive.Portal>
       <MenuPrimitive.Positioner
         className="isolate z-50 outline-none"
+        anchor={anchor}
         align={align}
         alignOffset={alignOffset}
         side={side}
@@ -39,7 +41,7 @@ function DropdownMenuContent({
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
           className={cn(
-            "popup-motion bg-popover text-popover-foreground shadow-lift rounded-navigation max-h-(--available-height) min-w-32 overflow-y-auto p-1.5 outline-none",
+            "popup-motion bg-popover text-popover-foreground shadow-pop max-h-(--available-height) min-w-32 overflow-y-auto rounded-xl p-1 outline-none",
             className
           )}
           {...props}
@@ -61,7 +63,7 @@ function DropdownMenuLabel({
     <MenuPrimitive.GroupLabel
       data-slot="dropdown-menu-label"
       className={cn(
-        "text-muted-foreground text-kicker px-4.5 py-2 font-semibold",
+        "text-faint text-label px-2 pt-1.5 pb-1 font-medium",
         className
       )}
       {...props}
@@ -99,7 +101,7 @@ function DropdownMenuSeparator({
   return (
     <MenuPrimitive.Separator
       data-slot="dropdown-menu-separator"
-      className={cn("bg-border mx-3 my-1.5 h-px", className)}
+      className={cn("bg-border mx-0.5 my-1 h-px", className)}
       {...props}
     />
   );

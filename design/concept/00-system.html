@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Margin · System</title>
+<link rel="stylesheet" href="concept.css">
+<style>
+  body { padding: 40px 48px; display: grid; grid-template-columns: 440px 1fr; grid-template-rows: auto auto 1fr; gap: 28px 40px; }
+  .intro { grid-column: 1 / -1; display: flex; align-items: flex-end; gap: 16px; }
+  .intro h1 { font: 500 34px/1.05 var(--serif); letter-spacing: -0.02em; font-variation-settings: "opsz" 48; }
+  .intro p { color: var(--muted-foreground); max-width: 560px; margin-left: auto; line-height: 1.55; }
+  h2 { font-size: 12px; font-weight: 560; color: var(--muted-foreground); letter-spacing: 0.01em; margin-bottom: 12px; display: flex; gap: 10px; align-items: center; }
+  h2::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .col { display: flex; flex-direction: column; gap: 26px; min-width: 0; }
+
+  .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .sw { border-radius: 9px; overflow: hidden; background: var(--card); box-shadow: var(--shadow-card); }
+  .sw .chip { height: 46px; position: relative; }
+  .sw .chip i { position: absolute; right: 8px; bottom: 8px; width: 18px; height: 18px; border-radius: 5px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 6%); }
+  .sw div:last-child { padding: 7px 9px 8px; }
+  .sw b { display: block; font-size: 12.5px; font-weight: 560; }
+  .sw span { display: block; font: 400 10.5px var(--mono); color: var(--muted-foreground); }
+  .sw p { font-size: 11.5px; color: var(--muted-foreground); line-height: 1.4; margin-top: 2px; }
+
+  .type { display: flex; flex-direction: column; background: var(--card); border-radius: 10px; box-shadow: var(--shadow-card); }
+  .type > div { padding: 13px 16px; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 4px 16px; }
+  .type > div:first-child { border-top: 0; }
+  .type .role { grid-column: 1 / -1; font-size: 11.5px; color: var(--muted-foreground); }
+  .type .meta { font: 400 10.5px var(--mono); color: var(--faint); }
+
+  .icons { --icon-accent: var(--ai); display: grid; grid-template-columns: repeat(3, 196px) 1fr; gap: 12px; }
+  .spec { aspect-ratio: 1; background: var(--card); border-radius: 12px; box-shadow: var(--shadow-card); display: grid; place-items: center; position: relative; }
+  .spec svg.grid { position: absolute; inset: 14px; width: calc(100% - 28px); height: calc(100% - 28px); }
+  .spec .ic { position: relative; color: var(--foreground); }
+  .spec label { position: absolute; left: 12px; bottom: 9px; font: 500 10.5px var(--mono); color: var(--faint); }
+  .set { background: var(--card); border-radius: 12px; box-shadow: var(--shadow-card); display: grid; grid-template-columns: repeat(7, 1fr); align-content: start; padding: 6px; }
+  .set div { height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; border-radius: 8px; color: var(--foreground); transition: background-color 120ms ease; animation: fade 360ms ease both; animation-delay: calc(var(--i) * 14ms + 120ms); }
+  .set div span { font: 400 10px var(--mono); color: var(--faint); }
+  @media (hover: hover) and (pointer: fine) { .set div:hover { background: var(--muted); } }
+
+  .motion { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .curve { background: var(--card); border-radius: 12px; box-shadow: var(--shadow-card); padding: 14px 16px 12px; }
+  .curve svg { margin: 6px 0 10px; overflow: visible; }
+  .curve b { font-weight: 560; font-size: 13px; }
+  .curve .mono { color: var(--muted-foreground); display: block; margin-top: 2px; }
+  .curve p { margin-top: 6px; color: var(--muted-foreground); font-size: 12px; line-height: 1.45; }
+  .components { grid-column: 1 / -1; }
+  .board { background: var(--card); border-radius: 12px; box-shadow: var(--shadow-card); display: grid; grid-template-columns: 1.1fr 1fr 1fr 1.2fr; }
+  .board > div { padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; border-left: 1px solid var(--border); }
+  .board > div:first-child { border-left: 0; }
+  .board .label { margin-bottom: 2px; }
+  .board .line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .tooltip-demo { position: relative; padding: 8px 11px; background: var(--primary); color: var(--primary-foreground); border-radius: 7px; font-size: 12px; box-shadow: var(--shadow-pop); }
+  .tooltip-demo::after { content: ""; position: absolute; left: 18px; bottom: -4px; width: 8px; height: 8px; background: inherit; transform: rotate(45deg); border-radius: 1px; }
+  .tooltip-demo span { color: rgb(250 250 248 / 65%); }
+  .track { position: relative; height: 4px; border-radius: 2px; background: var(--muted); }
+  .track i { position: absolute; top: -3px; left: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--foreground); animation: travel 1600ms infinite alternate; }
+  @keyframes travel { from { transform: translateX(0); } to { transform: translateX(var(--run, 240px)); } }
+  @media (prefers-reduced-motion: reduce) { .track i { animation: none !important; } }
+</style>
+</head>
+<body>
+  <header class="intro rise">
+    <span data-logo data-size="40"></span>
+    <h1>Margin</h1>
+    <p>Paper and ink do the work. One cobalt for text traced to a logged AI answer, vermilion only for a flag, green only for an AI error a student caught. Anything a student wrote is set in a serif, so reading never looks like UI.</p>
+  </header>
+
+  <div class="col">
+    <section class="rise" style="--i:1">
+      <h2>Colour</h2>
+      <div class="swatches">
+        <div class="sw"><div class="chip" style="background:var(--background)"></div><div><b>Paper</b><span>#F4F4F0</span><p>Canvas and sidebar</p></div></div>
+        <div class="sw"><div class="chip" style="background:var(--card);box-shadow:inset 0 -1px 0 var(--border)"></div><div><b>Sheet</b><span>#FFFFFF</span><p>Where work sits</p></div></div>
+        <div class="sw"><div class="chip" style="background:var(--primary)"></div><div><b>Ink</b><span>#18191B</span><p>Text, actions, student words</p></div></div>
+        <div class="sw"><div class="chip" style="background:var(--ai)"><i style="background:var(--ai-soft)"></i></div><div><b>Traced</b><span>#3E5FD0</span><p>Matches a logged AI answer</p></div></div>
+        <div class="sw"><div class="chip" style="background:var(--flag)"><i style="background:var(--flag-soft)"></i></div><div><b>Flag</b><span>#C8431B</span><p>Asks a grader to look closer</p></div></div>
+        <div class="sw"><div class="chip" style="background:var(--ok)"><i style="background:var(--ok-soft)"></i></div><div><b>Caught</b><span>#2C7A50</span><p>Student found an AI error</p></div></div>
+      </div>
+    </section>
+
+    <section class="rise" style="--i:2">
+      <h2>Type</h2>
+      <div class="type">
+        <div><span style="font-size:21px;font-weight:600;letter-spacing:-0.02em">Review next</span><span class="meta">Inter 21 / 600</span><span class="role">Interface. cv11, ss01 and tabular figures on.</span></div>
+        <div><span class="serif" style="font-size:19px;line-height:1.4;font-variation-settings:'opsz' 18">Wrong date. I checked their article and fixed my intro.</span><span class="meta">Newsreader 19</span><span class="role">Anything a student wrote: essays, critiques, reflections.</span></div>
+        <div><span class="mono" style="font-size:13px">s1203391 · Thu 21:14 · ⌘↵</span><span class="meta">Geist Mono 13</span><span class="role">Ids, timestamps and keys.</span></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="rise" style="--i:2">
+      <h2>Icons · duotone on a 20px grid, one accent on the detail that matters</h2>
+      <div class="icons">
+        <div class="spec" data-spec="queue"><label>queue</label></div>
+        <div class="spec" data-spec="flag"><label>flag</label></div>
+        <div class="spec" data-spec="search"><label>search</label></div>
+        <div class="set" id="set"></div>
+      </div>
+    </section>
+
+    <section class="rise" style="--i:3">
+      <h2>Motion · fast where the system responds, never on keyboard actions</h2>
+      <div class="motion">
+        <div class="curve" data-curve=".23,1,.32,1"><b>Enter</b><span class="mono">cubic-bezier(.23, 1, .32, 1) · 125–200ms</span><svg width="100%" height="70"></svg><div class="track"><i style="animation-timing-function:cubic-bezier(.23,1,.32,1)"></i></div><p>Popovers, tooltips, the inspector swap and button press. Starts fast so the response feels instant.</p></div>
+        <div class="curve" data-curve=".77,0,.175,1"><b>Move</b><span class="mono">cubic-bezier(.77, 0, .175, 1) · 240ms</span><svg width="100%" height="70"></svg><div class="track"><i style="animation-timing-function:cubic-bezier(.77,0,.175,1)"></i></div><p>Things already on screen that change place, like the selected step band.</p></div>
+        <div class="curve" data-curve=".25,.1,.25,1"><b>Settle</b><span class="mono">ease · 120ms</span><svg width="100%" height="70"></svg><div class="track"><i style="animation-timing-function:ease"></i></div><p>Hover and colour only, behind a hover media query. Arrow keys and J / K switch with no motion.</p></div>
+      </div>
+    </section>
+  </div>
+
+<section class="components rise" style="--i:4">
+    <h2>Components · shadcn on Base UI, restyled</h2>
+    <div class="board">
+      <div><span class="label">Button</span>
+        <div class="line"><button class="btn btn-primary"><span data-icon="check"></span>Mark reviewed<kbd>R</kbd></button><button class="btn btn-outline"><span data-icon="export"></span>Export PDF</button></div>
+        <div class="line"><button class="btn btn-ghost"><span data-icon="sort"></span>Look closer first</button><button class="btn btn-outline btn-icon"><span data-icon="more"></span></button><button class="btn btn-outline btn-sm">Dismiss</button></div>
+      </div>
+      <div><span class="label">Badge and status</span>
+        <div class="line"><span class="badge ai">Lane 2 · AI permitted</span><span class="badge flag"><span data-icon="flag" data-size="12"></span>2</span><span class="badge ok"><span data-icon="check" data-size="12"></span>Error caught</span></div>
+        <div class="line"><span class="status flag"><i></i>Needs review</span><span class="status review"><i></i>Needs review</span><span class="status done"><i></i>Reviewed</span></div>
+      </div>
+      <div><span class="label">Controls</span>
+        <div class="line"><div class="seg"><button>Right</button><button class="on">Partly</button><button>Wrong</button></div><span class="switch on"></span><span class="switch"></span></div>
+        <div class="line"><span class="depth"><i class="on"></i><i class="on"></i><i></i></span><span class="depth low"><i class="on"></i><i></i><i></i></span><span class="comp" style="width:96px"><i class="h" style="width:68%"></i><i class="a" style="width:32%"></i></span></div>
+      </div>
+      <div><span class="label">Tooltip and keys</span>
+        <div class="tooltip-demo">S6 · Check the conclusion <span>· 2 critique words</span></div>
+        <div class="line" style="margin-top:4px;color:var(--muted-foreground);font-size:12.5px"><kbd>J</kbd><kbd>K</kbd>next, previous<kbd>←</kbd><kbd>→</kbd>step<kbd>⌘↵</kbd>save</div>
+      </div>
+    </div>
+  </section>
+
+<script src="concept.js"></script>
+<script>
+hydrateIcons();
+const set = document.getElementById("set");
+set.innerHTML = Object.keys(ICONS).map((n, i) => `<div style="--i:${i}">${icon(n, 20)}<span>${n}</span></div>`).join("");
+
+for (const spec of document.querySelectorAll("[data-spec]")) {
+  const lines = Array.from({ length: 21 }, (_, n) => `<line x1="${n}" x2="${n}" y1="0" y2="20"/><line y1="${n}" y2="${n}" x1="0" x2="20"/>`).join("");
+  spec.insertAdjacentHTML("afterbegin", `<svg class="grid" viewBox="0 0 20 20" fill="none" stroke-width=".04" style="stroke:var(--border)">${lines}<rect x="3.25" y="3.25" width="13.5" height="13.5" rx="1.75" style="stroke:var(--ai-line)" stroke-dasharray=".25 .25" stroke-width=".05"/><circle cx="10" cy="10" r="7" style="stroke:var(--flag-line)" stroke-dasharray=".25 .25" stroke-width=".05"/></svg>`);
+  spec.insertAdjacentHTML("beforeend", `<span class="ic">${icon(spec.dataset.spec, 168)}</span>`);
+}
+
+for (const c of document.querySelectorAll("[data-curve]")) {
+  const svg = c.querySelector("svg"), w = svg.clientWidth, h = 70;
+  const [x1, y1, x2, y2] = c.dataset.curve.split(",").map(Number);
+  svg.innerHTML = `<line x1="0" x2="${w}" y1="${h}" y2="${h}" stroke="var(--border)"/><line x1="0" x2="${w}" y1="0" y2="0" stroke="var(--border)" stroke-dasharray="2 4"/>
+    <path d="M0 ${h} C${x1 * w} ${h - y1 * h} ${x2 * w} ${h - y2 * h} ${w} 0" fill="none" stroke="var(--foreground)" stroke-width="1.75" stroke-linecap="round"/>`;
+  c.querySelector(".track").style.setProperty("--run", `${c.querySelector(".track").clientWidth - 10}px`);
+}
+</script>
+</body>
+</html>

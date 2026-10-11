@@ -9,16 +9,20 @@ const ErrorPage = ({
   error: Error & { digest?: string };
   retry: () => void;
 }) => (
-  <main className="mx-auto flex w-full max-w-240 flex-col items-start gap-4 px-18 pt-10 pb-16 max-[1100px]:px-10 max-[760px]:px-6">
-    <h1 className="text-display font-bold">Something went wrong</h1>
-    <p className="text-body text-subtitle">
+  <main className="mx-auto flex w-full max-w-140 flex-col items-start gap-3 px-8 pt-24 pb-16 max-md:px-5">
+    <h1 className="text-title font-semibold">Something went wrong</h1>
+    <p className="text-body text-pretty">
       We could not load this page. Try again, or contact your instructor if this
       keeps happening.
     </p>
     {error.digest ? (
-      <p className="text-muted-foreground text-sm">Reference: {error.digest}</p>
+      <p className="text-muted-foreground font-mono text-xs">
+        Reference: {error.digest}
+      </p>
     ) : null}
-    <Button onClick={() => retry()}>Try again</Button>
+    <Button className="mt-2" onClick={() => retry()}>
+      Try again
+    </Button>
   </main>
 );
 

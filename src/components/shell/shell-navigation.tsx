@@ -1,13 +1,13 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSelectedLayoutSegment } from "next/navigation";
-import { useActionState } from "react";
+import { useState, useTransition } from "react";
 
 import { signOut } from "@/app/actions";
+import { Icon } from "@/components/icon";
+import type { IconName } from "@/components/icon";
 import { Avatar } from "@/components/shell/avatar";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,103 +15,126 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuLinkItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SegmentedNav } from "@/components/ui/segmented-nav";
+import { clearLocalState } from "@/lib/local-state";
 
-const navigation = {
-  student: [
-    { segment: null, label: "Assignments" },
-    { segment: "log", label: "My log" },
-    { segment: "progress", label: "Progress" },
-  ],
-  instructor: [
-    { segment: null, label: "Cohort" },
-    { segment: "visualiser", label: "Visualiser" },
-    { segment: "flags", label: "Flags" },
-    { segment: "reports", label: "Reports" },
-  ],
-};
+export type UserRole = "student" | "instructor";
 
-interface RoleProps {
-  userRole: "student" | "instructor";
+export interface NavItem {
+  segment: string | null;
+  label: string;
+  icon: IconName;
+  count?: number;
 }
 
-export const RoleNavigation = ({ userRole }: RoleProps) => {
+export const SidebarNav = ({
+  userRole,
+  items,
+}: {
+  userRole: UserRole;
+  items: NavItem[];
+}) => {
   const segment = useSelectedLayoutSegment();
-  const isStudent = userRole === "student";
-  const items = navigation[userRole];
-  return (
-    <SegmentedNav
-      activeIndex={items.findIndex((item) => item.segment === segment)}
-      aria-label={`${isStudent ? "Student" : "Instructor"} navigation`}
-      className="max-[1100px]:order-3 max-[1100px]:w-fit max-[760px]:w-full"
-      items={items.map((item) => ({
-        href: `/${userRole}${item.segment ? `/${item.segment}` : ""}`,
-        label: item.label,
-      }))}
-    />
-  );
-};
-
-export const Breadcrumbs = ({ userRole }: RoleProps) => {
-  const segment = useSelectedLayoutSegment();
-  const current = navigation[userRole].find((item) => item.segment === segment);
-  const isStudent = userRole === "student";
   return (
     <nav
-      aria-label="Breadcrumb"
-      className="text-muted-foreground text-caption flex gap-3 [&_a:hover]:underline"
+      aria-label={`${userRole === "student" ? "Student" : "Instructor"} navigation`}
     >
-      <Link href={`/${userRole}`}>{isStudent ? "Student" : "Instructor"}</Link>
-      <span aria-hidden="true">/</span>
-      <span aria-current="page">{current?.label}</span>
+      <ul className="flex gap-px max-md:overflow-x-auto md:flex-col">
+        {items.map((item) => {
+          const current = item.segment === segment;
+          return (
+            <li key={item.label}>
+              <Link
+                aria-current={current ? "page" : undefined}
+                className="text-body hover:bg-foreground/4 aria-[current=page]:bg-card aria-[current=page]:text-foreground aria-[current=page]:shadow-raised [&_svg]:text-muted-foreground aria-[current=page]:[&_svg]:text-foreground font-book aria-[current=page]:icon-ai flex h-7.5 items-center gap-2.25 rounded-md px-2 whitespace-nowrap transition-colors duration-120"
+                href={`/${userRole}${item.segment ? `/${item.segment}` : ""}`}
+              >
+                <Icon name={item.icon} />
+                {item.label}
+                {item.count === undefined ? null : (
+                  <span className="text-faint text-label ml-auto pl-3 tabular-nums">
+                    {item.count}
+                  </span>
+                )}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </nav>
   );
 };
 
 export const UserMenu = ({
   userRole,
-  displayName: userName,
-}: RoleProps & { displayName: string }) => {
-  const [state, action, pending] = useActionState(signOut, { error: "" });
+  displayName,
+}: {
+  userRole: UserRole;
+  displayName: string;
+}) => {
+  const [error, setError] = useState("");
+  const [pending, startTransition] = useTransition();
+  const leave = () =>
+    startTransition(async () => {
+      const result = await signOut();
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      clearLocalState();
+      globalThis.location.assign("/");
+    });
   const pathname = usePathname();
-  const isStudent = userRole === "student";
+  const role = userRole === "student" ? "Student" : "Grader";
   return (
     <DropdownMenu key={pathname} modal={false}>
       <DropdownMenuTrigger
-        aria-label={`User menu for ${userName}`}
-        render={<Button variant="ghost" size="sm" />}
+        render={
+          <button
+            aria-label={`Account menu for ${displayName}`}
+            className="hover:bg-foreground/4 aria-expanded:bg-foreground/4 flex w-full items-center gap-2.25 rounded-md p-1.5 text-left outline-none"
+            type="button"
+          />
+        }
       >
-        <Avatar size="sm" tone={isStudent ? "human" : "ai"}>
-          {[...userName][0]?.toUpperCase() ?? ""}
-        </Avatar>
-        <span>{userName}</span>
-        <ChevronDown aria-hidden="true" size={16} />
+        <Avatar
+          className="bg-card shadow-hairline max-md:hidden"
+          name={displayName}
+        />
+        <span className="min-w-0 flex-1 max-md:hidden">
+          <b className="text-control font-emphasis block truncate">
+            {displayName}
+          </b>
+          <span className="text-muted-foreground text-label block">{role}</span>
+        </span>
+        <Avatar className="md:hidden" name={displayName} />
+        <Icon className="text-faint max-md:hidden" name="updown" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        align="end"
-        sideOffset={12}
-        className="w-61 max-w-[calc(100vw-40px)]"
+        align="start"
+        side="top"
+        sideOffset={8}
+        className="w-56 max-w-[calc(100vw-40px)]"
       >
         <DropdownMenuGroup>
-          <DropdownMenuLabel>Signed in as {userName}</DropdownMenuLabel>
-          <form action={action}>
-            <DropdownMenuItem
-              nativeButton
-              render={<button aria-label="Sign out" type="submit" />}
-              disabled={pending}
-              closeOnClick={false}
-            >
-              {pending ? "Signing out…" : "Sign out"}
-            </DropdownMenuItem>
-            <p aria-live="polite" className="text-destructive px-4.5 text-sm">
-              {state.error}
-            </p>
-          </form>
+          <DropdownMenuLabel>Signed in as {displayName}</DropdownMenuLabel>
           <DropdownMenuLinkItem closeOnClick render={<Link href="/privacy" />}>
-            Privacy
+            <Icon name="eye" />
+            Privacy and who sees what
           </DropdownMenuLinkItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            closeOnClick={false}
+            disabled={pending}
+            onClick={leave}
+          >
+            {pending ? "Signing out…" : "Sign out"}
+          </DropdownMenuItem>
+          <p aria-live="polite" className="text-destructive px-2 text-xs">
+            {error}
+          </p>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
