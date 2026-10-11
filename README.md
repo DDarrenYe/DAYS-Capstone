@@ -50,9 +50,10 @@ Password sign-in does not send an email. Local database seeding creates these co
 
 - Student: `student@example.com`
 - Instructor: `instructor@example.com`
-- Password for both: `Capstone-demo-399!`
+- Other students: `john.doe@`, `alex.kim@`, `jane.roe@`, `sam.lee@`, `priya.shah@` and `tom.ng@` at `example.com`
+- Password for all accounts: `Capstone-demo-399!`
 
-On a fresh stack, seeds run automatically. For an existing disposable stack, `bun run db:reset` applies migrations and seeds, deleting its local data. To preserve existing data, apply `supabase/seed.sql` to this checkout's local database as its administrator instead. The seed inserts only the two fixed demo users and promotes the demo instructor; it does not reset existing passwords.
+On a fresh stack, seeds run automatically. For an existing disposable stack, `bun run db:reset` applies migrations and seeds, deleting its local data. To preserve existing data, apply `supabase/seed.sql` to this checkout's local database as its administrator instead; fixed IDs and `on conflict` clauses leave records that already exist untouched, so it does not reset existing passwords. The seed also creates the INFOMGMT 399 course, assignments, drafts, submissions and flag reviews described in `supabase/README.md`, which lists each scenario ID.
 
 Students land on `/student` (assignments); instructors land on `/instructor` (the current instructor shell). The proxy is an optimistic check: it reads the session cookie, persists refreshed session cookies, and redirects signed-out users away from protected routes. It never queries Supabase for the user or the role. The account menu in each role shell calls `requireRole`, which verifies the user and reads the role from the profile stored in Postgres (not editable user metadata), then sends signed-out or cross-role users to the right place. That check streams in behind its own `Suspense` boundary, so it does not gate the page content. Sign out is in the account menu. The server client is read-only during rendering; Server Actions use `createClient({ writeCookies: true })`. Every page that reads data and every mutation must call `requireRole` itself and enforce ownership/RLS; the shell check is not authorization. The current pages show fictional example content only.
 

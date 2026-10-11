@@ -49,3 +49,49 @@ Instructors read submissions, analysis results, flags and private notes only for
 Analysis workers use a trusted, server-only `service_role` connection (or the database owner), which can write analysis state, matching outputs, results and generated flags. That credential is the authorization for this privileged path: only trusted jobs should receive it, and jobs must resolve the intended submitted project before writing. No client-callable analysis RPC is exposed. Boolean authorization helpers live in the unexposed `private` schema; trigger functions have no client execution grants and every definer function fixes its search path. Future public views must use `security_invoker = true` and appropriate grants; SQL tests check the view/function inventory and probe invoker views under client roles.
 
 A direct Drizzle connection using the local `postgres` role bypasses RLS. It does not automatically inherit the Supabase Auth user or their JWT claims. Before adding user-facing queries, validate the session and enforce course/student access, or configure a restricted connection with verified user claims and the appropriate database role. Never expose `DATABASE_URL` to browser code or treat `getDb()` as an authorization check.
+
+## Seed data
+
+`supabase/seed.sql` runs after migrations on `bun run db:reset` and builds one course, INFOMGMT 399, with three assignments and eight accounts. Every account uses the password `Capstone-demo-399!`. The seed is for disposable local databases only. It uses fixed IDs and `on conflict` clauses, so applying it again to a seeded database changes nothing. `bun run db:test` checks the scenarios below, including the expected match totals and review counts, in `supabase/tests/seed_scenarios.sql`.
+
+Fixed IDs encode what they refer to, with `P` the project number and `S` the step or version number:
+
+| Record | ID |
+| --- | --- |
+| User | `10000000-0000-0000-0000-00000000000N` (N from the accounts table) |
+| Course | `20000000-0000-0000-0000-000000000001` |
+| Assignment | `30000000-0000-0000-0000-00000000000N` (1 Essay 2, 2 Lab 4, 3 Reflection 1) |
+| Project | `40000000-0000-0000-0000-00000000000P` |
+| Step | `50000000-0000-0000-000P-00000000000S` (zero-padded to four and twelve digits) |
+| Final version | `60000000-0000-0000-000P-000000000001` |
+| Analysis result | `70000000-0000-0000-000P-00000000000S` |
+| Flag | `80000000-0000-0000-000P-00000000000S` (same ID tail as its step's analysis result) |
+| Grader note | `90000000-0000-0000-000P-000000000001` |
+
+| N   | Email                    | Name            | Role       |
+| --- | ------------------------ | --------------- | ---------- |
+| 1   | `student@example.com`    | Demo Student    | student    |
+| 2   | `instructor@example.com` | Demo Instructor | instructor |
+| 3   | `john.doe@example.com`   | John Doe        | student    |
+| 4   | `alex.kim@example.com`   | Alex Kim        | student    |
+| 5   | `jane.roe@example.com`   | Jane Roe        | student    |
+| 6   | `sam.lee@example.com`    | Sam Lee         | student    |
+| 7   | `priya.shah@example.com` | Priya Shah      | student    |
+| 8   | `tom.ng@example.com`     | Tom Ng          | student    |
+
+Lab 4 is Lane 1, so it has no projects. Essay 2 and Reflection 1 are Lane 2.
+
+| P | Student, assignment | Scenario | Match totals from the final text | Flags |
+| --- | --- | --- | --- | --- |
+| 1 | Demo Student, Essay 2 | In-progress draft: three critiqued steps, then two steps imported from a public chat link and waiting for critiques (step 4 has a student-marked error). No final text yet. | none yet | none |
+| 2 | John Doe, Essay 2 | Submitted nine-step example. Steps 2, 4 and 7 have student-marked errors; step 6 has the thin critique "Looks good."; step 8's critique reads like AI. Steps 8 and 9 share a sentence. Analysis completed. | 242 words, 110 matched, 132 unmatched (54.5%); matched words by step: 3 has 13, 5 has 49, 8 has 39, 9 has 9 | step 6 added to feedback, step 8 open |
+| 3 | Alex Kim, Essay 2 | Submitted. Step 3 combines the answers of steps 1 and 2, so its words are credited to the earlier steps. Analysis completed. | 68 words, 28 matched, 40 unmatched (58.8%); step 1 has 14, step 2 has 14 | step 3 open |
+| 4 | Jane Roe, Essay 2 | Submitted with short, specific critiques and one student-marked error. Analysis completed. | 58 words, 15 matched, 43 unmatched (74.1%); step 1 has 15 | step 3 dismissed |
+| 5 | Sam Lee, Essay 2 | Submitted. Two identical answers; the essay repeats one with different case and punctuation. Analysis failed. | 31 words, 31 matched, 0 unmatched (0%); step 1 has 31 | none |
+| 6 | Priya Shah, Essay 2 | Submitted, and nothing in the essay matches a logged answer. Analysis pending. | 46 words, 0 matched, 46 unmatched (100%) | none |
+| 7 | Tom Ng, Essay 2 | Untouched draft: the project exists with no steps and no final text. | none | none |
+| 8 | Demo Student, Reflection 1 | Submitted with three steps (step 3 has a student-marked error) and a quoted AI phrase in the reflection. Analysis running. | 62 words, 7 matched, 55 unmatched (88.7%); step 3 has 7 | none |
+
+Review counts across the cohort are two open flags, one dismissed and one added to feedback; `flag_reviews` holds the two decisions. Average questions answered per analysed step are 2.00 for John, 1.75 for Alex and 2.67 for Jane. Analysis results have no evidence text for a question the critique did not answer.
+
+The match totals come from a reference count in the seed test, not from application code, because matching is a separate task: lowercase the text, split it into letters and digits, treat any run of at least six consecutive words that appears in a logged answer as a match, count each final word once, and credit it to the earliest matching step. The seed leaves `match_results` empty. When the matcher exists, its totals for these essays should agree with the table, or the table and the test should change together. The percentages are illustrative fixtures, not production expectations.
