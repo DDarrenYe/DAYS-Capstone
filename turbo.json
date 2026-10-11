@@ -8,6 +8,7 @@
       "with": ["db:start"],
       "cache": false,
       "persistent": true,
+      "passThroughEnv": ["PORTLESS*"],
       "env": [
         "PORT",
         "NODE_ENV",

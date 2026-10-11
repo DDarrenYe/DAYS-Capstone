@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev:app",
-    "dev:app": "next dev",
+    "dev:app": "portless run next dev",
     "build": "turbo run build:app",
     "build:app": "next build",
     "start": "next start",
@@ -50,6 +50,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "drizzle-kit": "0.31.11",
+    "portless": "0.15.7",
     "supabase": "2.120.0",
     "tailwindcss": "4.3.3",
     "turbo": "2.11.7",
