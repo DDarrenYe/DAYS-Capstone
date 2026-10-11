@@ -3,6 +3,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import type { SubmitEvent } from "react";
 
+import { Icon } from "@/components/icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import {
   useCreateAssignment,
   useCreateCourse,
   useEnrolStudents,
+  useRemoveStudent,
 } from "@/lib/data/use-mutations";
 import { createClient } from "@/lib/supabase/browser";
 
@@ -194,6 +196,35 @@ const EnrolForm = ({
   );
 };
 
+const StudentRow = ({
+  enrolment,
+  userId,
+}: {
+  enrolment: CourseRows[number]["enrolments"][number];
+  userId: string;
+}) => {
+  const { error, isPending, mutate } = useRemoveStudent(userId);
+  return (
+    <li className="grid gap-1">
+      <div className="flex flex-wrap items-center gap-3">
+        <span>{enrolment.email}</span>
+        {enrolment.student_id ? null : <Badge>Invited</Badge>}
+        <Button
+          aria-label={`Remove ${enrolment.email}`}
+          className="ml-auto"
+          disabled={isPending}
+          onClick={() => mutate({ enrolmentId: enrolment.id })}
+          size="icon-sm"
+          variant="ghost"
+        >
+          <Icon name="x" />
+        </Button>
+      </div>
+      <FormError error={error} />
+    </li>
+  );
+};
+
 const CourseCard = ({
   course,
   userId,
@@ -256,13 +287,11 @@ const CourseCard = ({
           ) : (
             <ul className="grid max-h-64 gap-2 overflow-y-auto">
               {course.enrolments.map((enrolment) => (
-                <li
-                  className="flex flex-wrap items-center gap-3"
+                <StudentRow
+                  enrolment={enrolment}
                   key={enrolment.id}
-                >
-                  <span>{enrolment.email}</span>
-                  {enrolment.student_id ? null : <Badge>Invited</Badge>}
-                </li>
+                  userId={userId}
+                />
               ))}
             </ul>
           )}

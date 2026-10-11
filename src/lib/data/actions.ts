@@ -3,6 +3,7 @@
 import { getAccount } from "@/lib/auth";
 import {
   forbidden,
+  removeEnrolment,
   writeAssignment,
   writeCourse,
   writeEnrolments,
@@ -15,6 +16,7 @@ import type {
   CourseInput,
   EnrolInput,
   EnrolResult,
+  RemoveEnrolmentInput,
   ReviewInput,
   StepInput,
   SubmitInput,
@@ -76,4 +78,14 @@ export const enrolStudents = async (
     return forbidden;
   }
   return writeEnrolments(await createClient(), input);
+};
+
+export const removeStudent = async (
+  input: RemoveEnrolmentInput
+): Promise<WriteResult> => {
+  const account = await getAccount();
+  if (account?.role !== "instructor") {
+    return forbidden;
+  }
+  return removeEnrolment(await createClient(), input);
 };

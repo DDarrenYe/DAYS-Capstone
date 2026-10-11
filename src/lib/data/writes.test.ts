@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import {
   forbidden,
+  removeEnrolment,
   writeAssignment,
   writeCourse,
   writeEnrolments,
@@ -238,6 +239,7 @@ test("setup input is rejected before the database is contacted", async () => {
     writeAssignment(client, invalidAssignment({ title: " " })),
     writeAssignment(client, invalidAssignment({ dueAt: "2026-12-01" })),
     writeEnrolments(client, { courseId: "nope", emails: "a@example.com" }),
+    removeEnrolment(client, { enrolmentId: "nope" }),
     writeEnrolments(client, { courseId: projectId, emails: " , ; " }),
     writeEnrolments(client, {
       courseId: projectId,
@@ -338,6 +340,29 @@ test("setup writes the database rejects read as forbidden", async () => {
     writeCourse(denied(), reviewerId, { code: "A", title: "B" }),
     writeAssignment(denied(), assignment),
     writeEnrolments(denied(), { courseId: projectId, emails: "a@example.com" }),
+    removeEnrolment(denied(), { enrolmentId: projectId }),
   ]);
-  assert.deepEqual(results, [forbidden, forbidden, forbidden]);
+  assert.deepEqual(results, [forbidden, forbidden, forbidden, forbidden]);
+});
+
+test("removing a student deletes one enrolment by id and reports why it can't", async () => {
+  const { client, requests } = clientWith();
+  assert.deepEqual(
+    await removeEnrolment(client, { enrolmentId: projectId }),
+    {}
+  );
+  assert.equal(requests[0]?.method, "DELETE");
+  assert.equal(requests[0]?.url.pathname, "/rest/v1/enrolments");
+  assert.equal(requests[0]?.url.searchParams.get("id"), `eq.${projectId}`);
+  assert.deepEqual(
+    await removeEnrolment(clientWith(noRow).client, { enrolmentId: projectId }),
+    forbidden
+  );
+  const withWork = clientWith(() =>
+    Response.json({ code: "23503", message: "restrict" }, { status: 409 })
+  );
+  assert.deepEqual(
+    await removeEnrolment(withWork.client, { enrolmentId: projectId }),
+    { error: "That student has started work, so they can't be removed." }
+  );
 });

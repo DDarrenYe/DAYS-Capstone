@@ -35,6 +35,15 @@ select is((select count(*)::integer from public.enrolments where student_id is n
 select is((select count(*)::integer from public.enrolments where email = 'teacher-b@setup.test'), 0, 'Instructor accounts are never enrolled as students');
 select throws_ok($$insert into public.enrolments (course_id, student_id, email) values ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000003', 'direct@setup.test')$$, '42501', null, 'Enrolments are only written through enrol_students');
 select throws_ok($$update public.profiles set role = 'instructor' where id = '00000000-0000-0000-0000-000000000003'$$, '42501', null, 'Instructor cannot change another profile role');
+select lives_ok($$select * from public.enrol_students('00000000-0000-0000-0000-000000000010', array['oops@setup.test'])$$, 'Instructor can invite someone by mistake');
+select lives_ok($$delete from public.enrolments where email = 'oops@setup.test'$$, 'Instructor can remove a pending invitation');
+select is((select count(*)::integer from public.enrolments where email = 'oops@setup.test'), 0, 'The removed invitation is gone');
+reset role;
+insert into public.projects (assignment_id, course_id, student_id)
+select id, course_id, '00000000-0000-0000-0000-000000000003' from public.assignments where title = 'Essay';
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+select throws_ok($$delete from public.enrolments where email = 'student@setup.test'$$, '23503', null, 'A student who has started work cannot be removed');
 
 reset role;
 set local role authenticated;
@@ -42,6 +51,7 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002
 select throws_ok($$select * from public.enrol_students('00000000-0000-0000-0000-000000000010', array['other@setup.test'])$$, '42501', null, 'Another instructor cannot enrol into the course');
 select throws_ok($$insert into public.assignments (course_id, title, lane) values ('00000000-0000-0000-0000-000000000010', 'Hijack', 'lane_2')$$, '42501', null, 'Another instructor cannot add assignments to the course');
 select is((select count(*)::integer from public.enrolments where true), 0, 'Another instructor cannot read the roster');
+select lives_ok($$delete from public.enrolments where true$$, 'Another instructor''s delete matches no rows');
 
 reset role;
 set local role authenticated;
@@ -50,12 +60,14 @@ select throws_ok($$insert into public.courses (instructor_id, code, title) value
 select throws_ok($$insert into public.assignments (course_id, title, lane) values ('00000000-0000-0000-0000-000000000010', 'Mine', 'lane_2')$$, '42501', null, 'Student cannot create assignments');
 select throws_ok($$select * from public.enrol_students('00000000-0000-0000-0000-000000000010', array['friend@setup.test'])$$, '42501', null, 'Student cannot enrol others');
 select is((select string_agg(title || ':' || lane, ',' order by title) from public.assignments where true), 'Essay:lane_2,Lab:lane_1', 'Enrolled student sees the created assignments with their lanes');
+select lives_ok($$delete from public.enrolments where true$$, 'A student''s delete matches no rows');
 
 reset role;
 set local role anon;
 select throws_ok($$select * from public.enrol_students('00000000-0000-0000-0000-000000000010', array['a@setup.test'])$$, '42501', null, 'Anonymous cannot call enrol_students');
 
 reset role;
+select is((select count(*)::integer from public.enrolments where email = 'student@setup.test'), 1, 'Other instructors and students cannot remove anyone from the roster');
 insert into auth.users (id, email, email_confirmed_at) values
   ('00000000-0000-0000-0000-000000000005', 'new@setup.test', now()),
   ('00000000-0000-0000-0000-000000000006', 'fresh@setup.test', null);

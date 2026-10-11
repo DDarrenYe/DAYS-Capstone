@@ -6,6 +6,7 @@ import {
   createAssignment,
   createCourse,
   enrolStudents,
+  removeStudent,
   reviewFlag,
   saveStep,
   submitProject,
@@ -20,6 +21,7 @@ import type {
   AssignmentInput,
   CourseInput,
   EnrolInput,
+  RemoveEnrolmentInput,
   ReviewInput,
   StepInput,
   SubmitInput,
@@ -85,6 +87,15 @@ export const useEnrolStudents = (userId: string) => {
       }
       return results;
     },
+    onSuccess: () => invalidateAfterSetup(queryClient, userId),
+  });
+};
+
+export const useRemoveStudent = (userId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RemoveEnrolmentInput) =>
+      succeeded(removeStudent(input)),
     onSuccess: () => invalidateAfterSetup(queryClient, userId),
   });
 };

@@ -251,7 +251,7 @@ The database enforces this for any client using the anon key and a user session.
 | --- | --- | --- | --- |
 | `profiles` | Read own row | Read own row | Read and write |
 | `courses`, `assignments` | Read | Read, create their own course, add assignments to it | Read and write |
-| `enrolments` | Read own row | Read the course, add students through `enrol_students` | Read and write |
+| `enrolments` | Read own row | Read the course, add students through `enrol_students`, remove students who have no project | Read and write |
 | `projects` | Read own, create a Lane 2 draft, submit it, delete while draft | Read submitted projects | Read and write |
 | `iterations` | Read own, write while draft | Read submitted projects | Read and write |
 | `final_versions` (text columns) | Read own, write while draft | Read submitted projects | Read and write |

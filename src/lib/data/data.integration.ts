@@ -26,6 +26,7 @@ import {
   forbidden,
   writeAssignment,
   writeCourse,
+  removeEnrolment,
   writeEnrolments,
   writeReview,
   writeStep,
@@ -698,6 +699,40 @@ test("instructors set up a course whose assignments enrolled and invited student
   const foreign = { courseId: course.id, emails: "friend@example.test" };
   assert.deepEqual(await writeEnrolments(teacherB.client, foreign), forbidden);
   assert.deepEqual(await writeEnrolments(s1.client, foreign), forbidden);
+
+  const oopsEmail = `${tag}-oops@example.test`;
+  await writeEnrolments(teacherA.client, {
+    courseId: course.id,
+    emails: oopsEmail,
+  });
+  const roster = await must(
+    admin.from("enrolments").select("id, email").eq("course_id", course.id)
+  );
+  const enrolmentId = (email: string) =>
+    roster.find((row) => row.email === email)?.id ?? "";
+  const oops = { enrolmentId: enrolmentId(oopsEmail) };
+  assert.deepEqual(await removeEnrolment(teacherB.client, oops), forbidden);
+  assert.deepEqual(await removeEnrolment(s1.client, oops), forbidden);
+  assert.deepEqual(await removeEnrolment(teacherA.client, oops), {});
+  assert.deepEqual(await removeEnrolment(teacherA.client, oops), forbidden);
+  const started = await must(
+    admin
+      .from("projects")
+      .insert({
+        assignment_id: rows[0]?.id ?? "",
+        course_id: course.id,
+        student_id: s1.id,
+      })
+      .select("id")
+      .single()
+  );
+  assert.deepEqual(
+    await removeEnrolment(teacherA.client, {
+      enrolmentId: enrolmentId(s1.email),
+    }),
+    { error: "That student has started work, so they can't be removed." }
+  );
+  await run(admin.from("projects").delete().eq("id", started.id));
 
   const late = await createAccount("late", "student");
   const queryClient = newQueryClient();

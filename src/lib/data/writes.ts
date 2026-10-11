@@ -53,12 +53,15 @@ const enrolSchema = z.object({
     .pipe(z.array(z.string().max(MAX_EMAIL)).min(1).max(MAX_ENROLMENTS)),
 });
 
+const removeEnrolmentSchema = z.object({ enrolmentId: z.guid() });
+
 export type StepInput = z.input<typeof stepSchema>;
 export type SubmitInput = z.input<typeof submitSchema>;
 export type ReviewInput = z.input<typeof reviewSchema>;
 export type CourseInput = z.input<typeof courseSchema>;
 export type AssignmentInput = z.input<typeof assignmentSchema>;
 export type EnrolInput = z.input<typeof enrolSchema>;
+export type RemoveEnrolmentInput = z.input<typeof removeEnrolmentSchema>;
 
 export interface WriteResult {
   error?: string;
@@ -216,4 +219,29 @@ export const writeEnrolments = async (
     emails: enrolment.emails,
   });
   return error ? failure(error) : { results: data };
+};
+
+export const removeEnrolment = async (
+  client: Client,
+  input: RemoveEnrolmentInput
+): Promise<WriteResult> => {
+  const { data: removal, success } = removeEnrolmentSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { data, error } = await client
+    .from("enrolments")
+    .delete()
+    .eq("id", removal.enrolmentId)
+    .select("id")
+    .maybeSingle();
+  if (error?.code === "23503") {
+    return {
+      error: "That student has started work, so they can't be removed.",
+    };
+  }
+  if (error) {
+    return failure(error);
+  }
+  return data ? {} : forbidden;
 };
