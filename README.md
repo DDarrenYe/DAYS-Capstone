@@ -81,7 +81,6 @@ See [Resend's Supabase SMTP guide](https://resend.com/docs/send-with-supabase-sm
 | `bun run db:check` | Check Drizzle migration snapshots |
 | `bun run test` | Run unit tests and migration snapshot checks |
 | `bun run test:integration` | Build, then run the database and bundle checks against the local stack (needs `.env.local`) |
-| `bun run test:e2e` | Build with the instant-navigation testing API, then run the Playwright navigation tests against the local stack (needs `.env.local` and Chrome) |
 | `bun run build` | Build for production |
 | `bun run check` | Check formatting and lint with `vp check` |
 | `bun run fix` | Fix formatting and lint with `vp check --fix` |

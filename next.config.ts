@@ -4,9 +4,6 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
-  experimental: {
-    exposeTestingApiInProductionBuild: process.env.EXPOSE_TESTING_API === "1",
-  },
   partialPrefetching: true,
   turbopack: {
     rules: {
