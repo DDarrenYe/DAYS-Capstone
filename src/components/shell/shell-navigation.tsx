@@ -17,6 +17,7 @@ import {
   DropdownMenuLinkItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SegmentedNav } from "@/components/ui/segmented-nav";
 
 const navigation = {
   student: [
@@ -39,22 +40,17 @@ interface RoleProps {
 export const RoleNavigation = ({ userRole }: RoleProps) => {
   const segment = useSelectedLayoutSegment();
   const isStudent = userRole === "student";
+  const items = navigation[userRole];
   return (
-    <nav
+    <SegmentedNav
+      activeIndex={items.findIndex((item) => item.segment === segment)}
       aria-label={`${isStudent ? "Student" : "Instructor"} navigation`}
-      className="bg-card shadow-lift rounded-navigation max-[760px]:rounded-navigation-mobile flex flex-wrap p-1 max-[1100px]:order-3 max-[1100px]:w-fit max-[760px]:w-full"
-    >
-      {navigation[userRole].map((item) => (
-        <Link
-          aria-current={segment === item.segment ? "page" : undefined}
-          href={`/${userRole}${item.segment ? `/${item.segment}` : ""}`}
-          className="text-body hover:bg-accent aria-[current=page]:bg-foreground aria-[current=page]:text-card rounded-navigation flex min-h-10 items-center px-4.5 font-semibold transition-colors duration-160 ease-out max-[760px]:px-3.5"
-          key={item.segment ?? "home"}
-        >
-          {item.label}
-        </Link>
-      ))}
-    </nav>
+      className="max-[1100px]:order-3 max-[1100px]:w-fit max-[760px]:w-full"
+      items={items.map((item) => ({
+        href: `/${userRole}${item.segment ? `/${item.segment}` : ""}`,
+        label: item.label,
+      }))}
+    />
   );
 };
 
