@@ -1,5 +1,6 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
+  "ui": "tui",
   "cacheDir": ".turbo/cache",
   "cacheMaxSize": "1GB",
   "cacheMaxAge": "14d",
