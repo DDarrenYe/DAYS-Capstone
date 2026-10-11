@@ -6,6 +6,7 @@ import { QueryClient } from "@tanstack/query-core";
 
 import {
   assignmentsQuery,
+  invalidateAfterOpen,
   invalidateAfterReview,
   invalidateAfterSave,
   invalidateAfterSubmit,
@@ -103,6 +104,12 @@ test("query keys never share a prefix between users or projects", () => {
     queryKeys.projectLog(userId, projectId),
     queryKeys.projectLog(userId, otherProjectId)
   );
+});
+
+test("opening an assignment invalidates only that user's assignment list", async () => {
+  const queryClient = seededCache();
+  await invalidateAfterOpen(queryClient, userId);
+  assert.deepEqual(invalidated(queryClient), keysOf(userId, "assignments"));
 });
 
 test("saving a step invalidates that project and the assignment list for the same user only", async () => {

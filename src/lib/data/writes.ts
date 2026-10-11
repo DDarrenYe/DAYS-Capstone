@@ -15,6 +15,7 @@ import type { Database } from "@/lib/supabase/database.types";
 type Client = SupabaseClient<Database>;
 
 const MAX_STEP_NUMBER = 2_147_483_647;
+const UNIQUE_VIOLATION = "23505";
 
 const text = z
   .string()
@@ -31,6 +32,7 @@ const stepSchema = z.object({
   rawAnswer: text,
   stepNumber: z.int().min(1).max(MAX_STEP_NUMBER),
 });
+const openSchema = z.object({ assignmentId: z.guid() });
 const submitSchema = z.object({ projectId: z.guid() });
 const reviewSchema = z.object({
   flagId: z.guid(),
@@ -38,6 +40,7 @@ const reviewSchema = z.object({
 });
 
 export type StepInput = z.input<typeof stepSchema>;
+export type OpenInput = z.input<typeof openSchema>;
 export type SubmitInput = z.input<typeof submitSchema>;
 export type ReviewInput = z.input<typeof reviewSchema>;
 export type CourseInput = z.input<typeof courseSchema>;
@@ -61,7 +64,7 @@ const failure = (error: PostgrestError, duplicate?: string): WriteResult => {
   if (error.code === "42501" || error.code === "23514") {
     return forbidden;
   }
-  if (error.code === "23505" && duplicate) {
+  if (error.code === UNIQUE_VIOLATION && duplicate) {
     return { error: duplicate };
   }
   console.error("Database write failed", error);
@@ -110,6 +113,31 @@ export const writeStep = async (
         .select("id")
         .maybeSingle();
   return settle(data, error);
+};
+
+export const writeProject = async (
+  client: Client,
+  studentId: string,
+  input: OpenInput
+): Promise<WriteResult> => {
+  const { data: open, success } = openSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { data: assignment, error: readError } = await client
+    .from("assignments")
+    .select("id, course_id")
+    .eq("id", open.assignmentId)
+    .maybeSingle();
+  if (readError || !assignment) {
+    return settle(null, readError);
+  }
+  const { error } = await client.from("projects").insert({
+    assignment_id: assignment.id,
+    course_id: assignment.course_id,
+    student_id: studentId,
+  });
+  return error?.code === UNIQUE_VIOLATION ? {} : settle(assignment, error);
 };
 
 export const writeSubmission = async (
@@ -166,7 +194,7 @@ export const writeCourse = async (
     instructor_id: instructorId,
     title: course.title,
   });
-  if (error?.code === "23505") {
+  if (error?.code === UNIQUE_VIOLATION) {
     return {
       error: "You already have a course with that code.",
       field: "code",

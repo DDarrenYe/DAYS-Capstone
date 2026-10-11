@@ -6,12 +6,14 @@ import {
   createAssignment,
   createCourse,
   enrolStudents,
+  openProject,
   removeStudent,
   reviewFlag,
   saveStep,
   submitProject,
 } from "@/lib/data/actions";
 import {
+  invalidateAfterOpen,
   invalidateAfterReview,
   invalidateAfterSave,
   invalidateAfterSetup,
@@ -21,6 +23,7 @@ import type {
   AssignmentInput,
   CourseInput,
   EnrolInput,
+  OpenInput,
   RemoveEnrolmentInput,
   ReviewInput,
   StepInput,
@@ -43,6 +46,14 @@ const succeeded = async (pending: Promise<WriteResult>) => {
   if (error) {
     throw new WriteError(error, field);
   }
+};
+
+export const useOpenProject = (userId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: OpenInput) => succeeded(openProject(input)),
+    onSuccess: () => invalidateAfterOpen(queryClient, userId),
+  });
 };
 
 export const useSaveStep = (userId: string) => {

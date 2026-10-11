@@ -9,6 +9,7 @@ import {
   writeAssignment,
   writeCourse,
   writeEnrolments,
+  writeProject,
   writeReview,
   writeStep,
   writeSubmission,
@@ -16,15 +17,19 @@ import {
 import type {
   AssignmentInput,
   CourseInput,
+  OpenInput,
   ReviewInput,
   StepInput,
   SubmitInput,
 } from "./writes";
 
+const assignmentId = "50000000-0000-0000-0000-000000000001";
+const courseId = "60000000-0000-0000-0000-000000000001";
 const projectId = "20000000-0000-0000-0000-000000000001";
 const stepId = "30000000-0000-0000-0000-000000000001";
 const flagId = "40000000-0000-0000-0000-000000000001";
 const reviewerId = "10000000-0000-0000-0000-000000000002";
+const studentId = "10000000-0000-0000-0000-000000000003";
 
 type Json = string | number | boolean | null | undefined;
 
@@ -58,8 +63,12 @@ const clientWith = (
 
 const wire = (
   json: string
-): StepInput & SubmitInput & ReviewInput & CourseInput & AssignmentInput =>
-  JSON.parse(json);
+): StepInput &
+  SubmitInput &
+  ReviewInput &
+  OpenInput &
+  CourseInput &
+  AssignmentInput => JSON.parse(json);
 
 const step: StepInput = {
   aiTool: "ChatGPT",
@@ -86,6 +95,7 @@ test("invalid input is rejected before the database is contacted", async () => {
   ];
   const results = await Promise.all([
     ...invalidSteps.map((invalid) => writeStep(client, invalid)),
+    writeProject(client, studentId, { assignmentId: "nope" }),
     writeSubmission(client, { projectId: "nope" }),
     writeReview(client, reviewerId, { flagId: "nope", state: "dismissed" }),
     writeReview(
@@ -98,6 +108,63 @@ test("invalid input is rejected before the database is contacted", async () => {
     assert.deepEqual(result, { error: "Check the details and try again." });
   }
   assert.equal(requests.length, 0);
+});
+
+test("opening an assignment that already has a project succeeds without a second one", async () => {
+  const responses = [
+    Response.json([{ course_id: courseId, id: assignmentId }]),
+    Response.json({ code: "23505", message: "duplicate key" }, { status: 409 }),
+  ];
+  const { client } = clientWith(() => responses.shift() ?? noRow());
+  assert.deepEqual(await writeProject(client, studentId, { assignmentId }), {});
+});
+
+test("opening an assignment uses the verified student and the assignment's course", async () => {
+  const { client, requests } = clientWith(() =>
+    Response.json([{ course_id: courseId, id: assignmentId }])
+  );
+  const result = await writeProject(
+    client,
+    studentId,
+    wire(
+      JSON.stringify({
+        assignmentId,
+        course_id: "other-course",
+        student_id: "someone-else",
+      })
+    )
+  );
+  assert.deepEqual(result, {});
+  assert.equal(requests[0]?.url.pathname, "/rest/v1/assignments");
+  assert.equal(requests[0]?.url.searchParams.get("id"), `eq.${assignmentId}`);
+  assert.equal(requests[1]?.method, "POST");
+  assert.equal(requests[1]?.url.pathname, "/rest/v1/projects");
+  assert.deepEqual(requests[1]?.body, {
+    assignment_id: assignmentId,
+    course_id: courseId,
+    student_id: studentId,
+  });
+});
+
+test("an assignment the student cannot read or a Lane 1 assignment never gets a project", async () => {
+  const hidden = clientWith(noRow);
+  assert.deepEqual(
+    await writeProject(hidden.client, studentId, { assignmentId }),
+    forbidden
+  );
+  assert.equal(hidden.requests.length, 1);
+  const responses = [
+    Response.json([{ course_id: courseId, id: assignmentId }]),
+    Response.json(
+      { code: "23514", message: "Projects require a Lane 2 assignment" },
+      { status: 400 }
+    ),
+  ];
+  const laneOne = clientWith(() => responses.shift() ?? noRow());
+  assert.deepEqual(
+    await writeProject(laneOne.client, studentId, { assignmentId }),
+    forbidden
+  );
 });
 
 test("a new step is inserted with only the allowed columns", async () => {

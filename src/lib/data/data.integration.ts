@@ -29,6 +29,7 @@ import {
   writeCourse,
   removeEnrolment,
   writeEnrolments,
+  writeProject,
   writeReview,
   writeStep,
   writeSubmission,
@@ -531,6 +532,65 @@ test("students cannot write to someone else's log or to a locked or invalid one"
     stepNumber: 1,
   });
   assert.deepEqual(duplicate, { error: "That step number is already used." });
+});
+
+test("opening a Lane 2 assignment creates one project, however often it is opened", async () => {
+  const { s1, s2, s3, teacherA } = await fixture;
+  const { data: course } = await admin
+    .from("enrolments")
+    .select("course_id")
+    .eq("student_id", s1.id)
+    .single();
+  const fresh = await must(
+    admin
+      .from("assignments")
+      .insert({
+        course_id: course?.course_id ?? "",
+        lane: "lane_2",
+        title: `${tag} Fresh`,
+      })
+      .select("id")
+      .single()
+  );
+  const lab = await must(
+    admin.from("assignments").select("id").eq("title", `${tag} Lab`).single()
+  );
+  const projectCount = async (assignmentId: string) => {
+    const rows = await must(
+      admin.from("projects").select("id").eq("assignment_id", assignmentId)
+    );
+    return rows.length;
+  };
+  try {
+    const opens = await Promise.all([
+      writeProject(s1.client, s1.id, { assignmentId: fresh.id }),
+      writeProject(s1.client, s1.id, { assignmentId: fresh.id }),
+      writeProject(s1.client, s1.id, { assignmentId: fresh.id }),
+    ]);
+    assert.deepEqual(opens, [{}, {}, {}]);
+    assert.equal(await projectCount(fresh.id), 1);
+    assert.deepEqual(
+      await writeProject(s2.client, s2.id, { assignmentId: fresh.id }),
+      {}
+    );
+    assert.equal(await projectCount(fresh.id), 2);
+    const list = await newQueryClient().query(
+      assignmentsQuery(s1.client, s1.id)
+    );
+    const opened = list.find(({ id }) => id === fresh.id);
+    assert.equal(opened?.projects.length, 1);
+    assert.equal(opened?.projects[0]?.status, "draft");
+    const rejected = await Promise.all([
+      writeProject(s1.client, s1.id, { assignmentId: lab.id }),
+      writeProject(s3.client, s3.id, { assignmentId: fresh.id }),
+      writeProject(teacherA.client, teacherA.id, { assignmentId: fresh.id }),
+    ]);
+    assert.deepEqual(rejected, [forbidden, forbidden, forbidden]);
+    assert.equal(await projectCount(lab.id), 0);
+  } finally {
+    await admin.from("projects").delete().eq("assignment_id", fresh.id);
+    await admin.from("assignments").delete().eq("id", fresh.id);
+  }
 });
 
 test("submitting refreshes state, locks the project and rejects other users", async () => {

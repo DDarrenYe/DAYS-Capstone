@@ -7,6 +7,7 @@ import {
   writeAssignment,
   writeCourse,
   writeEnrolments,
+  writeProject,
   writeReview,
   writeStep,
   writeSubmission,
@@ -17,12 +18,21 @@ import type {
   EnrolInput,
   EnrolResult,
   RemoveEnrolmentInput,
+  OpenInput,
   ReviewInput,
   StepInput,
   SubmitInput,
   WriteResult,
 } from "@/lib/data/writes";
 import { createClient } from "@/lib/supabase/server";
+
+export const openProject = async (input: OpenInput): Promise<WriteResult> => {
+  const account = await getAccount();
+  if (account?.role !== "student") {
+    return forbidden;
+  }
+  return writeProject(await createClient(), account.id, input);
+};
 
 export const saveStep = async (input: StepInput): Promise<WriteResult> => {
   const account = await getAccount();
