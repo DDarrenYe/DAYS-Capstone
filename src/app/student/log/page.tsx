@@ -1,12 +1,5 @@
-import { ShellSection } from "@/components/shell/shell-section";
+import { StepComposer } from "@/app/student/log/step-composer";
 
-const LogPage = () => (
-  <ShellSection
-    title="My log"
-    description="Keep your AI conversations and critiques together."
-    tone="yellow"
-    note="Log what you asked, what AI answered, and what you changed."
-  />
-);
+const LogPage = () => <StepComposer />;
 
 export default LogPage;

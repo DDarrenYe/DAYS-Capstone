@@ -5,7 +5,7 @@ import type { VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "group/button focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 inline-flex shrink-0 items-center justify-center rounded-full text-lg font-semibold whitespace-nowrap transition-[scale,translate,color,background-color,box-shadow,opacity] duration-150 ease-out outline-none select-none focus-visible:ring-3 active:scale-96 disabled:pointer-events-none disabled:opacity-50 aria-invalid:ring-3 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",
+  "group/button press aria-invalid:shadow-invalid text-control font-emphasis tracking-snug inline-flex shrink-0 items-center justify-center gap-1.75 rounded-md whitespace-nowrap outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     defaultVariants: {
       size: "default",
@@ -13,22 +13,21 @@ const buttonVariants = cva(
     },
     variants: {
       size: {
-        default: "h-12 gap-2.5 px-6.5",
-        sm: "h-10.5 gap-2 px-5 text-base",
-        icon: "size-12",
-        "icon-sm": "size-10.5",
+        default: "h-7.5 px-2.75",
+        sm: "text-meta h-6.5 rounded-md px-2.25",
+        lg: "text-ui h-9 px-3.5",
+        icon: "size-7.5",
+        "icon-sm": "size-6.5 rounded-md",
       },
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-halo-button hover:bg-ai-hover hover:shadow-halo-button-hover hover:-translate-y-0.5",
+          "bg-primary text-primary-foreground shadow-primary hover:bg-primary/88 [&_kbd]:bg-white/12 [&_kbd]:text-white/70 [&_kbd]:shadow-none",
         destructive:
-          "bg-destructive-soft text-destructive hover:bg-destructive/20 focus-visible:ring-destructive/20",
-        ghost: "hover:bg-muted hover:text-foreground aria-expanded:bg-muted",
-        link: "text-primary underline-offset-4 hover:underline",
-        outline:
-          "bg-card text-foreground shadow-halo-ghost hover:bg-subtle hover:-translate-y-0.5",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-ai-soft/70 aria-expanded:bg-secondary",
+          "bg-flag-soft text-flag-ink shadow-flag-ring hover:bg-flag-soft/70",
+        ghost: "text-body hover:bg-muted aria-expanded:bg-muted",
+        link: "text-ai-ink underline-offset-4 hover:underline",
+        outline: "bg-card shadow-outline hover:bg-muted aria-expanded:bg-muted",
+        secondary: "bg-muted text-foreground hover:bg-human-soft",
       },
     },
   }

@@ -6,50 +6,19 @@ import type { VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "group/badge focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-4xl border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-colors focus-visible:ring-[3px] has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&>svg]:pointer-events-none [&>svg]:size-3!",
+  "group/badge text-label font-emphasis inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1.25 overflow-hidden rounded-full px-1.75 whitespace-nowrap [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
-    compoundVariants: [
-      {
-        variant: ["ai", "human", "neutral", "success", "flagged"],
-        className:
-          "gap-2 py-0 font-semibold before:size-2.25 before:shrink-0 before:rounded-full before:bg-current before:content-['']",
-      },
-      {
-        variant: ["ai", "human", "neutral", "success", "flagged"],
-        size: "default",
-        className: "h-8 px-3.5 text-base",
-      },
-      {
-        variant: ["ai", "human", "neutral", "success", "flagged"],
-        size: "sm",
-        className: "text-caption h-7.5 px-3",
-      },
-    ],
     defaultVariants: {
-      size: "default",
       variant: "default",
     },
     variants: {
-      size: {
-        default: "",
-        sm: "",
-      },
       variant: {
-        ai: "bg-ai-soft text-ai",
-        human: "bg-human-soft text-human",
-        neutral: "bg-plain text-body",
+        default: "bg-muted text-body shadow-hairline",
+        ai: "bg-ai-wash text-ai-ink shadow-ai-ring",
+        flag: "bg-flag-soft text-flag-ink shadow-flag-ring",
         success: "bg-success-soft text-success",
-        flagged: "bg-destructive-soft text-destructive",
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
-        destructive:
-          "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
-        ghost:
-          "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
-        link: "text-primary underline-offset-4 hover:underline",
-        outline:
-          "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
-        secondary:
-          "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
+        review: "bg-review-soft text-review-ink",
+        outline: "text-body shadow-hairline",
       },
     },
   }
@@ -58,7 +27,6 @@ const badgeVariants = cva(
 function Badge({
   className,
   variant = "default",
-  size = "default",
   render,
   ...props
 }: useRender.ComponentProps<"span"> & VariantProps<typeof badgeVariants>) {
@@ -66,7 +34,7 @@ function Badge({
     defaultTagName: "span",
     props: mergeProps<"span">(
       {
-        className: cn(badgeVariants({ size, variant }), className),
+        className: cn(badgeVariants({ variant }), className),
       },
       props
     ),

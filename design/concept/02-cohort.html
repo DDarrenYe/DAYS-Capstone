@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Margin · Essay 2 · Submissions</title>
+<link rel="stylesheet" href="concept.css">
+<style>
+  .head { display: flex; align-items: flex-end; gap: 24px; padding: 20px 24px 0; }
+  .head h1 { font-size: 21px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+  .head .meta { margin-top: 7px; display: flex; gap: 10px; align-items: center; color: var(--muted-foreground); }
+  .progress { margin-left: auto; width: 240px; padding-bottom: 2px; }
+  .progress .row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted-foreground); margin-bottom: 7px; }
+  .progress .row b { color: var(--foreground); font-weight: 560; }
+  .progress .track { display: flex; gap: 2px; height: 6px; border-radius: 3px; overflow: hidden; background: var(--muted); }
+  .progress .track i { display: block; height: 100%; transform-origin: left; animation: widen 600ms var(--ease-out) both 140ms; }
+  @keyframes widen { from { transform: scaleX(0.001); } }
+  .tabs { margin: 16px 24px 0; }
+
+  .overview { display: grid; grid-template-columns: 1fr 372px; gap: 14px; padding: 16px 24px 0; }
+  .plot { padding: 14px 16px 8px; }
+  .plot header, .look header { display: flex; align-items: center; gap: 10px; }
+  .plot header .muted { font-size: 12.5px; }
+  .plot header .legend { margin-left: auto; display: flex; gap: 14px; font-size: 12px; color: var(--muted-foreground); }
+  .plot header .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .plot header .legend i { width: 8px; height: 8px; border-radius: 50%; }
+  #plot { position: relative; height: 222px; margin-top: 6px; }
+  .pt { transform-box: fill-box; transform-origin: center; animation: pop 320ms var(--ease-out) both; animation-delay: calc(var(--i) * 8ms + 140ms); cursor: pointer; transition: r 120ms ease; }
+  @keyframes pop { from { opacity: 0; transform: scale(0.5); } }
+  .pt:hover { r: 7; }
+  .tick { font: 500 10.5px var(--mono); fill: var(--faint); }
+  .axis-title { font: 500 11.5px var(--sans); fill: var(--muted-foreground); }
+  .tip { position: absolute; pointer-events: none; z-index: 5; padding: 7px 10px; background: var(--primary); color: var(--primary-foreground); border-radius: 7px; font-size: 12px; white-space: nowrap; box-shadow: var(--shadow-pop); transform-origin: 50% 100%; opacity: 0; transform: translate(-50%, calc(-100% - 10px)) scale(0.97); transition: opacity 125ms ease-out, transform 125ms var(--ease-out); }
+  .tip.on { opacity: 1; transform: translate(-50%, calc(-100% - 12px)); }
+  .tip.instant { transition-duration: 0ms; }
+  .tip span { color: rgb(250 250 248 / 65%); }
+
+  .look { padding: 14px 16px; display: flex; flex-direction: column; }
+  .look ul { list-style: none; padding: 0; margin-top: 12px; display: flex; flex-direction: column; }
+  .look li { display: flex; align-items: center; gap: 10px; height: 38px; border-top: 1px solid var(--border); }
+  .look li:first-child { border-top: 0; }
+  .look li .n { margin-left: auto; font-weight: 560; font-variant-numeric: tabular-nums; }
+  .look li .bar { width: 64px; height: 4px; border-radius: 2px; background: var(--muted); overflow: hidden; }
+  .look li .bar i { display: block; height: 100%; background: var(--flag); border-radius: 2px; }
+  .look .foot { display: grid; grid-template-columns: repeat(3, 1fr); padding-top: 12px; border-top: 1px solid var(--border); }
+  .look .foot div + div { padding-left: 14px; border-left: 1px solid var(--border); }
+  .look .foot b { display: block; font-size: 17px; font-weight: 560; letter-spacing: -0.02em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+  .toolbar { display: flex; align-items: center; gap: 8px; padding: 16px 24px 10px; }
+  .input { display: flex; align-items: center; gap: 8px; width: 260px; height: 30px; padding: 0 10px; border-radius: 7px; box-shadow: inset 0 0 0 1px var(--input); color: var(--faint); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 7px; border: 1px dashed var(--border-strong); color: var(--body); font-weight: 500; font-size: 12.5px; }
+  .chip.on { border-style: solid; background: var(--muted); }
+  .chip .badge { height: 18px; }
+  .toolbar .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+  table { width: calc(100% - 48px); margin: 0 24px; border-collapse: collapse; }
+  th { height: 34px; text-align: left; font-size: 12px; font-weight: 500; color: var(--muted-foreground); border-bottom: 1px solid var(--border); white-space: nowrap; padding: 0 10px; }
+  td { height: 44px; border-bottom: 1px solid var(--border); padding: 0 10px; white-space: nowrap; }
+  tbody tr { transition: background-color 100ms ease; cursor: pointer; animation: fade 300ms ease both; animation-delay: calc(var(--i) * 24ms + 180ms); }
+  @media (hover: hover) and (pointer: fine) { tbody tr:hover { background: var(--muted); } }
+  tbody tr.current { background: var(--ai-wash); box-shadow: inset 2px 0 0 var(--ai); }
+  .who { display: flex; align-items: center; gap: 10px; }
+  .who b { font-weight: 520; }
+  .cb { width: 15px; height: 15px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--border-strong); background: var(--card); }
+  td.r, th.r { text-align: right; }
+  .pct { display: inline-flex; align-items: center; gap: 10px; font-variant-numeric: tabular-nums; }
+  .pct .comp { width: 64px; height: 5px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="workspace"><span data-logo></span><div><b>Margin</b><span>INFOMGMT 399 · Sem 2</span></div><span class="chev" data-icon="updown" data-size="14"></span></div>
+    <div class="search"><span data-icon="search" data-size="14"></span>Search students<kbd>⌘K</kbd></div>
+    <nav class="nav-group">
+      <a class="nav-item"><span data-icon="queue"></span>Review queue<span class="count">18</span></a>
+      <a class="nav-item active"><span data-icon="submissions"></span>Submissions<span class="count">41</span></a>
+      <a class="nav-item"><span data-icon="flag"></span>Flags<span class="count">6</span></a>
+      <a class="nav-item"><span data-icon="report"></span>Reports</a>
+    </nav>
+    <nav class="nav-group">
+      <div class="nav-label">Assignments</div>
+      <a class="nav-item"><i class="dot" style="background:var(--border-strong)"></i>Essay 1<span class="count">Closed</span></a>
+      <a class="nav-item" style="color:var(--foreground);font-weight:520"><i class="dot" style="background:var(--ai)"></i>Essay 2<span class="count">Lane 2</span></a>
+      <a class="nav-item"><i class="dot" style="background:var(--border-strong)"></i>Final reflection<span class="count">Oct 31</span></a>
+    </nav>
+    <div class="me"><span class="avatar">JD</span><div><b>Jane Doe</b><span>Grader</span></div></div>
+  </aside>
+
+  <main class="inset">
+    <div class="topbar">
+      <button class="btn btn-ghost btn-icon"><span data-icon="panel"></span></button>
+      <div class="crumbs">Essay 2<span class="sep">/</span><b>Submissions</b></div>
+      <div class="right">
+        <button class="btn btn-outline"><span data-icon="export" data-size="15"></span>Export<span data-icon="down" data-size="14"></span></button>
+        <button class="btn btn-primary">Review next<kbd>J</kbd></button>
+      </div>
+    </div>
+
+    <section class="head">
+      <div class="rise">
+        <h1>Essay 2 · Make the case for Lane 2</h1>
+        <div class="meta"><span class="badge ai">Lane 2 · AI permitted</span><span>Due Fri 10 Oct, 23:59</span>·<span>41 of 48 submitted</span>·<span>Median 8 steps</span></div>
+      </div>
+      <div class="progress rise" style="--i:2">
+        <div class="row"><span>Review progress</span><span><b class="num">17</b> of 41</span></div>
+        <div class="track"><i style="width:41%;background:var(--ok)"></i><i style="width:15%;background:var(--flag);animation-delay:300ms"></i></div>
+        <div class="row" style="margin:7px 0 0;font-size:12px"><span><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:6px"></i>Reviewed</span><span><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--flag);margin-right:6px"></i>Flagged</span><span>18 to go</span></div>
+      </div>
+    </section>
+
+    <div class="tabs">
+      <button class="on">Submissions <span class="badge">41</span></button>
+      <button>Flags <span class="badge flag">6</span></button>
+      <button>Not submitted <span class="badge">7</span></button>
+      <button>Rubric</button>
+    </div>
+
+    <section class="overview">
+      <div class="plot card fade" style="--i:2">
+        <header>
+          <span class="section-title">Where each submission sits</span>
+          <span class="muted">Each dot is a student</span>
+          <div class="legend"><span><i style="background:var(--human)"></i>Submitted</span><span><i style="background:var(--flag)"></i>Flagged</span><span><i style="background:var(--card);box-shadow:0 0 0 2px var(--ai)"></i>Open</span></div>
+        </header>
+        <div id="plot"><div class="tip" id="tip"></div></div>
+      </div>
+      <div class="look card fade" style="--i:3">
+        <header><span class="section-title">Look closer</span><span class="muted" style="font-size:12.5px">Suggested by the reflection check</span></header>
+        <ul>
+          <li><span data-icon="flag" data-size="14" style="color:var(--flag)"></span>Accepted without critique<span class="n">4</span><span class="bar"><i style="width:66%"></i></span></li>
+          <li><span data-icon="flag" data-size="14" style="color:var(--flag)"></span>Generic critique<span class="n">3</span><span class="bar"><i style="width:50%"></i></span></li>
+          <li><span data-icon="flag" data-size="14" style="color:var(--flag)"></span>Critique reads as AI-written<span class="n">1</span><span class="bar"><i style="width:17%"></i></span></li>
+        </ul>
+        <p class="muted" style="font-size:12.5px;line-height:1.5;margin:auto 0 12px">Flags only ask you to look closer. They never change a grade, and you can dismiss any of them.</p>
+        <div class="foot">
+          <div><div class="label">Errors caught</div><b>2.4</b></div>
+          <div><div class="label">Critique depth</div><b>2.1</b></div>
+          <div><div class="label">Traced to AI</div><b>24%</b></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="toolbar">
+      <div class="input"><span data-icon="search" data-size="14"></span>Filter by name or ID</div>
+      <span class="chip on"><span data-icon="flag" data-size="13"></span>Flagged<span class="badge flag">6</span></span>
+      <span class="chip"><span data-icon="plus" data-size="13"></span>Status</span>
+      <span class="chip"><span data-icon="plus" data-size="13"></span>Critique depth</span>
+      <div class="right"><span class="muted" style="font-size:12.5px">Sorted by</span><button class="btn btn-ghost btn-sm"><span data-icon="sort" data-size="14"></span>Look closer first</button></div>
+    </div>
+
+    <table>
+      <thead><tr><th style="width:24px"><span class="cb" style="display:block"></span></th><th>Student</th><th>Process</th><th>Traced to logged AI</th><th class="r">Errors caught</th><th>Critique depth</th><th>Flags</th><th>Status</th><th class="r">Submitted</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </main>
+</div>
+
+<script src="concept.js"></script>
+<script>
+hydrateIcons();
+function rand(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const r = rand(399);
+const NAMES = ["Mateo Silva", "Hana Kim", "Grace O'Connor", "John Doe", "Aroha Ngata", "Liam Chen", "Priya Raman", "Tama Walker", "Sofia Rossi", "Arjun Patel", "Mei Lin Wong", "Noah Taufa", "Wiremu Parata", "Emily Zhang", "Isabella Fonoti", "Jack Thompson", "Ananya Iyer", "Leo Müller"];
+const FIXED = {
+  "Mateo Silva": { traced: 54, depth: 0.8, caught: 0, flags: 3, status: "review" },
+  "Hana Kim": { traced: 47, depth: 1.1, caught: 1, flags: 2, status: "review" },
+  "Grace O'Connor": { traced: 22, depth: 1.3, caught: 1, flags: 1, status: "review" },
+  "John Doe": { traced: 32, depth: 2.0, caught: 3, flags: 2, status: "review", steps: STEPS },
+};
+const students = Array.from({ length: 41 }, (_, i) => {
+  const name = NAMES[i] ?? `Student ${i + 1}`;
+  const base = { traced: Math.round(6 + r() * 36), depth: +(1.5 + r() * 1.5).toFixed(1), caught: Math.floor(r() * 5), flags: 0, status: i < 23 ? (r() > 0.42 ? "done" : "review") : "done" };
+  const s = { name, id: `s12${String(Math.floor(r() * 90000) + 10000)}`, ...base, ...FIXED[name] };
+  s.steps ??= Array.from({ length: 6 + Math.floor(r() * 5) }, () => {
+    const words = 120 + r() * 300, low = s.depth < 1.5 && r() > 0.5;
+    return { words, carried: r() > 0.55 ? words * r() * (s.traced / 60) : 0, critique: low ? 3 : 30 + r() * 90 * (s.depth / 3), flag: low ? {} : null };
+  });
+  s.hours = 1 + Math.floor(r() * 50);
+  return s;
+});
+
+const plot = document.getElementById("plot"), tip = document.getElementById("tip");
+const W = plot.clientWidth, H = 222, L = 34, B = 30, T = 8;
+const x = (v) => L + (v / 60) * (W - L - 8), y = (v) => T + (1 - v / 3) * (H - T - B);
+let g = `<svg width="${W}" height="${H}">`;
+g += `<rect x="${x(35)}" y="${y(1.5)}" width="${x(60) - x(35)}" height="${y(0) - y(1.5)}" rx="6" fill="var(--flag-soft)" opacity=".7"/>`;
+g += `<text class="axis-title" x="${x(60) - 10}" y="${y(0) - 10}" text-anchor="end" style="fill:var(--flag-ink)">Leaned on AI, thin critique</text>`;
+for (const v of [0, 1, 2, 3]) g += `<line x1="${L}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border)" ${v ? 'stroke-dasharray="2 4"' : ""}/><text class="tick" x="${L - 10}" y="${y(v) + 3}" text-anchor="end">${v}</text>`;
+for (const v of [0, 10, 20, 30, 40, 50, 60]) g += `<text class="tick" x="${x(v)}" y="${H - 12}" text-anchor="middle">${v}%</text>`;
+g += `<line x1="${x(24)}" x2="${x(24)}" y1="${T}" y2="${y(0)}" stroke="var(--border-strong)" stroke-dasharray="3 3"/><text class="tick" x="${x(24) + 6}" y="${y(0) - 8}">median 24%</text>`;
+g += `<text class="axis-title" transform="translate(${L - 26} ${y(1.5)}) rotate(-90)" text-anchor="middle" style="font-size:10.5px">depth</text>`;
+students.forEach((s, i) => {
+  const open = s.name === "John Doe";
+  const fill = s.flags ? "var(--flag)" : "var(--human)";
+  g += `<circle class="pt" data-i="${i}" style="--i:${i}" cx="${x(s.traced)}" cy="${y(s.depth)}" r="${open ? 6 : 5}" fill="${open ? "var(--card)" : fill}" fill-opacity="${s.flags || open ? 1 : 0.72}" ${open ? 'stroke="var(--ai)" stroke-width="2.5"' : 'stroke="var(--card)" stroke-width="1.5"'}/>`;
+  if (open) g += `<text class="axis-title fade" style="--i:14;fill:var(--ai-ink);font-weight:560;paint-order:stroke;stroke:var(--card);stroke-width:5px;stroke-linejoin:round" x="${x(s.traced) + 11}" y="${y(s.depth) + 4}">John Doe</text>`;
+});
+plot.insertAdjacentHTML("afterbegin", g + "</svg>");
+
+let tipOpen = false;
+for (const pt of plot.querySelectorAll(".pt")) {
+  const s = students[+pt.dataset.i];
+  pt.addEventListener("mouseenter", () => {
+    tip.innerHTML = `${s.name} <span>· ${s.traced}% traced · depth ${s.depth}${s.flags ? ` · ${s.flags} flag${s.flags > 1 ? "s" : ""}` : ""}</span>`;
+    tip.style.left = `${pt.getAttribute("cx")}px`; tip.style.top = `${pt.getAttribute("cy")}px`;
+    tip.classList.toggle("instant", tipOpen); tip.classList.add("on"); tipOpen = true;
+  });
+  pt.addEventListener("mouseleave", () => { tip.classList.remove("on"); tipOpen = false; });
+}
+
+const LABEL = { review: "Needs review", done: "Reviewed" };
+const rows = students.slice(0, 10).map((s, i) => {
+  const d = Math.round(s.depth);
+  return `<tr class="${s.name === "John Doe" ? "current" : ""}" style="--i:${i}">
+    <td><span class="cb" style="display:block"></span></td>
+    <td><div class="who"><span class="avatar">${s.name.split(" ").map((p) => p[0]).join("").slice(0, 2)}</span><b>${s.name}</b><span class="mono faint">${s.id}</span></div></td>
+    <td>${processBars(s.steps, { width: 120, height: 32, base: 21, scale: 0.05 })}</td>
+    <td><span class="pct"><span class="comp"><i class="h" style="width:${100 - s.traced}%"></i><i class="a" style="width:${s.traced}%"></i></span>${s.traced}%</span></td>
+    <td class="r num">${s.caught}</td>
+    <td><span class="depth${s.depth < 1.5 ? " low" : ""}">${[1, 2, 3].map((n) => `<i class="${n <= d ? "on" : ""}"></i>`).join("")}</span> <span class="num muted" style="margin-left:6px">${s.depth.toFixed(1)}</span></td>
+    <td>${s.flags ? `<span class="badge flag">${icon("flag", 11)}${s.flags}</span>` : `<span class="faint">—</span>`}</td>
+    <td><span class="status ${s.flags && s.status === "review" ? "flag" : s.status}"><i></i>${LABEL[s.status]}</span></td>
+    <td class="r mono muted">${s.name === "John Doe" ? "Fri 16:42" : `${["Wed", "Thu", "Fri"][s.hours % 3]} ${String(9 + (s.hours % 14)).padStart(2, "0")}:${String((s.hours * 7) % 60).padStart(2, "0")}`}</td>
+  </tr>`;
+});
+document.getElementById("rows").innerHTML = rows.join("");
+</script>
+</body>
+</html>

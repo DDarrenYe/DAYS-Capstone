@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Margin · Export report</title>
+<link rel="stylesheet" href="concept.css">
+<style>
+  iframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; }
+  .backdrop { position: fixed; inset: 0; background: rgb(21 22 24 / 34%); animation: fade 200ms ease both; }
+  .dialog {
+    position: fixed; left: 50%; top: 50%; width: 1080px; height: 760px; translate: -50% -50%;
+    display: grid; grid-template-columns: 340px 1fr; background: var(--card); border-radius: 14px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgb(21 22 24 / 8%), 0 30px 80px -20px rgb(21 22 24 / 40%), 0 10px 24px -10px rgb(21 22 24 / 20%);
+    animation: dialog-in 220ms var(--ease-out) both 60ms;
+  }
+  @keyframes dialog-in { from { opacity: 0; transform: scale(0.96); } }
+  .settings { display: flex; flex-direction: column; padding: 22px 22px 18px; border-right: 1px solid var(--border); }
+  .settings h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.015em; }
+  .settings .sub { color: var(--muted-foreground); margin-top: 3px; }
+  .group { margin-top: 22px; }
+  .group .label { display: block; margin-bottom: 8px; }
+  .opt { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); }
+  .opt:first-of-type { border-top: 0; }
+  .opt div { flex: 1; }
+  .opt b { display: block; font-weight: 500; }
+  .opt span.muted { display: block; font-size: 12px; }
+  .radio { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 9px; box-shadow: inset 0 0 0 1px var(--border); margin-bottom: 6px; }
+  .radio.on { box-shadow: inset 0 0 0 1.5px var(--foreground); }
+  .radio i { width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--border-strong); flex: none; margin-top: 1px; }
+  .radio.on i { box-shadow: inset 0 0 0 5px var(--foreground); }
+  .radio b { display: block; font-weight: 500; }
+  .radio span { font-size: 12px; color: var(--muted-foreground); }
+  .settings footer { margin-top: auto; display: flex; gap: 8px; justify-content: flex-end; padding-top: 16px; }
+
+  .preview { background: var(--well); position: relative; display: grid; grid-template-columns: 1fr 96px; gap: 20px; padding: 28px 24px 28px 36px; overflow: hidden; }
+  .preview .close { position: absolute; top: 12px; right: 12px; background: rgb(255 255 255 / 70%); }
+  .page {
+    width: 470px; height: 665px; overflow: hidden; justify-self: center; background: #fff; border-radius: 3px; padding: 34px 38px; position: relative;
+    box-shadow: 0 1px 2px rgb(21 22 24 / 8%), 0 12px 32px -12px rgb(21 22 24 / 22%);
+    font-size: 8.5px; line-height: 1.5; color: var(--body);
+  }
+  .page .top { display: flex; align-items: center; gap: 6px; font-size: 7.5px; color: var(--muted-foreground); }
+  .page .top svg { width: 14px; height: 14px; }
+  .page .top span:last-child { margin-left: auto; font-family: var(--mono); }
+  .page h1 { font: 500 22px/1.15 var(--serif); color: var(--foreground); letter-spacing: -0.015em; margin-top: 22px; font-variation-settings: "opsz" 40; }
+  .page .who { margin-top: 4px; color: var(--muted-foreground); }
+  .page .summary { margin-top: 12px; font: 400 10px/1.55 var(--serif); color: var(--reading); }
+  .figs { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 14px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .figs div { padding: 8px 0 8px 8px; border-left: 1px solid var(--border); }
+  .figs div:first-child { border-left: 0; padding-left: 0; }
+  .figs b { display: block; font-size: 15px; font-weight: 560; color: var(--foreground); letter-spacing: -0.02em; margin-top: 1px; }
+  .page h3 { font-size: 8px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted-foreground); margin: 16px 0 7px; }
+  .steps { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .steps td { padding: 5px 4px; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .steps td:first-child { font-family: var(--mono); color: var(--faint); width: 18px; padding-left: 0; }
+  .steps .c { font-family: var(--serif); font-size: 9px; color: var(--reading); }
+  .steps .f { color: var(--flag); font-weight: 560; }
+  .steps .k { color: var(--ok); font-weight: 560; }
+  .page .foot { position: absolute; left: 38px; right: 38px; bottom: 20px; display: flex; justify-content: space-between; font-size: 7px; color: var(--faint); font-family: var(--mono); }
+  .thumbs { display: flex; flex-direction: column; gap: 24px; padding-top: 34px; }
+  .thumb { width: 96px; height: 136px; background: #fff; border-radius: 2px; box-shadow: 0 1px 2px rgb(21 22 24 / 10%); padding: 10px 9px; display: flex; flex-direction: column; gap: 4px; position: relative; }
+  .thumb.on { box-shadow: 0 0 0 2px var(--foreground); }
+  .thumb i { display: block; height: 3px; border-radius: 2px; background: var(--border); }
+  .thumb i.t { height: 6px; width: 70%; background: var(--border-strong); margin-bottom: 3px; }
+  .thumb i.a { background: var(--ai-soft); }
+  .thumb i.f { background: var(--flag-soft); }
+  .thumb span { position: absolute; bottom: -16px; left: 0; right: 0; text-align: center; font: 500 10px var(--mono); color: var(--muted-foreground); }
+</style>
+</head>
+<body>
+<iframe src="01-visualiser.html" tabindex="-1" aria-hidden="true"></iframe>
+<div class="backdrop"></div>
+
+<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="ttl">
+  <div class="settings">
+    <h2 id="ttl">Export process report</h2>
+    <div class="sub">John Doe · Essay 2 · 9 steps</div>
+
+    <div class="group">
+      <span class="label">Include</span>
+      <label class="opt"><div><b>Summary and figures</b><span class="muted">Traced share, errors caught, depth</span></div><span class="switch on"></span></label>
+      <label class="opt"><div><b>Process chart</b><span class="muted">AI words against critique, by step</span></div><span class="switch on"></span></label>
+      <label class="opt"><div><b>Every step in full</b><span class="muted">Prompt, answer, critique and marks</span></div><span class="switch on"></span></label>
+      <label class="opt"><div><b>Flags and your notes</b><span class="muted">Including dismissed flags</span></div><span class="switch on"></span></label>
+      <label class="opt"><div><b>Final essay</b><span class="muted">With AI-traced text highlighted</span></div><span class="switch"></span></label>
+    </div>
+
+    <div class="group">
+      <span class="label">Who</span>
+      <div class="radio on"><i></i><div><b>John Doe</b><span>One PDF · 4 pages</span></div></div>
+      <div class="radio"><i></i><div><b>All 41 submissions</b><span>A zip of PDFs plus a cohort summary</span></div></div>
+    </div>
+
+    <footer>
+      <button class="btn btn-outline">Cancel</button>
+      <button class="btn btn-primary"><span data-icon="export" data-size="15"></span>Export PDF<kbd>⌘↵</kbd></button>
+    </footer>
+  </div>
+
+  <div class="preview">
+    <button class="btn btn-ghost btn-icon close" aria-label="Close"><span data-icon="x"></span></button>
+    <article class="page">
+      <div class="top"><span data-logo data-size="14"></span><span>Margin · Process report</span><span>INFOMGMT 399 · Essay 2</span></div>
+      <h1>John Doe</h1>
+      <div class="who">s1203391 · Submitted Fri 10 Oct 2026, 16:42 · Reviewed by Jane Doe</div>
+      <p class="summary">Caught an invented source, a wrong date and a misquoted statistic. Two late steps were accepted with little or no critique, and one of them reached the conclusion word for word.</p>
+      <div class="figs">
+        <div><span class="muted">Not traced to AI</span><b>68%</b></div>
+        <div><span class="muted">Errors caught</span><b>3</b></div>
+        <div><span class="muted">Critique depth</span><b>2.0 / 3</b></div>
+        <div><span class="muted">Flags kept</span><b style="color:var(--flag)">1 of 2</b></div>
+      </div>
+      <h3>Process</h3>
+      <div id="chart"></div>
+      <h3>Steps</h3>
+      <table class="steps"><colgroup><col style="width:14px"><col style="width:106px"><col><col style="width:118px"></colgroup><tbody id="steps"></tbody></table>
+      <div class="foot"><span>Generated Sun 12 Oct 2026</span><span>1 / 4</span></div>
+    </article>
+    <div class="thumbs">
+      <div class="thumb on"><i class="t"></i><i></i><i></i><i class="a"></i><i></i><i></i><i></i><i></i><span>1</span></div>
+      <div class="thumb"><i class="t"></i><i></i><i class="a"></i><i></i><i></i><i class="f"></i><i></i><span>2</span></div>
+      <div class="thumb"><i class="t"></i><i></i><i></i><i class="f"></i><i></i><i class="a"></i><span>3</span></div>
+      <div class="thumb"><i class="t"></i><i></i><i></i><i></i><span>4</span></div>
+    </div>
+  </div>
+</div>
+
+<script src="concept.js"></script>
+<script>
+hydrateIcons();
+document.getElementById("chart").innerHTML = processBars(STEPS, { width: 394, height: 74, base: 50, scale: 0.1, labels: true });
+document.getElementById("steps").innerHTML = STEPS.map((s, i) => `<tr><td>${i + 1}</td><td style="color:var(--foreground)">${s.title}</td><td class="c">${s.critiqueText}</td><td>${s.flag ? `<span class="f">${s.flag.title}</span>` : s.caught ? `<span class="k">${s.caught}</span>` : ""}</td></tr>`).join("");
+</script>
+</body>
+</html>

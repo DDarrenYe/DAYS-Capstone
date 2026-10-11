@@ -3,10 +3,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+  Margin. Warm paper neutrals and ink do the work. Cobalt marks only text traced to a logged AI answer, vermilion
+  only a flag, green only an AI error a student caught, amber only work waiting for review. Inter runs the
+  interface; Newsreader sets anything a student wrote, so reading text never looks like UI. Geist Mono carries
+  ids, times and keyboard hints.
+*/
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
+  --font-serif: var(--font-newsreader);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-inter);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -41,143 +48,162 @@
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-xl: calc(var(--radius) * 1.25);
+  --radius-2xl: calc(var(--radius) * 1.75);
+  --radius-3xl: calc(var(--radius) * 2);
   --radius-4xl: calc(var(--radius) * 2.6);
-  --color-ink: var(--ink);
   --color-body: var(--body);
+  --color-faint: var(--faint);
+  --color-reading: var(--reading);
+  --color-border-strong: var(--border-strong);
+  --color-well: var(--well);
+  --color-human: var(--human);
+  --color-human-soft: var(--human-soft);
   --color-ai: var(--ai);
-  --color-ai-hover: var(--ai-hover);
   --color-ai-ink: var(--ai-ink);
   --color-ai-soft: var(--ai-soft);
-  --color-human: var(--human);
-  --color-human-ink: var(--human-ink);
-  --color-human-soft: var(--human-soft);
-  --color-tint: var(--tint);
-  --color-note-yellow: var(--yellow);
-  --color-note-pink: var(--pink);
-  --color-note-mint: var(--mint);
-  --color-note-sky: var(--sky);
+  --color-ai-wash: var(--ai-wash);
+  --color-ai-line: var(--ai-line);
+  --color-ai-select: var(--ai-select);
+  --color-flag: var(--flag);
+  --color-flag-ink: var(--flag-ink);
+  --color-flag-soft: var(--flag-soft);
+  --color-flag-line: var(--flag-line);
   --color-success: var(--ok);
   --color-success-soft: var(--ok-soft);
-  --color-destructive-soft: var(--flag-soft);
-  --color-plain: var(--plain);
-  --color-lilac: var(--lilac);
-  --color-rose: var(--rose);
-  --color-subtle: var(--subtle);
-  --shadow-lift: var(--lift);
-  --shadow-halo-button: 0 0 0 4px rgb(9 155 255 / 18%);
-  --shadow-halo-button-hover: 0 0 0 4px rgb(9 155 255 / 30%);
-  --shadow-halo-input: 0 0 0 6px rgb(226 238 249 / 70%);
-  --shadow-halo-ghost:
-    inset 0 0 0 1px #dfe6ec, 0 0 0 4px rgb(199 211 221 / 18%);
-  --shadow-input-focus:
-    0 0 0 2.5px var(--primary), 0 0 0 8px rgb(9 155 255 / 14%);
-  --shadow-input-invalid:
-    0 0 0 2.5px var(--flag), 0 0 0 8px rgb(240 68 56 / 14%);
-  --shadow-hairline: inset 0 0 0 1px var(--line);
-  --shadow-row-hover: var(--lift), 0 0 0 2.5px var(--ai);
-  --shadow-card: 0 0 0 6px rgb(226 238 249 / 70%), inset 0 0 0 1px var(--line);
+  --color-review: var(--review);
+  --color-review-soft: var(--review-soft);
+  --color-review-ink: var(--review-ink);
+  --shadow-xs: 0 1px 2px rgb(21 22 24 / 5%);
+  --shadow-card:
+    0 0 0 1px rgb(21 22 24 / 6%), 0 1px 2px rgb(21 22 24 / 4%),
+    0 2px 8px -2px rgb(21 22 24 / 5%);
+  --shadow-pop:
+    0 0 0 1px rgb(21 22 24 / 7%), 0 12px 32px -8px rgb(21 22 24 / 18%),
+    0 3px 8px -3px rgb(21 22 24 / 10%);
+  --shadow-dialog:
+    0 0 0 1px rgb(21 22 24 / 8%), 0 30px 80px -20px rgb(21 22 24 / 40%),
+    0 10px 24px -10px rgb(21 22 24 / 20%);
+  --shadow-page:
+    0 1px 2px rgb(21 22 24 / 8%), 0 12px 32px -12px rgb(21 22 24 / 22%);
+  --shadow-hairline: inset 0 0 0 1px var(--border);
+  --shadow-outline:
+    0 0 0 1px var(--border-strong), 0 1px 2px rgb(21 22 24 / 5%);
+  --shadow-ai-ring: inset 0 0 0 1px var(--ai-soft);
+  --shadow-raised: 0 0 0 1px var(--border), 0 1px 2px rgb(21 22 24 / 5%);
+  --shadow-thumb: 0 1px 2px rgb(0 0 0 / 20%);
+  --shadow-selected: inset 2px 0 0 var(--ai);
+  --shadow-traced: inset 0 -1.5px 0 var(--ai-line);
+  --shadow-radio: inset 0 0 0 1.5px var(--border-strong);
+  --shadow-chosen: inset 0 0 0 1.5px var(--foreground);
+  --shadow-strong-ring: inset 0 0 0 1px var(--border-strong);
+  --shadow-radio-on: inset 0 0 0 5px var(--primary);
+  --shadow-traced-hot: inset 0 -2px 0 var(--ai);
+  --shadow-flagged: inset 0 -1.5px 0 var(--flag-line);
+  --shadow-flagged-hot: inset 0 -2px 0 var(--flag);
+  --shadow-flag-ring: inset 0 0 0 1px var(--flag-line);
+  --shadow-field: inset 0 0 0 1px var(--input);
+  --shadow-focus: 0 0 0 1px var(--ring), 0 0 0 4px rgb(62 95 208 / 14%);
+  --shadow-invalid: 0 0 0 1px var(--flag), 0 0 0 4px rgb(200 67 27 / 14%);
+  --shadow-primary:
+    inset 0 1px 0 rgb(255 255 255 / 12%), 0 1px 2px rgb(21 22 24 / 20%);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --animate-note-in: note-in 600ms var(--ease-spring) both;
-  --text-display: clamp(40px, 5vw, 68px);
-  --text-display--line-height: 1.05;
-  --text-display--letter-spacing: -0.025em;
-  --text-hero: clamp(44px, 5.5vw, 80px);
-  --text-hero--line-height: 1.04;
-  --text-hero--letter-spacing: -0.03em;
-  --text-subtitle: clamp(18px, 2vw, 24px);
-  --text-subtitle--line-height: 1.5;
-  --text-panel: 28px;
-  --text-panel--line-height: 1.2;
-  --text-panel--letter-spacing: -0.01em;
-  --text-ui: 17px;
+  --text-micro: 10.5px;
+  --text-micro--line-height: 1.4;
+  --text-label: 11.5px;
+  --text-label--line-height: 1.4;
+  --text-meta: 12.5px;
+  --text-meta--line-height: 1.45;
+  --text-control: 13px;
+  --text-control--line-height: 1.4;
+  --text-ui: 13.5px;
   --text-ui--line-height: 1.5;
-  --text-brand: 19px;
-  --text-brand--line-height: 1.5;
-  --text-caption: 15px;
-  --text-caption--line-height: 1.5;
-  --text-note: 22px;
-  --text-note--line-height: 1.35;
-  --text-note-assignment: 21px;
-  --text-note-assignment--line-height: 1.35;
-  --text-note-compact: 19px;
-  --text-note-compact--line-height: 1.35;
-  --tracking-kicker: 0.02em;
-  --radius-tape: 3px;
-  --radius-marker: 0.32em;
-  --radius-navigation: 24px;
-  --radius-navigation-mobile: 16px;
-  --radius-menu: 12px;
-  --leading-note: 1.35;
-  --leading-paper: 1.4285714286;
-  --leading-badge: 1.3333333333;
-  --text-kicker: 14px;
-  --text-kicker--line-height: 1.35;
+  --text-lead: 15px;
+  --text-lead--line-height: 1.55;
+  --text-read: 15.5px;
+  --text-read--line-height: 1.64;
+  --text-figure: 17px;
+  --text-figure--line-height: 1.2;
+  --text-figure--letter-spacing: -0.02em;
+  --text-title: 21px;
+  --text-title--line-height: 1.2;
+  --text-title--letter-spacing: -0.02em;
+  --text-stat: 22px;
+  --text-stat--line-height: 1.1;
+  --text-stat--letter-spacing: -0.025em;
+  --text-display: clamp(34px, 4.2vw, 52px);
+  --text-display--line-height: 1.04;
+  --text-display--letter-spacing: -0.025em;
+  --font-weight-book: 450;
+  --font-weight-emphasis: 520;
+  --font-weight-heading: 580;
+  --tracking-snug: -0.012em;
+  --tracking-title: -0.02em;
+  --animate-rise: rise 360ms var(--ease-out) both;
+  --animate-fade: fade 300ms ease both;
+  --animate-grow: grow 420ms var(--ease-out) both;
+  --animate-pop: pop 320ms var(--ease-out) both;
+  --animate-widen: widen 600ms var(--ease-out) both;
+  --animate-swap: swap 180ms var(--ease-out) both;
 }
 
 :root {
-  --canvas: #ebf6ff;
-  --surface: #ffffff;
-  --subtle: #f5faff;
-  --tint: #d9eeff;
-  --line: #e6edf3;
-  --ink: #0b1117;
-  --ink-2: #262e35;
-  --body: #4b5256;
-  --ai: #099bff;
-  --ai-hover: #0a8ce6;
-  --ai-ink: #0b4f8a;
-  --ai-soft: #dcf0ff;
-  --human: #ff8a3d;
-  --human-ink: #b5622a;
-  --human-soft: #ffead9;
-  --flag: #f04438;
-  --flag-soft: #fee4e2;
-  --ok: #12b76a;
-  --ok-soft: #d3f8e2;
-  --plain: #eef2f5;
-  --lilac: #ece7ff;
-  --rose: #ffe4ec;
-  --yellow: #fff1b8;
-  --pink: #ffd9e3;
-  --mint: #d6f5e3;
-  --sky: #d9eeff;
-  --lift: 0 10px 28px rgb(11 79 138 / 12%);
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --background: var(--canvas);
-  --foreground: var(--ink-2);
-  --card: var(--surface);
-  --card-foreground: var(--ink-2);
-  --popover: var(--surface);
-  --popover-foreground: var(--ink-2);
-  --primary: var(--ai);
-  --primary-foreground: var(--surface);
-  --secondary: var(--ai-soft);
-  --secondary-foreground: var(--ai-ink);
-  --muted: var(--subtle);
-  --muted-foreground: #8a949c;
-  --accent: var(--tint);
-  --accent-foreground: var(--ink-2);
+  --paper: #f4f4f0;
+  --sheet: #ffffff;
+  --ink: #151618;
+  --body: #3b3d41;
+  --faint: #9c9da1;
+  --reading: #26272a;
+  --border-strong: #d9d8d2;
+  --well: #ecebe6;
+  --human: #2b2c30;
+  --human-soft: #e6e5e0;
+  --ai: #3e5fd0;
+  --ai-ink: #2a45a6;
+  --ai-soft: #dfe5fa;
+  --ai-wash: #f2f4fd;
+  --ai-line: #a9b8ee;
+  --ai-select: #cdd7fa;
+  --flag: #c8431b;
+  --flag-ink: #a3350f;
+  --flag-soft: #fbede7;
+  --flag-line: #f0c3b1;
+  --ok: #2c7a50;
+  --ok-soft: #e5f1e9;
+  --review: #c98a1b;
+  --review-soft: #f6ecd5;
+  --review-ink: #7a5410;
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--sheet);
+  --card-foreground: var(--ink);
+  --popover: var(--sheet);
+  --popover-foreground: var(--ink);
+  --primary: #18191b;
+  --primary-foreground: #fafaf8;
+  --secondary: var(--muted);
+  --secondary-foreground: var(--ink);
+  --muted: #f3f3ef;
+  --muted-foreground: #6b6d72;
+  --accent: #f3f3ef;
+  --accent-foreground: var(--ink);
   --destructive: var(--flag);
-  --border: var(--line);
-  --input: #a6bacb;
-  --ring: var(--primary);
+  --border: #e7e6e1;
+  --input: #dcdbd5;
+  --ring: var(--ai);
   --chart-1: var(--ai);
   --chart-2: var(--human);
   --chart-3: var(--flag);
   --chart-4: var(--ok);
-  --chart-5: var(--ink-2);
-  --radius: 0.625rem;
-  --sidebar: var(--surface);
-  --sidebar-foreground: var(--foreground);
+  --chart-5: var(--review);
+  --radius: 0.5rem;
+  --sidebar: var(--paper);
+  --sidebar-foreground: var(--body);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--accent);
-  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-accent: var(--sheet);
+  --sidebar-accent-foreground: var(--ink);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 }
@@ -192,93 +218,172 @@
   html {
     @apply font-sans;
   }
+  /* In the base layer so a component's own outline utilities still win. */
+  :where(a, button, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--ai-select);
+  }
 }
 
 body {
-  font-size: 17px;
+  font-size: 13.5px;
   line-height: 1.5;
-  font-optical-sizing: auto;
-  background:
-    radial-gradient(
-      620px 420px at 260px 200px,
-      rgb(201 230 255 / 90%),
-      transparent 70%
-    ),
-    radial-gradient(
-      680px 460px at calc(100% - 200px) calc(100% - 120px),
-      rgb(236 228 255 / 90%),
-      transparent 70%
-    ),
-    var(--canvas);
-  background-attachment: fixed;
-}
-
-:where(a, button, summary):focus-visible {
-  outline: 3px solid var(--ring);
-  outline-offset: 4px;
-}
-@keyframes note-in {
-  from {
-    opacity: 0;
-    scale: 0.72;
-  }
+  letter-spacing: -0.003em;
+  font-feature-settings: "cv11", "ss01", "ss03";
+  -webkit-font-smoothing: antialiased;
 }
 
 @keyframes rise {
   from {
     opacity: 0;
-    filter: blur(10px);
-    transform: translateY(14px) scale(0.985);
+    transform: translateY(6px);
   }
 }
 
-@keyframes draw {
+@keyframes fade {
   from {
-    stroke-dashoffset: var(--len, 400);
+    opacity: 0;
   }
 }
 
-@utility rise-in {
-  animation: rise 0.7s var(--ease-out) both;
-  animation-delay: calc(var(--i, 0) * 70ms);
+@keyframes grow {
+  from {
+    transform: scaleY(0.001);
+  }
 }
 
-@utility draw-in {
-  stroke-dasharray: var(--len, 400);
-  animation: draw 0.9s var(--ease-out) 0.9s both;
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+/* The inspector swap: a short blur bridges the old and new step so they read as one change. */
+@keyframes swap {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+    transform: translateY(3px);
+  }
+}
+
+@keyframes widen {
+  from {
+    transform: scaleX(0.001);
+  }
+}
+
+/* Entrances stagger by --i: 40ms apart, short enough for a screen a grader opens forty times a session. */
+@utility stagger {
+  animation-delay: calc(var(--i, 0) * 40ms + 40ms);
+}
+
+/* --icon-accent colours the one detail an icon marks: cobalt for traced, vermilion for a flag, amber for review. */
+@utility icon-ai {
+  --icon-accent: var(--ai);
+}
+
+@utility icon-flag {
+  --icon-accent: var(--flag);
+}
+
+@utility icon-review {
+  --icon-accent: var(--review);
+}
+
+/* Icon parts that take the accent colour: a filled detail, or a stroked one. */
+@utility icon-accent-fill {
+  fill: var(--icon-accent, currentColor);
+  stroke: none;
+}
+
+@utility icon-solid {
+  fill: currentColor;
+  stroke: none;
+}
+
+@utility icon-shine {
+  fill: var(--card);
+  stroke: none;
+}
+
+@utility icon-accent-stroke {
+  stroke: var(--icon-accent, currentColor);
+}
+
+/* Dots in a cohort plot appear eight milliseconds apart, after the cards around them. */
+@utility stagger-fast {
+  animation-delay: calc(var(--i, 0) * 8ms + 140ms);
 }
 
 @utility popup-motion {
   transform-origin: var(--transform-origin);
   transition-property: opacity, scale;
-  transition-duration: 150ms;
+  transition-duration: 160ms;
   transition-timing-function: var(--ease-out);
 
   &[data-starting-style],
   &[data-ending-style] {
     opacity: 0;
-    scale: 0.96;
+    scale: 0.97;
   }
 
   &[data-ending-style] {
     transition-duration: 100ms;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    &[data-starting-style],
-    &[data-ending-style] {
-      scale: none;
-    }
+  &[data-instant] {
+    transition-duration: 0ms;
   }
 }
 
+@utility press {
+  transition-property: scale, background-color, box-shadow, color;
+  transition-duration: 140ms;
+  transition-timing-function: var(--ease-out);
+
+  &:active:not(:disabled) {
+    scale: 0.97;
+  }
+}
+
+/* Reduced motion keeps every fade and colour change and drops anything that moves or scales. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation: none !important;
+    animation-name: fade !important;
     transition-property:
       opacity, color, background-color, border-color, box-shadow !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Printing from the report builder prints the report page and nothing else. */
+@media print {
+  body {
+    background: white;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  [data-report-page],
+  [data-report-page] * {
+    visibility: visible;
+  }
+
+  [data-report-page] {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
+    box-shadow: none;
+    scale: none !important;
   }
 }

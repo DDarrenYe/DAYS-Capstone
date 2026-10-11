@@ -32,8 +32,8 @@ const tabsListVariants = cva(
     },
     variants: {
       variant: {
-        default: "bg-card shadow-lift rounded-navigation p-1",
-        line: "gap-1",
+        default: "bg-muted shadow-hairline rounded-lg p-0.5",
+        line: "gap-4.5 border-b",
       },
     },
   }
@@ -55,7 +55,7 @@ function TabsList({
       {children}
       <TabsPrimitive.Indicator
         data-slot="tabs-indicator"
-        className="group-data-[variant=default]/tabs-list:bg-foreground group-data-[variant=default]/tabs-list:rounded-navigation group-data-[variant=line]/tabs-list:bg-primary pointer-events-none absolute top-0 left-0 z-0 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) translate-y-(--active-tab-top) transition-[translate,width,height] duration-250 ease-in-out group-data-[variant=line]/tabs-list:rounded-full group-data-[variant=line]/tabs-list:data-[orientation=horizontal]:top-auto group-data-[variant=line]/tabs-list:data-[orientation=horizontal]:bottom-0 group-data-[variant=line]/tabs-list:data-[orientation=horizontal]:h-0.5 group-data-[variant=line]/tabs-list:data-[orientation=vertical]:right-0 group-data-[variant=line]/tabs-list:data-[orientation=vertical]:left-auto group-data-[variant=line]/tabs-list:data-[orientation=vertical]:w-0.5"
+        className="group-data-[variant=default]/tabs-list:bg-card group-data-[variant=default]/tabs-list:shadow-raised group-data-[variant=line]/tabs-list:bg-foreground pointer-events-none absolute top-0 left-0 z-0 h-(--active-tab-height) w-(--active-tab-width) translate-x-(--active-tab-left) translate-y-(--active-tab-top) transition-[translate,width,height] duration-240 ease-in-out group-data-[variant=default]/tabs-list:rounded-md group-data-[variant=line]/tabs-list:rounded-full group-data-[variant=line]/tabs-list:data-[orientation=horizontal]:top-auto group-data-[variant=line]/tabs-list:data-[orientation=horizontal]:-bottom-px group-data-[variant=line]/tabs-list:data-[orientation=horizontal]:h-[1.5px] group-data-[variant=line]/tabs-list:data-[orientation=vertical]:right-0 group-data-[variant=line]/tabs-list:data-[orientation=vertical]:left-auto group-data-[variant=line]/tabs-list:data-[orientation=vertical]:w-0.5"
       />
     </TabsPrimitive.List>
   );
@@ -66,7 +66,7 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
     <TabsPrimitive.Tab
       data-slot="tabs-trigger"
       className={cn(
-        "text-body focus-visible:ring-ring/50 not-data-active:hover:text-foreground data-active:text-foreground group-data-[variant=default]/tabs-list:data-active:text-card rounded-navigation text-ui relative z-10 inline-flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 px-4.5 font-semibold whitespace-nowrap transition-colors duration-250 ease-in-out outline-none group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "text-muted-foreground not-data-active:hover:text-foreground data-active:text-foreground text-meta relative z-10 inline-flex h-6 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2.5 font-medium whitespace-nowrap transition-colors duration-150 ease-out outline-none group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start group-data-[variant=line]/tabs-list:h-9 group-data-[variant=line]/tabs-list:px-0 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         className
       )}
       {...props}

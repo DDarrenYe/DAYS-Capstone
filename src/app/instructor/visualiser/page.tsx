@@ -1,12 +1,5 @@
-import { ShellSection } from "@/components/shell/shell-section";
+import { Visualiser } from "@/app/instructor/visualiser/visualiser";
 
-const VisualiserPage = () => (
-  <ShellSection
-    title="Visualiser"
-    description="Review the learning process, step by step."
-    tone="sky"
-    note="Use the logged process to guide your review."
-  />
-);
+const VisualiserPage = () => <Visualiser />;
 
 export default VisualiserPage;

@@ -4,23 +4,23 @@ import { test } from "node:test";
 import { cn } from "./utils";
 
 test("themed font sizes and colours merge independently", () => {
-  assert.equal(cn("text-body text-caption"), "text-body text-caption");
+  assert.equal(cn("text-body text-meta"), "text-body text-meta");
   assert.equal(
-    cn("text-body text-caption", "text-ai-ink text-ui"),
+    cn("text-body text-meta", "text-ai-ink text-ui"),
     "text-ai-ink text-ui"
   );
   assert.equal(
-    cn("hover:text-body hover:text-caption", "hover:text-ai-ink"),
-    "hover:text-caption hover:text-ai-ink"
+    cn("hover:text-body hover:text-meta", "hover:text-ai-ink"),
+    "hover:text-meta hover:text-ai-ink"
   );
 });
 
-test("themed shape and motion utilities respect overrides", () => {
-  assert.equal(cn("rounded-navigation", "rounded-full"), "rounded-full");
-  assert.equal(cn("shadow-lift", "shadow-lg"), "shadow-lg");
-  assert.equal(cn("leading-paper", "leading-normal"), "leading-normal");
-  assert.equal(cn("tracking-kicker", "tracking-normal"), "tracking-normal");
-  assert.equal(cn("animate-note-in", "animate-none"), "animate-none");
+test("themed shape, weight and motion utilities respect overrides", () => {
+  assert.equal(cn("rounded-xl", "rounded-full"), "rounded-full");
+  assert.equal(cn("shadow-hairline", "shadow-lg"), "shadow-lg");
+  assert.equal(cn("font-heading", "font-bold"), "font-bold");
+  assert.equal(cn("tracking-snug", "tracking-normal"), "tracking-normal");
+  assert.equal(cn("animate-rise", "animate-none"), "animate-none");
 });
 
 test("standard utilities retain conditional and responsive merging", () => {
@@ -30,8 +30,8 @@ test("standard utilities retain conditional and responsive merging", () => {
 
 test("compound typography keeps its line-height when overridden", () => {
   assert.equal(
-    cn("text-body text-caption/paper", "text-ui/paper"),
-    "text-body text-ui/paper"
+    cn("text-body text-label/relaxed", "text-ui/relaxed"),
+    "text-body text-ui/relaxed"
   );
-  assert.equal(cn("text-xs", "text-sm/badge"), "text-sm/badge");
+  assert.equal(cn("text-xs", "text-sm/snug"), "text-sm/snug");
 });
