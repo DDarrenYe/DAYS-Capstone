@@ -2,13 +2,20 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { reviewFlag, saveStep, submitProject } from "@/lib/data/actions";
 import {
+  openProject,
+  reviewFlag,
+  saveStep,
+  submitProject,
+} from "@/lib/data/actions";
+import {
+  invalidateAfterOpen,
   invalidateAfterReview,
   invalidateAfterSave,
   invalidateAfterSubmit,
 } from "@/lib/data/queries";
 import type {
+  OpenInput,
   ReviewInput,
   StepInput,
   SubmitInput,
@@ -20,6 +27,14 @@ const succeeded = async (pending: Promise<WriteResult>) => {
   if (error) {
     throw new Error(error);
   }
+};
+
+export const useOpenProject = (userId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: OpenInput) => succeeded(openProject(input)),
+    onSuccess: () => invalidateAfterOpen(queryClient, userId),
+  });
 };
 
 export const useSaveStep = (userId: string) => {
