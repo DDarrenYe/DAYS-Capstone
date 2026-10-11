@@ -90,6 +90,7 @@
       ],
       "env": [
         "NODE_ENV",
+        "EXPOSE_TESTING_API",
         "NEXT_PUBLIC_*",
         "SUPABASE_SERVICE_ROLE_KEY",
         "DATABASE_URL"
