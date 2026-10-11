@@ -168,10 +168,7 @@ export const AssignmentCard = ({
             {aiAllowed ? (
               <>
                 {submitted ? (
-                  <Badge
-                    className="text-control h-7.5 rounded-md px-2.75"
-                    variant="success"
-                  >
+                  <Badge size="control" variant="success">
                     <Icon name="check" />
                     Submitted
                   </Badge>

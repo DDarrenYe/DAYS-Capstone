@@ -6,12 +6,17 @@ import type { VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "group/badge text-label font-emphasis inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1.25 overflow-hidden rounded-full px-1.75 whitespace-nowrap [&>svg]:pointer-events-none [&>svg]:size-3!",
+  "group/badge font-emphasis inline-flex w-fit shrink-0 items-center justify-center gap-1.25 overflow-hidden whitespace-nowrap [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
     defaultVariants: {
+      size: "default",
       variant: "default",
     },
     variants: {
+      size: {
+        default: "text-label h-5 rounded-full px-1.75",
+        control: "text-control h-7.5 rounded-md px-2.75",
+      },
       variant: {
         default: "bg-muted text-body shadow-hairline",
         ai: "bg-ai-wash text-ai-ink shadow-ai-ring",
@@ -27,6 +32,7 @@ const badgeVariants = cva(
 function Badge({
   className,
   variant = "default",
+  size = "default",
   render,
   ...props
 }: useRender.ComponentProps<"span"> & VariantProps<typeof badgeVariants>) {
@@ -34,13 +40,14 @@ function Badge({
     defaultTagName: "span",
     props: mergeProps<"span">(
       {
-        className: cn(badgeVariants({ variant }), className),
+        className: cn(badgeVariants({ size, variant }), className),
       },
       props
     ),
     render,
     state: {
       slot: "badge",
+      size,
       variant,
     },
   });
