@@ -4,6 +4,7 @@ import { io } from "next/cache";
 import { cookies } from "next/headers";
 
 import { getSupabaseConfig } from "./config";
+import type { Database } from "./database.types";
 
 export const createClient = async ({
   writeCookies = false,
@@ -11,7 +12,7 @@ export const createClient = async ({
   const cookieStore = await cookies();
   await io();
   const { url, key } = getSupabaseConfig();
-  return createServerClient(url, key, {
+  return createServerClient<Database>(url, key, {
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: writeCookies

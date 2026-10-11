@@ -77,8 +77,10 @@ See [Resend's Supabase SMTP guide](https://resend.com/docs/send-with-supabase-sm
 | `bun run db:test` | Run transactional SQL constraint tests |
 | `bun run db:generate` | Generate SQL migrations from the Drizzle schema |
 | `bun run db:migrate` | Apply pending local SQL migrations |
+| `bun run db:types` | Regenerate `src/lib/supabase/database.types.ts` from the local database |
 | `bun run db:check` | Check Drizzle migration snapshots |
 | `bun run test` | Run unit tests and migration snapshot checks |
+| `bun run test:integration` | Build, then run the database and bundle checks against the local stack (needs `.env.local`) |
 | `bun run build` | Build for production |
 | `bun run check` | Check formatting and lint with `vp check` |
 | `bun run fix` | Fix formatting and lint with `vp check --fix` |
