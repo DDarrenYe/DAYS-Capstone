@@ -193,8 +193,9 @@ export interface Database {
           email: string;
           id: string;
           student_id: string | null;
+          has_work: boolean | null;
         };
-        ComputedFields: never;
+        ComputedFields: "has_work";
         Insert: {
           course_id: string;
           created_at?: string;
@@ -577,7 +578,22 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      enrol_students: {
+        Args: { course: string; emails: string[] };
+        Returns: {
+          address: string;
+          outcome: string;
+        }[];
+      };
+      has_work: {
+        Args: {
+          enrolment: Omit<
+            Database["public"]["Tables"]["enrolments"]["Row"],
+            Database["public"]["Tables"]["enrolments"]["ComputedFields"]
+          >;
+        };
+        Returns: boolean;
+      };
     };
     Enums: {
       analysis_status: "pending" | "running" | "completed" | "failed";

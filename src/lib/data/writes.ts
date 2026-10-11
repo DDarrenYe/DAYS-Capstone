@@ -3,11 +3,17 @@ import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { flagReviewState } from "@/db/schema";
+import {
+  MAX_TEXT,
+  assignmentSchema,
+  courseSchema,
+  enrolSchema,
+  removeEnrolmentSchema,
+} from "@/lib/data/schemas";
 import type { Database } from "@/lib/supabase/database.types";
 
 type Client = SupabaseClient<Database>;
 
-const MAX_TEXT = 50_000;
 const MAX_STEP_NUMBER = 2_147_483_647;
 const UNIQUE_VIOLATION = "23505";
 
@@ -37,29 +43,42 @@ export type StepInput = z.input<typeof stepSchema>;
 export type OpenInput = z.input<typeof openSchema>;
 export type SubmitInput = z.input<typeof submitSchema>;
 export type ReviewInput = z.input<typeof reviewSchema>;
+export type CourseInput = z.input<typeof courseSchema>;
+export type AssignmentInput = z.input<typeof assignmentSchema>;
+export type EnrolInput = z.input<typeof enrolSchema>;
+export type RemoveEnrolmentInput = z.input<typeof removeEnrolmentSchema>;
 
 export interface WriteResult {
   error?: string;
+  field?: string;
+}
+
+export interface EnrolResult extends WriteResult {
+  results?: { address: string; outcome: string }[];
 }
 
 const invalidInput: WriteResult = { error: "Check the details and try again." };
 export const forbidden: WriteResult = { error: "You can't make that change." };
 
+const failure = (error: PostgrestError, duplicate?: string): WriteResult => {
+  if (error.code === "42501" || error.code === "23514") {
+    return forbidden;
+  }
+  if (error.code === UNIQUE_VIOLATION && duplicate) {
+    return { error: duplicate };
+  }
+  console.error("Database write failed", error);
+  return { error: "Unable to save. Try again shortly." };
+};
+
 const settle = (
   row: { id: string } | null,
   error: PostgrestError | null
 ): WriteResult => {
-  if (!error) {
-    return row ? {} : forbidden;
+  if (error) {
+    return failure(error, "That step number is already used.");
   }
-  if (error.code === "42501" || error.code === "23514") {
-    return forbidden;
-  }
-  if (error.code === UNIQUE_VIOLATION) {
-    return { error: "That step number is already used." };
-  }
-  console.error("Database write failed", error);
-  return { error: "Unable to save. Try again shortly." };
+  return row ? {} : forbidden;
 };
 
 export const writeStep = async (
@@ -159,4 +178,85 @@ export const writeReview = async (
     .select("id")
     .maybeSingle();
   return settle(data, error);
+};
+
+export const writeCourse = async (
+  client: Client,
+  instructorId: string,
+  input: CourseInput
+): Promise<WriteResult> => {
+  const { data: course, success } = courseSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { error } = await client.from("courses").insert({
+    code: course.code,
+    instructor_id: instructorId,
+    title: course.title,
+  });
+  if (error?.code === UNIQUE_VIOLATION) {
+    return {
+      error: "You already have a course with that code.",
+      field: "code",
+    };
+  }
+  return error ? failure(error) : {};
+};
+
+export const writeAssignment = async (
+  client: Client,
+  input: AssignmentInput
+): Promise<WriteResult> => {
+  const { data: assignment, success } = assignmentSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { error } = await client.from("assignments").insert({
+    brief: assignment.brief,
+    course_id: assignment.courseId,
+    due_at: assignment.dueAt ?? null,
+    lane: assignment.lane,
+    title: assignment.title,
+  });
+  return error ? failure(error) : {};
+};
+
+export const writeEnrolments = async (
+  client: Client,
+  input: EnrolInput
+): Promise<EnrolResult> => {
+  const { data: enrolment, success } = enrolSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { data, error } = await client.rpc("enrol_students", {
+    course: enrolment.courseId,
+    emails: enrolment.emails,
+  });
+  return error ? failure(error) : { results: data };
+};
+
+export const removeEnrolment = async (
+  client: Client,
+  input: RemoveEnrolmentInput
+): Promise<WriteResult> => {
+  const { data: removal, success } = removeEnrolmentSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { data, error } = await client
+    .from("enrolments")
+    .delete()
+    .eq("id", removal.enrolmentId)
+    .select("id")
+    .maybeSingle();
+  if (error?.code === "23503") {
+    return {
+      error: "That student has started work, so they can't be removed.",
+    };
+  }
+  if (error) {
+    return failure(error);
+  }
+  return data ? {} : forbidden;
 };

@@ -250,8 +250,8 @@ The database enforces this for any client using the anon key and a user session.
 | Table | Student (own enrolled courses) | Instructor (own courses) | `service_role` |
 | --- | --- | --- | --- |
 | `profiles` | Read own row | Read own row | Read and write |
-| `courses`, `assignments` | Read | Read | Read and write |
-| `enrolments` | Read own row | Read the course | Read and write |
+| `courses`, `assignments` | Read | Read, create their own course, add assignments to it | Read and write |
+| `enrolments` | Read own row | Read the course, add students through `enrol_students`, remove students who have no project | Read and write |
 | `projects` | Read own, create a Lane 2 draft, submit it, delete while draft | Read submitted projects | Read and write |
 | `iterations` | Read own, write while draft | Read submitted projects | Read and write |
 | `final_versions` (text columns) | Read own, write while draft | Read submitted projects | Read and write |
@@ -295,4 +295,4 @@ Matching and export stay inside the app. We haven't fixed what the reflection ch
 - **The database doesn't check that a log is complete.** A student client can set `status = 'submitted'` on an empty draft. Only the lock after submitting is enforced. [#23](https://github.com/DDarrenYe/DAYS-Capstone/issues/23) should add the check, in a database function if we want direct writes rejected too.
 - **Students can't read their own match results.** `match_results` is server-only, so the preview in [#22](https://github.com/DDarrenYe/DAYS-Capstone/issues/22) needs a server read or has to work the result out on request.
 - **Flag decisions have no note column.** [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33) mentions an optional note, but the review columns and `flag_reviews` don't store one.
-- **Instructors can't create courses, assignments or enrolments.** They have no insert grant, so [#24](https://github.com/DDarrenYe/DAYS-Capstone/issues/24) needs a trusted server path.
+- **Roles can't be changed from the app.** Instructors are promoted by a trusted administrator. Enrolling by email never changes a role, and an invitation is only linked to a confirmed student account.
