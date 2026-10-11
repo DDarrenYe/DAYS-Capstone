@@ -15,6 +15,7 @@ import type { Database } from "@/lib/supabase/database.types";
 
 import {
   assignmentsQuery,
+  coursesQuery,
   invalidateAfterReview,
   invalidateAfterSave,
   invalidateAfterSubmit,
@@ -731,6 +732,13 @@ test("instructors set up a course whose assignments enrolled and invited student
       enrolmentId: enrolmentId(s1.email),
     }),
     { error: "That student has started work, so they can't be removed." }
+  );
+  const [{ enrolments }] = await newQueryClient().query(
+    coursesQuery(teacherA.client, teacherA.id)
+  );
+  assert.equal(
+    enrolments.find((row) => row.email === s1.email)?.has_work,
+    true
   );
   await run(admin.from("projects").delete().eq("id", started.id));
 

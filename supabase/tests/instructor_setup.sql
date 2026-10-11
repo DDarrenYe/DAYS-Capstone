@@ -44,6 +44,7 @@ select id, course_id, '00000000-0000-0000-0000-000000000003' from public.assignm
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
 select throws_ok($$delete from public.enrolments where email = 'student@setup.test'$$, '23503', null, 'A student who has started work cannot be removed');
+select is((select string_agg(e.email || ':' || e.has_work, ',' order by e.email) from public.enrolments e where e.email in ('student@setup.test', 'new@setup.test')), 'new@setup.test:false,student@setup.test:true', 'The roster shows which students have a project');
 
 reset role;
 set local role authenticated;
@@ -61,6 +62,7 @@ select throws_ok($$insert into public.assignments (course_id, title, lane) value
 select throws_ok($$select * from public.enrol_students('00000000-0000-0000-0000-000000000010', array['friend@setup.test'])$$, '42501', null, 'Student cannot enrol others');
 select is((select string_agg(title || ':' || lane, ',' order by title) from public.assignments where true), 'Essay:lane_2,Lab:lane_1', 'Enrolled student sees the created assignments with their lanes');
 select lives_ok($$delete from public.enrolments where true$$, 'A student''s delete matches no rows');
+select is((select e.has_work from public.enrolments e where true), false, 'Students never learn whether a project exists through the roster flag');
 
 reset role;
 set local role anon;

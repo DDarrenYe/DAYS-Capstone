@@ -29,6 +29,13 @@
       "when": 1791753311226,
       "tag": "20261011211511_enrolment_removal",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791753803704,
+      "tag": "20261011212323_enrolment_has_work",
+      "breakpoints": true
     }
   ]
 }

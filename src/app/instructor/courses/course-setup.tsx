@@ -10,6 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { coursesQuery } from "@/lib/data/queries";
 import type { CourseRows } from "@/lib/data/queries";
 import {
@@ -75,7 +81,7 @@ const NewCourseForm = ({ userId }: { userId: string }) => {
         </label>
         <Input id="course-title" maxLength={200} name="title" required />
       </div>
-      <Button disabled={isPending} type="submit">
+      <Button disabled={isPending} size="lg" type="submit">
         {isPending ? "Creating…" : "Create course"}
       </Button>
       <div className="sm:col-span-3">
@@ -143,7 +149,7 @@ const NewAssignmentForm = ({
         ))}
       </RadioGroup>
       <FormError error={error} />
-      <Button className="w-fit" disabled={isPending} type="submit">
+      <Button className="w-fit" disabled={isPending} size="lg" type="submit">
         {isPending ? "Adding…" : "Add assignment"}
       </Button>
     </form>
@@ -180,7 +186,7 @@ const EnrolForm = ({
         />
       </div>
       <FormError error={error} />
-      <Button className="w-fit" disabled={isPending} type="submit">
+      <Button className="w-fit" disabled={isPending} size="lg" type="submit">
         {isPending ? "Enrolling…" : "Enrol students"}
       </Button>
       {data ? (
@@ -204,21 +210,32 @@ const StudentRow = ({
   userId: string;
 }) => {
   const { error, isPending, mutate } = useRemoveStudent(userId);
+  const locked = Boolean(enrolment.has_work);
   return (
     <li className="grid gap-1">
       <div className="flex flex-wrap items-center gap-3">
         <span>{enrolment.email}</span>
         {enrolment.student_id ? null : <Badge>Invited</Badge>}
-        <Button
-          aria-label={`Remove ${enrolment.email}`}
-          className="ml-auto"
-          disabled={isPending}
-          onClick={() => mutate({ enrolmentId: enrolment.id })}
-          size="icon-sm"
-          variant="ghost"
-        >
-          <Icon name="x" />
-        </Button>
+        <Tooltip disabled={!locked}>
+          <TooltipTrigger render={<span className="ml-auto" />}>
+            <Button
+              aria-label={
+                locked
+                  ? `${enrolment.email} has started work and can't be removed`
+                  : `Remove ${enrolment.email}`
+              }
+              disabled={locked || isPending}
+              onClick={() => mutate({ enrolmentId: enrolment.id })}
+              size="icon-sm"
+              variant="ghost"
+            >
+              <Icon name="x" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            Has started work, can&apos;t be removed
+          </TooltipContent>
+        </Tooltip>
       </div>
       <FormError error={error} />
     </li>
@@ -285,15 +302,17 @@ const CourseCard = ({
           {course.enrolments.length === 0 ? (
             <p className="text-muted-foreground">No students yet.</p>
           ) : (
-            <ul className="grid max-h-64 gap-2 overflow-y-auto">
-              {course.enrolments.map((enrolment) => (
-                <StudentRow
-                  enrolment={enrolment}
-                  key={enrolment.id}
-                  userId={userId}
-                />
-              ))}
-            </ul>
+            <TooltipProvider>
+              <ul className="grid max-h-80 gap-2 overflow-y-auto">
+                {course.enrolments.map((enrolment) => (
+                  <StudentRow
+                    enrolment={enrolment}
+                    key={enrolment.id}
+                    userId={userId}
+                  />
+                ))}
+              </ul>
+            </TooltipProvider>
           )}
           <EnrolForm courseId={course.id} userId={userId} />
         </section>

@@ -61,7 +61,7 @@ const readCourses = async (client: Client) =>
     await client
       .from("courses")
       .select(
-        "id, code, title, assignments(id, title, due_at, lane), enrolments(id, email, student_id)"
+        "id, code, title, assignments(id, title, due_at, lane), enrolments(id, email, student_id, has_work)"
       )
       .order("created_at")
       .order("due_at", {
