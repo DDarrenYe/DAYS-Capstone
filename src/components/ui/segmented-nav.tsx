@@ -40,11 +40,26 @@ function SegmentedNav({
       indicator.style.height = `${active.offsetHeight}px`;
       nav.dataset.indicator = "";
     };
+    let frame = 0;
+    const animateNextFrame = () => {
+      frame = requestAnimationFrame(() => {
+        nav.dataset.animate = "";
+      });
+    };
     place();
-    const frame = requestAnimationFrame(() => {
-      nav.dataset.animate = "";
+    animateNextFrame();
+    let size = `${nav.offsetWidth}x${nav.offsetHeight}`;
+    const observer = new ResizeObserver(() => {
+      const nextSize = `${nav.offsetWidth}x${nav.offsetHeight}`;
+      if (nextSize === size) {
+        return;
+      }
+      size = nextSize;
+      cancelAnimationFrame(frame);
+      delete nav.dataset.animate;
+      place();
+      animateNextFrame();
     });
-    const observer = new ResizeObserver(place);
     observer.observe(nav);
     return () => {
       cancelAnimationFrame(frame);
