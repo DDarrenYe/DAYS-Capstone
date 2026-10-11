@@ -2,7 +2,7 @@
 
 This is our INFOMGMT 399 capstone (Proposal 1). Students import or paste their AI chats, critique each step using three questions, and submit the final essay. Graders can see which parts match the logged AI answers, read the reflection checks, add notes or feedback, and export a PDF or CSV. Unmatched text doesn't prove who wrote it.
 
-Plan: [docs/plan.md](docs/plan.md). Issues: [docs/issue-plan.json](docs/issue-plan.json) and the GitHub tracker. Mockups: [design/mockups](design/mockups), screenshots in [design/screenshots](design/screenshots). Product film (100 s, 1080p60): [design/ai-interaction-analytics-showcase.mp4](design/ai-interaction-analytics-showcase.mp4).
+Plan: [docs/plan.md](docs/plan.md). Schema and data flow: [docs/architecture.md](docs/architecture.md). Issues: [docs/issue-plan.json](docs/issue-plan.json) and the GitHub tracker. Mockups: [design/mockups](design/mockups), screenshots in [design/screenshots](design/screenshots). Product film (100 s, 1080p60): [design/ai-interaction-analytics-showcase.mp4](design/ai-interaction-analytics-showcase.mp4).
 
 ## Current status
 
