@@ -18,7 +18,7 @@ const filterOptions = [
 ] as const;
 
 const itemClassName =
-  "hover:bg-foreground/4 press focus-visible:shadow-focus grid w-full cursor-pointer grid-cols-[22px_minmax(0,1fr)] gap-x-2.5 rounded-lg px-2.5 py-2 text-left outline-none transition-colors duration-150";
+  "hover:bg-foreground/4 active:bg-foreground/8 focus-visible:shadow-focus grid w-full cursor-pointer grid-cols-[22px_minmax(0,1fr)] gap-x-2.5 rounded-lg px-2.5 py-2 text-left outline-none transition-colors duration-150";
 
 const StepGroup = ({
   heading,
