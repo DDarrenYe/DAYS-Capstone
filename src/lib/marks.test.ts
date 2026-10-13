@@ -35,3 +35,17 @@ test("addMark replaces overlapping marks and ignores empty selections", () => {
   );
   assert.deepEqual(addMark(third, { end: 3, kind: "used", start: 3 }), third);
 });
+
+test("a mark keeps its note when the list is rebuilt", () => {
+  const marks = addMark([], {
+    end: 10,
+    kind: "wrong",
+    note: "Survey says 64%",
+    start: 2,
+  });
+  assert.equal(marks[0]?.note, "Survey says 64%");
+  assert.equal(
+    addMark(marks, { end: 30, kind: "used", start: 20 })[0]?.note,
+    "Survey says 64%"
+  );
+});

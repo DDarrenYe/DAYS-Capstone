@@ -61,6 +61,8 @@ export const summarise = (steps: readonly Step[], finalWords: number) => {
 
 export const formatPercent = (share: number) => `${Math.round(share * 100)}%`;
 
+export const MIN_ANSWER_WORDS = 6;
+
 /* A critique answers a question once it says something concrete: a verdict, or at least six words. */
 export const critiqueCoverage = ({
   verdict,
@@ -71,10 +73,69 @@ export const critiqueCoverage = ({
   check: string;
   change: string;
 }): Record<CritiqueQuestion, boolean> => ({
-  change: countWords(change) >= 6,
-  check: countWords(check) >= 6,
+  change: countWords(change) >= MIN_ANSWER_WORDS,
+  check: countWords(check) >= MIN_ANSWER_WORDS,
   verdict: verdict !== null,
 });
+
+const VERDICTS = [
+  { key: "right", label: "Right" },
+  { key: "partly", label: "Partly right" },
+  { key: "wrong", label: "Wrong" },
+] as const;
+
+const HEADINGS = {
+  change: "What did you change? ",
+  check: "How did you check? ",
+  verdict: "Was the AI right or wrong? ",
+};
+
+const SOURCE_PREFIX = "Source: ";
+
+const verdictLabel = (verdict: string | null) =>
+  VERDICTS.find(({ key }) => key === verdict)?.label ?? "Not said";
+
+export const composeCritique = ({
+  verdict,
+  check,
+  sources,
+  change,
+}: {
+  verdict: string | null;
+  check: string;
+  sources: readonly string[];
+  change: string;
+}) =>
+  [
+    `${HEADINGS.verdict}${verdictLabel(verdict)}`,
+    [
+      `${HEADINGS.check}${check.trim()}`,
+      ...sources.map((url) => `${SOURCE_PREFIX}${url}`),
+    ].join("\n"),
+    `${HEADINGS.change}${change.trim()}`,
+  ].join("\n\n");
+
+/* Reads a critique written by composeCritique back into its three answers. Anything else, such as an older free-text critique, gives null. */
+export const parseCritique = (text: string) => {
+  const checkAt = text.indexOf(`\n\n${HEADINGS.check}`);
+  const changeAt = text.indexOf(`\n\n${HEADINGS.change}`, checkAt);
+  if (!text.startsWith(HEADINGS.verdict) || checkAt === -1 || changeAt === -1) {
+    return null;
+  }
+  const said = text.slice(HEADINGS.verdict.length, checkAt);
+  const lines = text
+    .slice(checkAt + 2 + HEADINGS.check.length, changeAt)
+    .split("\n");
+  const firstSource = lines.findIndex((line) => line.startsWith(SOURCE_PREFIX));
+  const checked = firstSource === -1 ? lines : lines.slice(0, firstSource);
+  const sourceLines = firstSource === -1 ? [] : lines.slice(firstSource);
+  return {
+    change: text.slice(changeAt + 2 + HEADINGS.change.length),
+    check: checked.join("\n"),
+    sources: sourceLines.map((line) => line.slice(SOURCE_PREFIX.length)),
+    verdict: VERDICTS.find(({ label }) => label === said)?.key ?? null,
+  };
+};
 
 /* Rounds up to a readable step times a power of ten. Fine steps keep the tallest bar near the top of its chart. */
 export const niceCeil = (value: number) => {

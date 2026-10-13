@@ -4,12 +4,14 @@ import { after, before, test } from "node:test";
 
 import { createClient } from "@supabase/supabase-js";
 import type {
+  SupabaseClient,
   PostgrestError,
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
 import { QueryClient, QueryObserver } from "@tanstack/query-core";
 import type { QueryKey } from "@tanstack/query-core";
 
+import type { loadShare } from "@/lib/import/share";
 import { createAnalysisClient } from "@/lib/supabase/analysis";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -29,9 +31,13 @@ import {
   writeCourse,
   removeEnrolment,
   writeEnrolments,
+  readImport,
+  removeStep,
+  writeCritique,
+  writeImport,
   writeProject,
   writeReview,
-  writeStep,
+  writeSteps,
   writeSubmission,
 } from "./writes";
 
@@ -445,17 +451,26 @@ test("saving a step refreshes the log and assignment progress", async () => {
   const stops = [watch(queryClient, log), watch(queryClient, assignments)];
   const initial = await queryClient.query(log);
   assert.equal(initial.iterations.length, 2);
-  const result = await writeStep(s1.client, {
+  const added = await writeSteps(s1.client, {
     aiTool: "Tool",
-    critique: "Checked the answer",
     projectId: p1,
     prompt: "Third",
     rawAnswer: "Answer",
-    stepNumber: 3,
   });
-  assert.deepEqual(result, {});
+  assert.deepEqual(added, { added: 1, firstStep: 3 });
   const stale = await queryClient.query(log);
   assert.equal(stale.iterations.length, 2);
+  await invalidateAfterSave(queryClient, s1.id, p1);
+  const pending = await queryClient.query(log);
+  const third = pending.iterations.find(({ step_number }) => step_number === 3);
+  assert.equal(third?.critique, null);
+  assert.equal(third?.import_source, "pasted_text");
+  const saved = await writeCritique(s1.client, {
+    critique: "Checked the answer",
+    projectId: p1,
+    stepId: third?.id ?? "",
+  });
+  assert.deepEqual(saved, {});
   await invalidateAfterSave(queryClient, s1.id, p1);
   const refreshed = await queryClient.query(log);
   assert.deepEqual(
@@ -479,45 +494,47 @@ test("saving a step refreshes the log and assignment progress", async () => {
   }
 });
 
-test("editing a step changes that step and marks AI errors with evidence", async () => {
+test("a critique marks wrong passages as student-reported errors and leaves the logged text alone", async () => {
   const { p1, s1 } = await fixture;
   const queryClient = newQueryClient();
   const log = projectLogQuery(s1.client, s1.id, p1);
   const { iterations } = await queryClient.query(log);
   const [first] = iterations;
-  const result = await writeStep(s1.client, {
-    aiErrorEvidence: "The citation does not exist",
-    aiTool: "Tool",
-    id: first?.id ?? "",
+  const marks = [
+    {
+      end: 6,
+      kind: "wrong" as const,
+      note: "There is no such answer",
+      start: 0,
+    },
+  ];
+  const result = await writeCritique(s1.client, {
+    critique: "It was wrong, so I replaced it.",
+    marks,
     projectId: p1,
-    prompt: "First, revised",
-    rawAnswer: "Answer",
-    stepNumber: 1,
+    stepId: first?.id ?? "",
   });
   assert.deepEqual(result, {});
   await invalidateAfterSave(queryClient, s1.id, p1);
   const refreshed = await queryClient.query(log);
   const [edited] = refreshed.iterations;
   assert.equal(edited?.id, first?.id);
-  assert.equal(edited?.prompt, "First, revised");
+  assert.equal(edited?.prompt, "First");
+  assert.equal(edited?.raw_answer, "Answer");
   assert.equal(edited?.student_marked_ai_error, true);
-  assert.equal(edited?.ai_error_evidence, "The citation does not exist");
+  assert.equal(edited?.ai_error_evidence, "“Answer” — There is no such answer");
+  assert.deepEqual(edited?.marks, marks);
 });
 
 test("students cannot write to someone else's log or to a locked or invalid one", async () => {
   const { p1, p2, p3, s1, s2, teacherA } = await fixture;
-  const base = {
-    aiTool: "Tool",
-    prompt: "Prompt",
-    rawAnswer: "Answer",
-    stepNumber: 9,
-  };
+  const base = { aiTool: "Tool", prompt: "Prompt", rawAnswer: "Answer" };
   const results = await Promise.all([
-    writeStep(s2.client, { ...base, projectId: p1 }),
-    writeStep(s1.client, { ...base, projectId: p2 }),
-    writeStep(s1.client, { ...base, projectId: p3 }),
-    writeStep(teacherA.client, { ...base, projectId: p2 }),
-    writeStep(teacherA.client, { ...base, projectId: p1 }),
+    writeSteps(s2.client, { ...base, projectId: p1 }),
+    writeSteps(s1.client, { ...base, projectId: p2 }),
+    writeSteps(s1.client, { ...base, projectId: p3 }),
+    writeSteps(teacherA.client, { ...base, projectId: p2 }),
+    writeSteps(teacherA.client, { ...base, projectId: p1 }),
   ]);
   assert.deepEqual(results, [
     forbidden,
@@ -526,12 +543,273 @@ test("students cannot write to someone else's log or to a locked or invalid one"
     forbidden,
     forbidden,
   ]);
-  const duplicate = await writeStep(s1.client, {
-    ...base,
-    projectId: p1,
-    stepNumber: 1,
+  const owned = await must(
+    admin.from("iterations").select("id, project_id").in("project_id", [p1, p2])
+  );
+  const stepOf = (projectId: string) =>
+    owned.find(({ project_id }) => project_id === projectId)?.id ?? "";
+  const critiques = await Promise.all([
+    writeCritique(s2.client, {
+      critique: "Mine now",
+      projectId: p1,
+      stepId: stepOf(p1),
+    }),
+    writeCritique(s1.client, {
+      critique: "Mine now",
+      projectId: p2,
+      stepId: stepOf(p2),
+    }),
+    writeCritique(teacherA.client, {
+      critique: "Mine now",
+      projectId: p2,
+      stepId: stepOf(p2),
+    }),
+    writeCritique(s1.client, {
+      critique: "Wrong project",
+      projectId: p3,
+      stepId: stepOf(p1),
+    }),
+  ]);
+  assert.deepEqual(critiques, [forbidden, forbidden, forbidden, forbidden]);
+  const untouched = await must(
+    admin
+      .from("iterations")
+      .select("critique")
+      .in("id", [stepOf(p2)])
+  );
+  assert.deepEqual(untouched, [{ critique: null }]);
+});
+
+test("imports add steps in order, once, even when repeated or concurrent with other saves", async () => {
+  const { s1, s2 } = await fixture;
+  const { data: course } = await admin
+    .from("enrolments")
+    .select("course_id")
+    .eq("student_id", s1.id)
+    .single();
+  const fresh = await must(
+    admin
+      .from("assignments")
+      .insert({
+        course_id: course?.course_id ?? "",
+        lane: "lane_2",
+        title: `${tag} Import`,
+      })
+      .select("id")
+      .single()
+  );
+  const chat = [
+    { answer: "Answer one", id: "m1", prompt: "Prompt one" },
+    { answer: "Answer two", id: "m2", prompt: "Prompt two" },
+    { answer: "Answer three", id: "m3", prompt: "Prompt three" },
+  ];
+  const shareId = "6f2a1c3e-9b4d-4e7a-8c15-0d2b3f4a5e60";
+  const load: typeof loadShare = () =>
+    Promise.resolve({
+      link: {
+        id: shareId,
+        url: new URL(`https://chatgpt.com/share/${shareId}`),
+      },
+      omitted: 0,
+      steps: chat,
+    });
+  const shareUrl = `https://chatgpt.com/share/${shareId}`;
+  try {
+    await writeProject(s1.client, s1.id, { assignmentId: fresh.id });
+    const project = await must(
+      admin.from("projects").select("id").eq("assignment_id", fresh.id).single()
+    );
+    const projectId = project.id;
+    const outcomes = await Promise.all([
+      writeImport(s1.client, { projectId, url: shareUrl }, load),
+      writeImport(s1.client, { projectId, url: shareUrl }, load),
+      writeImport(s1.client, { projectId, url: shareUrl }, load),
+      writeSteps(s1.client, {
+        aiTool: "Claude",
+        projectId,
+        prompt: "Pasted A",
+        rawAnswer: "A",
+      }),
+      writeSteps(s1.client, {
+        aiTool: "Claude",
+        projectId,
+        prompt: "Pasted B",
+        rawAnswer: "B",
+      }),
+    ]);
+    assert.deepEqual(
+      outcomes.map((outcome) => outcome.error),
+      [undefined, undefined, undefined, undefined, undefined]
+    );
+    assert.deepEqual(
+      outcomes
+        .slice(0, 3)
+        .map((outcome) => outcome.added)
+        .toSorted(),
+      [0, 0, 3]
+    );
+    const rows = await must(
+      admin
+        .from("iterations")
+        .select(
+          "step_number, prompt, import_source, source_url, source_conversation_id, source_step_id, imported_at, critique"
+        )
+        .eq("project_id", projectId)
+        .order("step_number")
+    );
+    assert.deepEqual(
+      rows.map(({ step_number }) => step_number),
+      [1, 2, 3, 4, 5]
+    );
+    const imported = rows.filter(
+      ({ import_source }) => import_source === "public_link"
+    );
+    assert.deepEqual(
+      imported.map(({ prompt }) => prompt),
+      ["Prompt one", "Prompt two", "Prompt three"]
+    );
+    assert.deepEqual(
+      imported.map(({ step_number }) => step_number),
+      [
+        imported[0]?.step_number,
+        (imported[0]?.step_number ?? 0) + 1,
+        (imported[0]?.step_number ?? 0) + 2,
+      ]
+    );
+    for (const row of imported) {
+      assert.equal(row.source_url, shareUrl);
+      assert.equal(row.source_conversation_id, shareId);
+      assert.ok(row.imported_at);
+      assert.equal(row.critique, null);
+    }
+    const preview = await readImport(
+      s1.client,
+      { projectId, url: shareUrl },
+      load
+    );
+    assert.deepEqual(
+      preview.steps?.map(({ saved }) => saved),
+      [true, true, true]
+    );
+    const again = await writeImport(
+      s1.client,
+      { projectId, url: shareUrl },
+      load
+    );
+    assert.deepEqual(again, { added: 0, firstStep: undefined });
+    const foreign = await readImport(
+      s2.client,
+      { projectId, url: shareUrl },
+      load
+    );
+    assert.deepEqual(foreign, forbidden);
+  } finally {
+    await admin.from("projects").delete().eq("assignment_id", fresh.id);
+    await admin.from("assignments").delete().eq("id", fresh.id);
+  }
+});
+
+const withDraft = async (
+  student: { client: SupabaseClient<Database>; id: string },
+  title: string,
+  body: (projectId: string) => Promise<void>
+) => {
+  const { data: course } = await admin
+    .from("enrolments")
+    .select("course_id")
+    .eq("student_id", student.id)
+    .single();
+  const assignment = await must(
+    admin
+      .from("assignments")
+      .insert({
+        course_id: course?.course_id ?? "",
+        lane: "lane_2",
+        title: `${tag} ${title}`,
+      })
+      .select("id")
+      .single()
+  );
+  try {
+    await writeProject(student.client, student.id, {
+      assignmentId: assignment.id,
+    });
+    const project = await must(
+      admin
+        .from("projects")
+        .select("id")
+        .eq("assignment_id", assignment.id)
+        .single()
+    );
+    await body(project.id);
+  } finally {
+    await admin.from("projects").delete().eq("assignment_id", assignment.id);
+    await admin.from("assignments").delete().eq("id", assignment.id);
+  }
+};
+
+test("removing a middle step keeps the others attached to their own notes and numbers them in a row", async () => {
+  const { s1, s2, teacherA } = await fixture;
+  await withDraft(s1, "Remove", async (projectId) => {
+    await run(
+      admin.from("iterations").insert(
+        ["One", "Two", "Three", "Four"].map((name, index) => ({
+          ai_tool: "Tool",
+          project_id: projectId,
+          prompt: name,
+          raw_answer: `${name} answer`,
+          step_number: index + 1,
+        }))
+      )
+    );
+    const steps = () =>
+      must(
+        admin
+          .from("iterations")
+          .select("id, step_number, critique")
+          .eq("project_id", projectId)
+          .order("step_number")
+      );
+    const [first, second, third, fourth] = await steps();
+    await writeCritique(s1.client, {
+      critique: "About three",
+      projectId,
+      stepId: third?.id ?? "",
+    });
+    const denied = await Promise.all([
+      removeStep(s2.client, { projectId, stepId: second?.id ?? "" }),
+      removeStep(teacherA.client, { projectId, stepId: second?.id ?? "" }),
+      removeStep(s1.client, {
+        projectId,
+        stepId: "00000000-0000-4000-8000-000000000000",
+      }),
+    ]);
+    assert.deepEqual(denied, [forbidden, forbidden, forbidden]);
+    assert.deepEqual(
+      await removeStep(s1.client, { projectId, stepId: second?.id ?? "" }),
+      {}
+    );
+    const remaining = await steps();
+    assert.deepEqual(
+      remaining.map(({ id, step_number }) => [id, step_number]),
+      [
+        [first?.id, 1],
+        [third?.id, 2],
+        [fourth?.id, 3],
+      ]
+    );
+    assert.equal(remaining[1]?.critique, "About three");
+    const both = await Promise.all([
+      removeStep(s1.client, { projectId, stepId: first?.id ?? "" }),
+      removeStep(s1.client, { projectId, stepId: fourth?.id ?? "" }),
+    ]);
+    assert.deepEqual(both, [{}, {}]);
+    const last = await steps();
+    assert.deepEqual(
+      last.map(({ id, step_number }) => [id, step_number]),
+      [[third?.id, 1]]
+    );
   });
-  assert.deepEqual(duplicate, { error: "That step number is already used." });
 });
 
 test("opening a Lane 2 assignment creates one project, however often it is opened", async () => {
@@ -618,14 +896,22 @@ test("submitting refreshes state, locks the project and rejects other users", as
   const submitted = await queryClient.query(log);
   assert.equal(submitted.status, "submitted");
   const again = await writeSubmission(s1.client, { projectId: p1 });
-  const late = await writeStep(s1.client, {
+  const late = await writeSteps(s1.client, {
     aiTool: "Tool",
     projectId: p1,
     prompt: "Late",
     rawAnswer: "Answer",
-    stepNumber: 10,
   });
-  assert.deepEqual([again, late], [forbidden, forbidden]);
+  const [firstStep] = submitted.iterations;
+  const lateCritique = await writeCritique(s1.client, {
+    critique: "Late edit",
+    projectId: p1,
+    stepId: firstStep?.id ?? "",
+  });
+  assert.deepEqual(
+    [again, late, lateCritique],
+    [forbidden, forbidden, forbidden]
+  );
   const visible = await newQueryClient().query(
     submissionsQuery(teacherA.client, teacherA.id)
   );

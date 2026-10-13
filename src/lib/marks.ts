@@ -4,6 +4,7 @@ export interface Mark {
   start: number;
   end: number;
   kind: MarkKind;
+  note?: string;
 }
 
 /* A new mark replaces any mark it overlaps; empty or inverted ranges are ignored. */

@@ -1,11 +1,25 @@
 "use client";
 
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
+import { cva } from "class-variance-authority";
+import type { VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
 const itemClassName =
-  "text-foreground data-highlighted:bg-muted flex h-8 w-full cursor-default items-center gap-2.25 rounded-md px-2 text-left font-book outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_kbd]:ml-auto [&_svg]:text-muted-foreground";
+  "flex h-8 w-full cursor-default items-center gap-2.25 rounded-md px-2 text-left font-book outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_kbd]:ml-auto";
+
+const itemTones = cva(itemClassName, {
+  defaultVariants: { tone: "default" },
+  variants: {
+    tone: {
+      default:
+        "text-foreground data-highlighted:bg-muted [&_svg]:text-muted-foreground",
+      destructive:
+        "text-flag-ink data-highlighted:bg-flag-soft [&_svg]:text-flag",
+    },
+  },
+});
 
 function DropdownMenu({ ...props }: MenuPrimitive.Root.Props) {
   return <MenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
@@ -71,11 +85,15 @@ function DropdownMenuLabel({
   );
 }
 
-function DropdownMenuItem({ className, ...props }: MenuPrimitive.Item.Props) {
+function DropdownMenuItem({
+  className,
+  tone,
+  ...props
+}: MenuPrimitive.Item.Props & VariantProps<typeof itemTones>) {
   return (
     <MenuPrimitive.Item
       data-slot="dropdown-menu-item"
-      className={cn(itemClassName, className)}
+      className={cn(itemTones({ tone }), className)}
       {...props}
     />
   );
@@ -88,7 +106,7 @@ function DropdownMenuLinkItem({
   return (
     <MenuPrimitive.LinkItem
       data-slot="dropdown-menu-link-item"
-      className={cn(itemClassName, className)}
+      className={cn(itemTones({ tone: "default" }), className)}
       {...props}
     />
   );

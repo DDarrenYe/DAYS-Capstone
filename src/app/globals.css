@@ -259,6 +259,13 @@ body {
   animation-delay: calc(var(--i, 0) * 40ms + 40ms);
 }
 
+/* A list whose children enter one after another. Browsers without sibling-index() show them together. */
+@utility stagger-children {
+  & > * {
+    animation-delay: calc(sibling-index() * 40ms);
+  }
+}
+
 /* --icon-accent colours the one detail an icon marks: cobalt for traced, vermilion for a flag, amber for review. */
 @utility icon-ai {
   --icon-accent: var(--ai);

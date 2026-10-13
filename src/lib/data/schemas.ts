@@ -19,6 +19,26 @@ const lane = z.enum(["lane_1", "lane_2"]) satisfies z.ZodType<
 
 const brief = z.string().max(MAX_TEXT, "Use 50,000 characters or fewer");
 
+const MAX_NOTE = 2000;
+const MAX_MARKS = 100;
+
+export const markDraftSchema = z.object({
+  end: z.int().positive(),
+  kind: z.enum(["wrong", "unsourced", "used"]),
+  note: z.string().max(MAX_NOTE).optional(),
+  start: z.int().nonnegative(),
+});
+
+export const marksSchema = z
+  .array(
+    markDraftSchema
+      .refine(({ start, end }) => end > start)
+      .refine(
+        ({ kind, note }) => kind !== "wrong" || (note ?? "").trim() !== ""
+      )
+  )
+  .max(MAX_MARKS);
+
 export const courseSchema = z.object({ code: label, title: label });
 
 export const assignmentSchema = z.object({

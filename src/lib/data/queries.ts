@@ -81,13 +81,15 @@ const readProjectLog = async (client: Client, projectId: string) =>
     await client
       .from("projects")
       .select(
-        "id, assignment_id, status, submitted_at, iterations(id, step_number, ai_tool, prompt, raw_answer, critique, student_marked_ai_error, ai_error_evidence, created_at)"
+        "id, assignment_id, status, submitted_at, iterations(id, step_number, ai_tool, prompt, raw_answer, critique, import_source, source_url, imported_at, marks, student_marked_ai_error, ai_error_evidence, created_at)"
       )
       .eq("id", projectId)
       .order("step_number", { referencedTable: "iterations" })
       .maybeSingle(),
     "the project log"
   );
+
+export type ProjectLog = Awaited<ReturnType<typeof readProjectLog>>;
 
 const readSubmissions = async (client: Client) =>
   unwrap(
