@@ -3,7 +3,9 @@ import { test } from "node:test";
 
 import { cohort, cohortFlags, steps, student, summary } from "./example-data";
 import {
+  composeCritique,
   countWords,
+  parseCritique,
   critiqueCoverage,
   formatPercent,
   niceCeil,
@@ -49,6 +51,55 @@ test("a critique answers a question only with a verdict or six words", () => {
     }),
     { change: true, check: true, verdict: true }
   );
+});
+
+test("the three answers become one critique with the questions as headings", () => {
+  assert.equal(
+    composeCritique({
+      change: "  Rewrote the claim.  ",
+      check: " Read the survey. ",
+      sources: ["https://example.com/a", "https://example.com/b"],
+      verdict: "partly",
+    }),
+    [
+      "Was the AI right or wrong? Partly right",
+      "How did you check? Read the survey.\nSource: https://example.com/a\nSource: https://example.com/b",
+      "What did you change? Rewrote the claim.",
+    ].join("\n\n")
+  );
+  assert.match(
+    composeCritique({ change: "", check: "", sources: [], verdict: null }),
+    /^Was the AI right or wrong\? Not said/u
+  );
+  assert.match(
+    composeCritique({ change: "", check: "", sources: [], verdict: "right" }),
+    /Right\n/u
+  );
+});
+
+test("a composed critique reads back into its three answers", () => {
+  const input = {
+    change: "Rewrote the claim.\n\nThen cut the second sentence.",
+    check: "Read the survey.\n\nChecked the table too.",
+    sources: ["https://example.com/a", "https://example.com/b"],
+    verdict: "wrong",
+  };
+  assert.deepEqual(parseCritique(composeCritique(input)), input);
+  assert.deepEqual(
+    parseCritique(
+      composeCritique({ change: "x", check: "y", sources: [], verdict: null })
+    ),
+    { change: "x", check: "y", sources: [], verdict: null }
+  );
+});
+
+test("a critique that was not composed from the three answers is left as written", () => {
+  assert.equal(parseCritique("Looks good."), null);
+  assert.equal(
+    parseCritique("Was the AI right or wrong? Wrong\n\nNothing else."),
+    null
+  );
+  assert.equal(parseCritique(""), null);
 });
 
 test("the example cohort agrees with its flag list and the open student", () => {

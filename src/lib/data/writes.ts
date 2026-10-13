@@ -8,29 +8,43 @@ import {
   assignmentSchema,
   courseSchema,
   enrolSchema,
+  marksSchema,
   removeEnrolmentSchema,
 } from "@/lib/data/schemas";
-import type { Database } from "@/lib/supabase/database.types";
+import { ImportError } from "@/lib/import/errors";
+import { loadShare } from "@/lib/import/share";
+import type { Database, Json } from "@/lib/supabase/database.types";
 
 type Client = SupabaseClient<Database>;
 
-const MAX_STEP_NUMBER = 2_147_483_647;
 const UNIQUE_VIOLATION = "23505";
+const IMPORT_TOOL = "ChatGPT";
+const MAX_TOOL = 100;
+const MAX_QUOTE = 300;
 
 const text = z
   .string()
   .max(MAX_TEXT)
   .refine((value) => value.trim() !== "");
 
-const stepSchema = z.object({
-  aiErrorEvidence: text.nullish(),
-  aiTool: text,
-  critique: text.nullish(),
-  id: z.guid().optional(),
+const addStepSchema = z.object({
+  aiTool: z.string().trim().min(1).max(MAX_TOOL),
   projectId: z.guid(),
   prompt: text,
   rawAnswer: text,
-  stepNumber: z.int().min(1).max(MAX_STEP_NUMBER),
+});
+const previewSchema = z.object({
+  projectId: z.guid(),
+  url: z.string().max(2048),
+});
+const importSchema = previewSchema.extend({
+  stepIds: z.array(z.string().max(200)).max(200).optional(),
+});
+const critiqueSchema = z.object({
+  critique: text,
+  marks: marksSchema.default([]),
+  projectId: z.guid(),
+  stepId: z.guid(),
 });
 const openSchema = z.object({ assignmentId: z.guid() });
 const submitSchema = z.object({ projectId: z.guid() });
@@ -39,7 +53,10 @@ const reviewSchema = z.object({
   state: z.enum(flagReviewState.enumValues),
 });
 
-export type StepInput = z.input<typeof stepSchema>;
+export type AddStepInput = z.input<typeof addStepSchema>;
+export type PreviewInput = z.input<typeof previewSchema>;
+export type ImportInput = z.input<typeof importSchema>;
+export type CritiqueInput = z.input<typeof critiqueSchema>;
 export type OpenInput = z.input<typeof openSchema>;
 export type SubmitInput = z.input<typeof submitSchema>;
 export type ReviewInput = z.input<typeof reviewSchema>;
@@ -55,6 +72,17 @@ export interface WriteResult {
 
 export interface EnrolResult extends WriteResult {
   results?: { address: string; outcome: string }[];
+}
+
+export interface StepsResult extends WriteResult {
+  added?: number;
+  firstStep?: number;
+}
+
+export interface PreviewResult extends WriteResult {
+  link?: string;
+  omitted?: number;
+  steps?: { id: string; prompt: string; answer: string; saved: boolean }[];
 }
 
 const invalidInput: WriteResult = { error: "Check the details and try again." };
@@ -76,42 +104,177 @@ const settle = (
   error: PostgrestError | null
 ): WriteResult => {
   if (error) {
-    return failure(error, "That step number is already used.");
+    return failure(error);
   }
   return row ? {} : forbidden;
 };
 
-export const writeStep = async (
+const addSteps = async (
   client: Client,
-  input: StepInput
-): Promise<WriteResult> => {
-  const { data: step, success } = stepSchema.safeParse(input);
+  projectId: string,
+  steps: Json
+): Promise<StepsResult> => {
+  const { data, error } = await client.rpc("add_steps", {
+    project: projectId,
+    steps,
+  });
+  if (error) {
+    return failure(error, "Those steps are already in your log.");
+  }
+  return {
+    added: data.length,
+    firstStep:
+      data.length > 0
+        ? Math.min(...data.map((row) => row.step_number))
+        : undefined,
+  };
+};
+
+export const writeSteps = (
+  client: Client,
+  input: AddStepInput
+): Promise<StepsResult> => {
+  const { data: step, success } = addStepSchema.safeParse(input);
+  if (!success) {
+    return Promise.resolve(invalidInput);
+  }
+  return addSteps(client, step.projectId, [
+    {
+      ai_tool: step.aiTool,
+      import_source: "pasted_text",
+      prompt: step.prompt,
+      raw_answer: step.rawAnswer,
+    },
+  ]);
+};
+
+const readShare = async (url: string, load: typeof loadShare) => {
+  try {
+    return { shared: await load(url) };
+  } catch (error) {
+    if (error instanceof ImportError) {
+      return { failed: { error: error.message } };
+    }
+    throw error;
+  }
+};
+
+export const readImport = async (
+  client: Client,
+  input: PreviewInput,
+  load: typeof loadShare = loadShare
+): Promise<PreviewResult> => {
+  const { data: preview, success } = previewSchema.safeParse(input);
   if (!success) {
     return invalidInput;
   }
-  const evidence = step.aiErrorEvidence ?? null;
-  const fields = {
-    ai_error_evidence: evidence,
-    ai_tool: step.aiTool,
-    critique: step.critique ?? null,
-    prompt: step.prompt,
-    raw_answer: step.rawAnswer,
-    step_number: step.stepNumber,
-    student_marked_ai_error: evidence !== null,
+  const { data: project, error: projectError } = await client
+    .from("projects")
+    .select("id")
+    .eq("id", preview.projectId)
+    .maybeSingle();
+  if (projectError || !project) {
+    return projectError ? failure(projectError) : forbidden;
+  }
+  const { shared, failed } = await readShare(preview.url, load);
+  if (!shared) {
+    return failed;
+  }
+  const { data: saved, error } = await client
+    .from("iterations")
+    .select("source_step_id")
+    .eq("project_id", preview.projectId)
+    .eq("ai_tool", IMPORT_TOOL)
+    .eq("source_conversation_id", shared.link.id);
+  if (error) {
+    return failure(error);
+  }
+  const have = new Set(saved.map((row) => row.source_step_id));
+  return {
+    link: shared.link.url.href,
+    omitted: shared.omitted,
+    steps: shared.steps.map((step) => ({ ...step, saved: have.has(step.id) })),
   };
-  const { data, error } = step.id
-    ? await client
-        .from("iterations")
-        .update(fields)
-        .eq("id", step.id)
-        .eq("project_id", step.projectId)
-        .select("id")
-        .maybeSingle()
-    : await client
-        .from("iterations")
-        .insert({ ...fields, project_id: step.projectId })
-        .select("id")
-        .maybeSingle();
+};
+
+export const writeImport = async (
+  client: Client,
+  input: ImportInput,
+  load: typeof loadShare = loadShare
+): Promise<StepsResult> => {
+  const { data: request, success } = importSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { shared, failed } = await readShare(request.url, load);
+  if (!shared) {
+    return failed;
+  }
+  const chosen = request.stepIds && new Set(request.stepIds);
+  const steps = shared.steps
+    .filter(({ id }) => !chosen || chosen.has(id))
+    .map((step) => ({
+      ai_tool: IMPORT_TOOL,
+      import_source: "public_link",
+      prompt: step.prompt,
+      raw_answer: step.answer,
+      source_conversation_id: shared.link.id,
+      source_step_id: step.id,
+      source_url: shared.link.url.href,
+    }));
+  if (steps.length === 0) {
+    return { error: "Choose at least one step to add." };
+  }
+  return addSteps(client, request.projectId, steps);
+};
+
+const quote = (passage: string) => {
+  const flat = passage.trim().replaceAll(/\s+/gu, " ");
+  return flat.length > MAX_QUOTE ? `${flat.slice(0, MAX_QUOTE)}…` : flat;
+};
+
+export const writeCritique = async (
+  client: Client,
+  input: CritiqueInput
+): Promise<WriteResult> => {
+  const { data: saved, success } = critiqueSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { data: step, error: readError } = await client
+    .from("iterations")
+    .select("raw_answer")
+    .eq("id", saved.stepId)
+    .eq("project_id", saved.projectId)
+    .maybeSingle();
+  if (readError || !step) {
+    return readError ? failure(readError) : forbidden;
+  }
+  if (saved.marks.some(({ end }) => end > step.raw_answer.length)) {
+    return invalidInput;
+  }
+  const errors = saved.marks.filter(({ kind }) => kind === "wrong");
+  const evidence =
+    errors.length > 0
+      ? errors
+          .map(
+            ({ start, end, note }) =>
+              `“${quote(step.raw_answer.slice(start, end))}” — ${note?.trim()}`
+          )
+          .join("\n\n")
+      : null;
+  const { data, error } = await client
+    .from("iterations")
+    .update({
+      ai_error_evidence: evidence,
+      critique: saved.critique,
+      marks: saved.marks,
+      student_marked_ai_error: evidence !== null,
+    })
+    .eq("id", saved.stepId)
+    .eq("project_id", saved.projectId)
+    .select("id")
+    .maybeSingle();
   return settle(data, error);
 };
 

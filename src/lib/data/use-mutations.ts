@@ -3,13 +3,16 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
+  addStep,
   createAssignment,
   createCourse,
   enrolStudents,
+  importSteps,
   openProject,
+  previewImport,
   removeStudent,
   reviewFlag,
-  saveStep,
+  saveCritique,
   submitProject,
 } from "@/lib/data/actions";
 import {
@@ -20,13 +23,17 @@ import {
   invalidateAfterSubmit,
 } from "@/lib/data/queries";
 import type {
+  AddStepInput,
   AssignmentInput,
   CourseInput,
+  CritiqueInput,
   EnrolInput,
+  ImportInput,
   OpenInput,
+  PreviewInput,
   RemoveEnrolmentInput,
   ReviewInput,
-  StepInput,
+  StepsResult,
   SubmitInput,
   WriteResult,
 } from "@/lib/data/writes";
@@ -56,10 +63,47 @@ export const useOpenProject = (userId: string) => {
   });
 };
 
-export const useSaveStep = (userId: string) => {
+const stepsAdded = async (pending: Promise<StepsResult>) => {
+  const { error, field, added, firstStep } = await pending;
+  if (error) {
+    throw new WriteError(error, field);
+  }
+  return { added: added ?? 0, firstStep };
+};
+
+export const useAddStep = (userId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: StepInput) => succeeded(saveStep(input)),
+    mutationFn: (input: AddStepInput) => stepsAdded(addStep(input)),
+    onSuccess: (_result, { projectId }) =>
+      invalidateAfterSave(queryClient, userId, projectId),
+  });
+};
+
+export const usePreviewImport = () =>
+  useMutation({
+    mutationFn: async (input: PreviewInput) => {
+      const { error, field, link, omitted, steps } = await previewImport(input);
+      if (error || !link || !steps) {
+        throw new WriteError(error ?? "Unable to read that link.", field);
+      }
+      return { link, omitted: omitted ?? 0, steps };
+    },
+  });
+
+export const useImportSteps = (userId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ImportInput) => stepsAdded(importSteps(input)),
+    onSuccess: (_result, { projectId }) =>
+      invalidateAfterSave(queryClient, userId, projectId),
+  });
+};
+
+export const useSaveCritique = (userId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CritiqueInput) => succeeded(saveCritique(input)),
     onSuccess: (_result, { projectId }) =>
       invalidateAfterSave(queryClient, userId, projectId),
   });

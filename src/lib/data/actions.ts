@@ -7,20 +7,28 @@ import {
   writeAssignment,
   writeCourse,
   writeEnrolments,
+  readImport,
+  writeCritique,
+  writeImport,
   writeProject,
   writeReview,
-  writeStep,
+  writeSteps,
   writeSubmission,
 } from "@/lib/data/writes";
 import type {
+  AddStepInput,
   AssignmentInput,
   CourseInput,
+  CritiqueInput,
   EnrolInput,
   EnrolResult,
+  ImportInput,
+  PreviewInput,
+  PreviewResult,
   RemoveEnrolmentInput,
   OpenInput,
   ReviewInput,
-  StepInput,
+  StepsResult,
   SubmitInput,
   WriteResult,
 } from "@/lib/data/writes";
@@ -34,12 +42,40 @@ export const openProject = async (input: OpenInput): Promise<WriteResult> => {
   return writeProject(await createClient(), account.id, input);
 };
 
-export const saveStep = async (input: StepInput): Promise<WriteResult> => {
+export const addStep = async (input: AddStepInput): Promise<StepsResult> => {
   const account = await getAccount();
   if (account?.role !== "student") {
     return forbidden;
   }
-  return writeStep(await createClient(), input);
+  return writeSteps(await createClient(), input);
+};
+
+export const previewImport = async (
+  input: PreviewInput
+): Promise<PreviewResult> => {
+  const account = await getAccount();
+  if (account?.role !== "student") {
+    return forbidden;
+  }
+  return readImport(await createClient(), input);
+};
+
+export const importSteps = async (input: ImportInput): Promise<StepsResult> => {
+  const account = await getAccount();
+  if (account?.role !== "student") {
+    return forbidden;
+  }
+  return writeImport(await createClient(), input);
+};
+
+export const saveCritique = async (
+  input: CritiqueInput
+): Promise<WriteResult> => {
+  const account = await getAccount();
+  if (account?.role !== "student") {
+    return forbidden;
+  }
+  return writeCritique(await createClient(), input);
 };
 
 export const submitProject = async (

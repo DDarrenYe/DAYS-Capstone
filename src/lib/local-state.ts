@@ -63,7 +63,15 @@ export const usePersistentState = <T>(
     },
     [key, schema, fallback]
   );
-  return [value, setValue] as const;
+  const clear = useCallback(() => {
+    try {
+      globalThis.localStorage.removeItem(PREFIX + key);
+    } catch {
+      return;
+    }
+    notify();
+  }, [key]);
+  return [value, setValue, clear] as const;
 };
 
 /* Removes every Margin key, so the next person on a shared computer starts clean. */

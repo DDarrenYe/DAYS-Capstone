@@ -1,0 +1,2 @@
+ALTER TABLE "iterations" ADD COLUMN "marks" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "iterations" ADD CONSTRAINT "iterations_marks_array" CHECK (jsonb_typeof("iterations"."marks") = 'array');

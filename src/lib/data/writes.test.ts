@@ -2,24 +2,33 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
+
+import { ImportError } from "@/lib/import/errors";
+import type { loadShare } from "@/lib/import/share";
 
 import {
   forbidden,
+  readImport,
   removeEnrolment,
   writeAssignment,
   writeCourse,
+  writeCritique,
   writeEnrolments,
+  writeImport,
   writeProject,
   writeReview,
-  writeStep,
+  writeSteps,
   writeSubmission,
 } from "./writes";
 import type {
+  AddStepInput,
   AssignmentInput,
   CourseInput,
+  CritiqueInput,
+  ImportInput,
   OpenInput,
   ReviewInput,
-  StepInput,
   SubmitInput,
 } from "./writes";
 
@@ -63,38 +72,100 @@ const clientWith = (
 
 const wire = (
   json: string
-): StepInput &
+): AddStepInput &
+  CritiqueInput &
+  ImportInput &
   SubmitInput &
   ReviewInput &
   OpenInput &
   CourseInput &
   AssignmentInput => JSON.parse(json);
 
-const step: StepInput = {
+const step: AddStepInput = {
   aiTool: "ChatGPT",
   projectId,
   prompt: "Explain lanes",
   rawAnswer: "Two lanes",
-  stepNumber: 2,
 };
+
+const shareUrl =
+  "https://chatgpt.com/share/6f2a1c3e-9b4d-4e7a-8c15-0d2b3f4a5e60";
+const shareId = "6f2a1c3e-9b4d-4e7a-8c15-0d2b3f4a5e60";
+
+const shared =
+  (
+    steps: { id: string; prompt: string; answer: string }[] = [
+      { answer: "  A1\n", id: "m1", prompt: "Q1 " },
+      { answer: "A2", id: "m2", prompt: "Q2" },
+    ]
+  ): typeof loadShare =>
+  () =>
+    Promise.resolve({
+      link: { id: shareId, url: new URL(shareUrl) },
+      omitted: 0,
+      steps,
+    });
+
+const refused =
+  (reason: ConstructorParameters<typeof ImportError>[0]): typeof loadShare =>
+  () =>
+    Promise.reject(new ImportError(reason));
+
+const sequence = (...responses: Response[]) => {
+  const queue = [...responses];
+  return clientWith(() => queue.shift() ?? noRow());
+};
+
+const critique: CritiqueInput = {
+  critique: "Was the AI right? Wrong.\n\nHow I checked it: the survey.",
+  projectId,
+  stepId,
+};
+
+const invalidCritiques: CritiqueInput[] = [
+  { ...critique, projectId: "nope" },
+  { ...critique, stepId: "nope" },
+  { ...critique, critique: "" },
+  { ...critique, critique: "  \n" },
+  { ...critique, critique: "x".repeat(50_001) },
+  { ...critique, marks: [{ end: 4, kind: "wrong", start: 4 }] },
+  { ...critique, marks: [{ end: 2, kind: "wrong", start: 4 }] },
+  { ...critique, marks: [{ end: 4, kind: "wrong", note: "   ", start: 0 }] },
+  { ...critique, marks: [{ end: 4, kind: "wrong", start: 0 }] },
+  wire(
+    JSON.stringify({
+      ...critique,
+      marks: [{ end: 4, kind: "other", note: "x", start: 0 }],
+    })
+  ),
+  {
+    ...critique,
+    marks: [{ end: 4, kind: "used", note: "x".repeat(2001), start: 0 }],
+  },
+  { ...critique, marks: [{ end: 4.5, kind: "used", start: 0 }] },
+];
 
 test("invalid input is rejected before the database is contacted", async () => {
   const { client, requests } = clientWith();
   const invalidSteps = [
     { ...step, projectId: "not-a-uuid" },
-    { ...step, id: "not-a-uuid" },
-    { ...step, stepNumber: 0 },
-    { ...step, stepNumber: 1.5 },
-    { ...step, stepNumber: 2_147_483_648 },
     { ...step, aiTool: "   " },
+    { ...step, aiTool: "x".repeat(101) },
     { ...step, prompt: "" },
+    { ...step, prompt: "  \n " },
     { ...step, rawAnswer: "x".repeat(50_001) },
-    { ...step, critique: "  " },
-    { ...step, aiErrorEvidence: "" },
-    wire(JSON.stringify({ ...step, stepNumber: "2" })),
+    wire(JSON.stringify({ ...step, prompt: 7 })),
   ];
   const results = await Promise.all([
-    ...invalidSteps.map((invalid) => writeStep(client, invalid)),
+    ...invalidSteps.map((invalid) => writeSteps(client, invalid)),
+    writeImport(client, { projectId: "nope", url: shareUrl }),
+    writeImport(client, { projectId, url: "x".repeat(2049) }),
+    writeImport(
+      client,
+      wire(JSON.stringify({ projectId, stepIds: [7], url: shareUrl }))
+    ),
+    readImport(client, { projectId: "nope", url: shareUrl }),
+    ...invalidCritiques.map((invalid) => writeCritique(client, invalid)),
     writeProject(client, studentId, { assignmentId: "nope" }),
     writeSubmission(client, { projectId: "nope" }),
     writeReview(client, reviewerId, { flagId: "nope", state: "dismissed" }),
@@ -167,47 +238,269 @@ test("an assignment the student cannot read or a Lane 1 assignment never gets a 
   );
 });
 
-test("a new step is inserted with only the allowed columns", async () => {
-  const { client, requests } = clientWith();
-  const result = await writeStep(
+test("a pasted step goes through add_steps with only the allowed fields", async () => {
+  const { client, requests } = clientWith(() =>
+    Response.json([{ id: stepId, step_number: 7 }])
+  );
+  const result = await writeSteps(
     client,
     wire(
       JSON.stringify({
         ...step,
-        aiErrorEvidence: "It invented a source",
-        critique: "Checked it",
-        status: "submitted",
+        aiTool: "  Claude ",
+        prompt: "  Keep my spacing\n",
+        rawAnswer: "Line one\n\nLine two  ",
+        stepNumber: 1,
         student_id: "someone-else",
       })
     )
   );
-  assert.deepEqual(result, {});
+  assert.deepEqual(result, { added: 1, firstStep: 7 });
+  assert.equal(requests.length, 1);
   assert.equal(requests[0]?.method, "POST");
-  assert.equal(requests[0]?.url.pathname, "/rest/v1/iterations");
+  assert.equal(requests[0]?.url.pathname, "/rest/v1/rpc/add_steps");
   assert.deepEqual(requests[0]?.body, {
-    ai_error_evidence: "It invented a source",
-    ai_tool: "ChatGPT",
-    critique: "Checked it",
-    project_id: projectId,
-    prompt: "Explain lanes",
-    raw_answer: "Two lanes",
-    step_number: 2,
+    project: projectId,
+    steps: [
+      {
+        ai_tool: "Claude",
+        import_source: "pasted_text",
+        prompt: "  Keep my spacing\n",
+        raw_answer: "Line one\n\nLine two  ",
+      },
+    ],
+  });
+});
+
+test("an import saves the chosen steps with their provenance and the shared text untouched", async () => {
+  const { client, requests } = clientWith(() =>
+    Response.json([{ id: stepId, step_number: 4 }])
+  );
+  const result = await writeImport(
+    client,
+    {
+      projectId,
+      stepIds: ["m1"],
+      url: `${shareUrl.replace("chatgpt.com", "chat.openai.com")}?x=1`,
+    },
+    shared()
+  );
+  assert.deepEqual(result, { added: 1, firstStep: 4 });
+  assert.equal(requests.length, 1);
+  assert.deepEqual(requests[0]?.body, {
+    project: projectId,
+    steps: [
+      {
+        ai_tool: "ChatGPT",
+        import_source: "public_link",
+        prompt: "Q1 ",
+        raw_answer: "  A1\n",
+        source_conversation_id: shareId,
+        source_step_id: "m1",
+        source_url: shareUrl,
+      },
+    ],
+  });
+});
+
+test("an import without a selection adds every step in order, and an empty selection adds none", async () => {
+  const { client, requests } = clientWith(() =>
+    Response.json([
+      { id: stepId, step_number: 5 },
+      { id: flagId, step_number: 6 },
+    ])
+  );
+  assert.deepEqual(
+    await writeImport(client, { projectId, url: shareUrl }, shared()),
+    {
+      added: 2,
+      firstStep: 5,
+    }
+  );
+  const sent = z
+    .array(z.object({ source_step_id: z.string() }))
+    .parse(requests[0]?.body?.steps);
+  assert.deepEqual(
+    sent.map((item) => item.source_step_id),
+    ["m1", "m2"]
+  );
+  const none = await writeImport(
+    client,
+    { projectId, stepIds: ["other"], url: shareUrl },
+    shared()
+  );
+  assert.deepEqual(none, { error: "Choose at least one step to add." });
+  assert.equal(requests.length, 1);
+});
+
+test("an import that finds only saved steps reports none added", async () => {
+  const { client } = clientWith(() => Response.json([]));
+  assert.deepEqual(
+    await writeImport(client, { projectId, url: shareUrl }, shared()),
+    {
+      added: 0,
+      firstStep: undefined,
+    }
+  );
+});
+
+test("an import that cannot read the link says why and writes nothing", async () => {
+  const reasons = [
+    "unsupported_host",
+    "unavailable",
+    "blocked",
+    "too_large",
+    "timeout",
+    "unreadable",
+  ] as const;
+  const attempts = await Promise.all(
+    reasons.map(async (reason) => {
+      const { client, requests } = clientWith();
+      const result = await writeImport(
+        client,
+        { projectId, url: shareUrl },
+        refused(reason)
+      );
+      return { requests: requests.length, result };
+    })
+  );
+  assert.deepEqual(
+    attempts.map(({ result }) => result.error),
+    reasons.map((reason) => new ImportError(reason).message)
+  );
+  assert.deepEqual(
+    attempts.map(({ requests }) => requests),
+    reasons.map(() => 0)
+  );
+  const { client } = clientWith();
+  await assert.rejects(
+    writeImport(client, { projectId, url: shareUrl }, () =>
+      Promise.reject(new TypeError("unexpected"))
+    ),
+    TypeError
+  );
+});
+
+test("a link that is not a ChatGPT share is refused by the real loader before any request", async () => {
+  const { client, requests } = clientWith();
+  const results = await Promise.all(
+    [
+      "not a link",
+      "https://example.com/share/x",
+      "http://169.254.169.254/latest",
+    ].map((url) => writeImport(client, { projectId, url }))
+  );
+  for (const result of results) {
+    assert.match(result.error ?? "", /ChatGPT/u);
+  }
+  assert.equal(requests.length, 0);
+});
+
+test("the preview marks steps that are already saved and never touches the network for a foreign project", async () => {
+  const { client, requests } = sequence(
+    Response.json([{ id: projectId }]),
+    Response.json([{ source_step_id: "m1" }])
+  );
+  const preview = await readImport(
+    client,
+    { projectId, url: shareUrl },
+    shared()
+  );
+  assert.deepEqual(preview, {
+    link: shareUrl,
+    omitted: 0,
+    steps: [
+      { answer: "  A1\n", id: "m1", prompt: "Q1 ", saved: true },
+      { answer: "A2", id: "m2", prompt: "Q2", saved: false },
+    ],
+  });
+  assert.equal(
+    requests[1]?.url.searchParams.get("project_id"),
+    `eq.${projectId}`
+  );
+  assert.equal(requests[1]?.url.searchParams.get("ai_tool"), "eq.ChatGPT");
+  assert.equal(
+    requests[1]?.url.searchParams.get("source_conversation_id"),
+    `eq.${shareId}`
+  );
+
+  let fetched = false;
+  const hidden = clientWith(noRow);
+  const result = await readImport(
+    hidden.client,
+    { projectId, url: shareUrl },
+    () => {
+      fetched = true;
+      return shared()("");
+    }
+  );
+  assert.deepEqual(result, forbidden);
+  assert.equal(fetched, false);
+});
+
+test("a critique saves the text and marks, and records wrong passages as student-reported evidence", async () => {
+  const answer = "Nine in ten students use AI. It was introduced in 2019.";
+  const { client, requests } = sequence(
+    Response.json([{ raw_answer: answer }]),
+    Response.json([{ id: stepId }])
+  );
+  const marks = [
+    { end: 27, kind: "wrong", note: "  Survey says 64%. ", start: 0 },
+    { end: 55, kind: "unsourced", start: 29 },
+    { end: 54, kind: "wrong", note: "Sydney started it in 2023", start: 36 },
+  ] as const;
+  const result = await writeCritique(client, {
+    ...critique,
+    marks: marks.map((mark) => ({ ...mark })),
+  });
+  assert.deepEqual(result, {});
+  assert.equal(requests[0]?.method, "GET");
+  assert.equal(requests[0]?.url.pathname, "/rest/v1/iterations");
+  assert.equal(requests[1]?.method, "PATCH");
+  assert.equal(requests[1]?.url.searchParams.get("id"), `eq.${stepId}`);
+  assert.equal(
+    requests[1]?.url.searchParams.get("project_id"),
+    `eq.${projectId}`
+  );
+  assert.deepEqual(requests[1]?.body, {
+    ai_error_evidence:
+      "“Nine in ten students use AI” — Survey says 64%.\n\n“introduced in 2019” — Sydney started it in 2023",
+    critique: critique.critique,
+    marks,
     student_marked_ai_error: true,
   });
 });
 
-test("editing a step updates it by ID within its project and never moves it", async () => {
-  const { client, requests } = clientWith();
-  const result = await writeStep(client, { ...step, id: stepId });
-  assert.deepEqual(result, {});
-  assert.equal(requests[0]?.method, "PATCH");
-  assert.equal(requests[0]?.url.searchParams.get("id"), `eq.${stepId}`);
-  assert.equal(
-    requests[0]?.url.searchParams.get("project_id"),
-    `eq.${projectId}`
+test("a critique without wrong passages clears any error evidence", async () => {
+  const { client, requests } = sequence(
+    Response.json([{ raw_answer: "Short answer" }]),
+    Response.json([{ id: stepId }])
   );
-  assert.equal(requests[0]?.body?.student_marked_ai_error, false);
-  assert.equal("project_id" in (requests[0]?.body ?? {}), false);
+  assert.deepEqual(await writeCritique(client, critique), {});
+  assert.deepEqual(requests[1]?.body, {
+    ai_error_evidence: null,
+    critique: critique.critique,
+    marks: [],
+    student_marked_ai_error: false,
+  });
+});
+
+test("a mark outside the answer, or a step the student cannot see, is not saved", async () => {
+  const outside = sequence(Response.json([{ raw_answer: "Short" }]));
+  const result = await writeCritique(outside.client, {
+    ...critique,
+    marks: [{ end: 6, kind: "used", start: 0 }],
+  });
+  assert.deepEqual(result, { error: "Check the details and try again." });
+  assert.equal(outside.requests.length, 1);
+  const hidden = clientWith(noRow);
+  assert.deepEqual(await writeCritique(hidden.client, critique), forbidden);
+  assert.equal(hidden.requests.length, 1);
+  const lost = sequence(
+    Response.json([{ raw_answer: "Short" }]),
+    Response.json([])
+  );
+  assert.deepEqual(await writeCritique(lost.client, critique), forbidden);
 });
 
 test("submitting only moves a draft the caller can update", async () => {
@@ -247,24 +540,26 @@ test("rows the database hides and policy violations both read as forbidden", asy
     forbidden
   );
   const results = await Promise.all(
-    ["42501", "23514"].map((code) =>
-      writeStep(
+    ["42501", "23514"].flatMap((code) => {
+      const denied = () =>
         clientWith(() =>
           Response.json({ code, message: "denied" }, { status: 403 })
-        ).client,
-        step
-      )
-    )
+        ).client;
+      return [
+        writeSteps(denied(), step),
+        writeImport(denied(), { projectId, url: shareUrl }, shared()),
+      ];
+    })
   );
-  assert.deepEqual(results, [forbidden, forbidden]);
+  assert.deepEqual(results, [forbidden, forbidden, forbidden, forbidden]);
 });
 
-test("duplicate step numbers and unexpected failures return safe messages", async () => {
+test("duplicate sources and unexpected failures return safe messages", async () => {
   const duplicate = clientWith(() =>
     Response.json({ code: "23505", message: "duplicate key" }, { status: 409 })
   );
-  assert.deepEqual(await writeStep(duplicate.client, step), {
-    error: "That step number is already used.",
+  assert.deepEqual(await writeSteps(duplicate.client, step), {
+    error: "Those steps are already in your log.",
   });
   const broken = clientWith(() =>
     Response.json({ code: "XX000", message: "secret detail" }, { status: 500 })
@@ -272,7 +567,7 @@ test("duplicate step numbers and unexpected failures return safe messages", asyn
   const log = console.error;
   console.error = () => {};
   try {
-    assert.deepEqual(await writeStep(broken.client, step), {
+    assert.deepEqual(await writeSteps(broken.client, step), {
       error: "Unable to save. Try again shortly.",
     });
   } finally {

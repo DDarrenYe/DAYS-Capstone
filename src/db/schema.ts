@@ -221,11 +221,15 @@ export const iterations = pgTable(
       .default(false)
       .notNull(),
     aiErrorEvidence: text("ai_error_evidence"),
+    marks: jsonb("marks")
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .defaultNow()
       .notNull(),
   },
   (t) => [
+    check("iterations_marks_array", sql`jsonb_typeof(${t.marks}) = 'array'`),
     check("iterations_step_number_check", sql`${t.stepNumber} > 0`),
     check("iterations_ai_tool_check", sql`btrim(${t.aiTool}) <> ''`),
     check("iterations_prompt_check", sql`btrim(${t.prompt}) <> ''`),

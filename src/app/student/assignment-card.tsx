@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { logHref } from "@/app/student/log/step-meta";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -28,17 +29,17 @@ const dueDate = new Intl.DateTimeFormat("en", {
 const stepLabel = (steps: number) =>
   `${steps} ${steps === 1 ? "step" : "steps"}`;
 
-const LOG_HREF = "/student/log";
-
 type Assignment = AssignmentRows[number];
 
 const LogAction = ({
+  href,
   hasProject,
   isPending,
   open,
   variant,
   children,
 }: {
+  href: string;
   hasProject: boolean;
   isPending: boolean;
   open: () => void;
@@ -46,7 +47,7 @@ const LogAction = ({
   children: ReactNode;
 }) =>
   hasProject ? (
-    <Link className={buttonVariants({ variant })} href={LOG_HREF}>
+    <Link className={buttonVariants({ variant })} href={href}>
       {children}
     </Link>
   ) : (
@@ -98,13 +99,15 @@ export const AssignmentCard = ({
     !submitted &&
     assignment.due_at !== null &&
     Date.parse(assignment.due_at) < now;
+  const href = logHref(assignment.id);
   const logAction = {
     hasProject: project !== undefined,
+    href,
     isPending,
     open: () =>
       mutate(
         { assignmentId: assignment.id },
-        { onSuccess: () => router.push(LOG_HREF) }
+        { onSuccess: () => router.push(href) }
       ),
   };
   return (

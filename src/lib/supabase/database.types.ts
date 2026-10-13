@@ -436,6 +436,7 @@ export interface Database {
           id: string;
           import_source: Database["public"]["Enums"]["import_source"];
           imported_at: string | null;
+          marks: NonNullable<Json>;
           project_id: string;
           prompt: string;
           raw_answer: string;
@@ -454,6 +455,7 @@ export interface Database {
           id?: string;
           import_source?: Database["public"]["Enums"]["import_source"];
           imported_at?: string | null;
+          marks?: NonNullable<Json>;
           project_id: string;
           prompt: string;
           raw_answer: string;
@@ -471,6 +473,7 @@ export interface Database {
           id?: string;
           import_source?: Database["public"]["Enums"]["import_source"];
           imported_at?: string | null;
+          marks?: NonNullable<Json>;
           project_id?: string;
           prompt?: string;
           raw_answer?: string;
@@ -578,6 +581,13 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
+      add_steps: {
+        Args: { project: string; steps: Json };
+        Returns: {
+          id: string;
+          step_number: number;
+        }[];
+      };
       enrol_students: {
         Args: { course: string; emails: string[] };
         Returns: {

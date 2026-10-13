@@ -1,20 +1,17 @@
 import { Suspense } from "react";
 
+import { LogSkeleton } from "@/app/student/log/log-skeleton";
 import { StepComposer } from "@/app/student/log/step-composer";
+import { requireRole } from "@/lib/auth";
+
+const Composer = async () => {
+  const { id } = await requireRole("student");
+  return <StepComposer userId={id} />;
+};
 
 const LogPage = () => (
-  <Suspense
-    fallback={
-      <div className="flex flex-col gap-3.5 p-6">
-        <output className="sr-only">Loading your log…</output>
-        <div
-          aria-hidden="true"
-          className="bg-muted h-96 animate-pulse rounded-xl motion-reduce:animate-none"
-        />
-      </div>
-    }
-  >
-    <StepComposer />
+  <Suspense fallback={<LogSkeleton />}>
+    <Composer />
   </Suspense>
 );
 
