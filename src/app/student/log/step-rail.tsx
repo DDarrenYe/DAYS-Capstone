@@ -1,15 +1,24 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import { isSaved, loggedAt, stepTitle } from "@/app/student/log/step-meta";
 import type { LoggedStep } from "@/app/student/log/step-meta";
 import { Icon } from "@/components/icon";
+import { SelectionHighlight } from "@/components/selection-highlight";
 import { Progress } from "@/components/ui/progress";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
 type Viewing = number | "new" | undefined;
+type Filter = "all" | "saved" | "waiting";
+
+const filterOptions = [
+  { key: "all", label: "All" },
+  { key: "saved", label: "Saved" },
+  { key: "waiting", label: "Waiting" },
+] as const;
 
 const itemClassName =
-  "hover:bg-foreground/4 aria-[current=step]:bg-ai-wash aria-[current=step]:shadow-ai-ring press focus-visible:shadow-focus grid w-full cursor-pointer grid-cols-[22px_minmax(0,1fr)] gap-x-2.5 rounded-lg px-2.5 py-2 text-left outline-none transition-colors duration-150";
+  "hover:bg-foreground/4 press focus-visible:shadow-focus grid w-full cursor-pointer grid-cols-[22px_minmax(0,1fr)] gap-x-2.5 rounded-lg px-2.5 py-2 text-left outline-none transition-colors duration-150";
 
 const StepGroup = ({
   heading,
@@ -102,6 +111,47 @@ const StepGroup = ({
   );
 };
 
+const RailFilter = ({
+  counts,
+  value,
+  onChange,
+}: {
+  counts: Record<Filter, number>;
+  value: Filter;
+  onChange: (value: Filter) => void;
+}) => (
+  <ToggleGroup
+    aria-label="Show steps"
+    onValueChange={([next]) => {
+      const chosen = filterOptions.find(({ key }) => key === next);
+      if (chosen) {
+        onChange(chosen.key);
+      }
+    }}
+    value={[value]}
+  >
+    <SelectionHighlight
+      className="flex w-full"
+      selector="[data-pressed]"
+      thumbClassName="bg-card shadow-raised rounded-md"
+    >
+      {filterOptions.map(({ key, label }) => (
+        <ToggleGroupItem
+          className="flex-1 justify-center"
+          key={key}
+          tone="thumb"
+          value={key}
+        >
+          {label}
+          <span className="text-faint font-mono tabular-nums">
+            {counts[key]}
+          </span>
+        </ToggleGroupItem>
+      ))}
+    </SelectionHighlight>
+  </ToggleGroup>
+);
+
 export const StepRail = ({
   title,
   steps,
@@ -115,12 +165,15 @@ export const StepRail = ({
   locked: boolean;
   onView: (view: number | "new") => void;
 }) => {
+  const [filter, setFilter] = useState<Filter>("all");
   const saved = steps.filter(isSaved);
   const waiting = steps.filter((step) => !isSaved(step));
+  const filterable = !locked && saved.length > 0 && waiting.length > 0;
+  const shown = filterable ? filter : "all";
   return (
     <nav
       aria-label={`Steps in ${title}`}
-      className="flex flex-col gap-5 px-3 py-4.5 max-lg:border-b lg:overflow-y-auto lg:border-r"
+      className="flex flex-col gap-4 px-3 py-4.5 max-lg:border-b lg:overflow-y-auto lg:border-r"
     >
       <div className="px-2.5">
         <p className="text-label text-muted-foreground font-emphasis truncate">
@@ -137,50 +190,69 @@ export const StepRail = ({
           </span>
         </div>
       </div>
-      {saved.length > 0 ? (
-        <StepGroup
-          heading="Saved in your log"
-          onView={onView}
-          saved
-          steps={saved}
-          viewing={viewing}
+      {filterable ? (
+        <RailFilter
+          counts={{
+            all: steps.length,
+            saved: saved.length,
+            waiting: waiting.length,
+          }}
+          onChange={setFilter}
+          value={shown}
         />
       ) : null}
-      {waiting.length > 0 ? (
-        <StepGroup
-          heading={locked ? "Without a critique" : "Waiting for your critique"}
-          onView={onView}
-          saved={false}
-          steps={waiting}
-          viewing={viewing}
-        />
-      ) : null}
-      {locked ? null : (
-        <button
-          aria-current={viewing === "new" ? "step" : undefined}
-          className={cn(
-            itemClassName,
-            "border-border-strong border border-dashed hover:border-solid aria-[current=step]:border-solid"
-          )}
-          onClick={() => onView("new")}
-          type="button"
-        >
-          <span className="text-body bg-card shadow-hairline row-span-2 mt-0.5 grid size-5.5 place-items-center rounded-full font-mono text-sm leading-none">
-            +
-          </span>
-          <b
+      <SelectionHighlight
+        className="flex flex-col gap-5"
+        selector='[aria-current="step"]'
+        thumbClassName="bg-ai-wash shadow-ai-ring rounded-lg"
+      >
+        {saved.length > 0 && shown !== "waiting" ? (
+          <StepGroup
+            heading="Saved in your log"
+            onView={onView}
+            saved
+            steps={saved}
+            viewing={viewing}
+          />
+        ) : null}
+        {waiting.length > 0 && shown !== "saved" ? (
+          <StepGroup
+            heading={
+              locked ? "Without a critique" : "Waiting for your critique"
+            }
+            onView={onView}
+            saved={false}
+            steps={waiting}
+            viewing={viewing}
+          />
+        ) : null}
+        {locked ? null : (
+          <button
+            aria-current={viewing === "new" ? "step" : undefined}
             className={cn(
-              "text-control font-medium",
-              viewing === "new" ? "text-foreground" : "text-body"
+              itemClassName,
+              "border-border-strong border border-dashed hover:border-solid aria-[current=step]:border-solid"
             )}
+            onClick={() => onView("new")}
+            type="button"
           >
-            Add steps
-          </b>
-          <span className="text-faint text-label">
-            Import a chat or paste one
-          </span>
-        </button>
-      )}
+            <span className="text-body bg-card shadow-hairline row-span-2 mt-0.5 grid size-5.5 place-items-center rounded-full font-mono text-sm leading-none">
+              +
+            </span>
+            <b
+              className={cn(
+                "text-control font-medium",
+                viewing === "new" ? "text-foreground" : "text-body"
+              )}
+            >
+              Add steps
+            </b>
+            <span className="text-faint text-label">
+              Import a chat or paste one
+            </span>
+          </button>
+        )}
+      </SelectionHighlight>
     </nav>
   );
 };

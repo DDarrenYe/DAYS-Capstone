@@ -330,6 +330,13 @@ body {
   }
 }
 
+/* A highlight that slides between slots. Movement is on-screen, so it eases in and out. */
+@utility morph {
+  transition-property: translate, width, height, opacity;
+  transition-duration: 200ms;
+  transition-timing-function: var(--ease-in-out);
+}
+
 /* Reduced motion keeps every fade and colour change and drops anything that moves or scales. */
 @media (prefers-reduced-motion: reduce) {
   *,
