@@ -11,6 +11,7 @@ import {
   marksSchema,
   removeEnrolmentSchema,
 } from "@/lib/data/schemas";
+import { DocxError, readDocument } from "@/lib/import/docx";
 import { ImportError } from "@/lib/import/errors";
 import { loadShare } from "@/lib/import/share";
 import type { Database, Json } from "@/lib/supabase/database.types";
@@ -18,8 +19,10 @@ import type { Database, Json } from "@/lib/supabase/database.types";
 type Client = SupabaseClient<Database>;
 
 const UNIQUE_VIOLATION = "23505";
+const SERIALIZATION_FAILURE = "40001";
 const IMPORT_TOOL = "ChatGPT";
 const MAX_TOOL = 100;
+const MAX_FILENAME = 255;
 const MAX_QUOTE = 300;
 
 const text = z
@@ -47,6 +50,12 @@ const critiqueSchema = z.object({
   projectId: z.guid(),
   stepId: z.guid(),
 });
+const saveFinalSchema = z.object({
+  base: z.int().nonnegative(),
+  filename: z.string().trim().min(1).max(MAX_FILENAME).nullable(),
+  projectId: z.guid(),
+  text: z.string().max(MAX_TEXT),
+});
 const openSchema = z.object({ assignmentId: z.guid() });
 const submitSchema = z.object({ projectId: z.guid() });
 const reviewSchema = z.object({
@@ -59,6 +68,7 @@ export type PreviewInput = z.input<typeof previewSchema>;
 export type ImportInput = z.input<typeof importSchema>;
 export type CritiqueInput = z.input<typeof critiqueSchema>;
 export type RemoveStepInput = z.input<typeof removeStepSchema>;
+export type SaveFinalInput = z.input<typeof saveFinalSchema>;
 export type OpenInput = z.input<typeof openSchema>;
 export type SubmitInput = z.input<typeof submitSchema>;
 export type ReviewInput = z.input<typeof reviewSchema>;
@@ -79,6 +89,18 @@ export interface EnrolResult extends WriteResult {
 export interface StepsResult extends WriteResult {
   added?: number;
   firstStep?: number;
+}
+
+export interface FinalResult extends WriteResult {
+  conflict?: boolean;
+  createdAt?: string;
+  id?: string;
+  version?: number;
+}
+
+export interface DocumentResult extends WriteResult {
+  filename?: string;
+  text?: string;
 }
 
 export interface PreviewResult extends WriteResult {
@@ -278,6 +300,56 @@ export const writeCritique = async (
     .select("id")
     .maybeSingle();
   return settle(data, error);
+};
+
+export const readFinalDocument = async (
+  form: FormData
+): Promise<DocumentResult> => {
+  const file = form.get("file");
+  if (!(file instanceof File)) {
+    return invalidInput;
+  }
+  try {
+    return await readDocument(file);
+  } catch (error) {
+    if (error instanceof DocxError) {
+      return { error: error.message };
+    }
+    throw error;
+  }
+};
+
+export const writeFinal = async (
+  client: Client,
+  input: SaveFinalInput
+): Promise<FinalResult> => {
+  const { data: final, success } = saveFinalSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { data, error } = await client.rpc("save_final_version", {
+    base: final.base,
+    body: final.text,
+    filename: final.filename ?? undefined,
+    project: final.projectId,
+  });
+  if (error?.code === SERIALIZATION_FAILURE) {
+    return {
+      conflict: true,
+      error: "Your final version was changed somewhere else.",
+    };
+  }
+  if (error) {
+    return failure(error);
+  }
+  const [saved] = data;
+  return saved
+    ? {
+        createdAt: saved.created_at,
+        id: saved.id,
+        version: saved.version_number,
+      }
+    : forbidden;
 };
 
 export const removeStep = async (

@@ -608,6 +608,19 @@ export interface Database {
         Args: { project: string; step: string };
         Returns: undefined;
       };
+      save_final_version: {
+        Args: {
+          base: number;
+          body: string;
+          filename?: string;
+          project: string;
+        };
+        Returns: {
+          created_at: string;
+          id: string;
+          version_number: number;
+        }[];
+      };
     };
     Enums: {
       analysis_status: "pending" | "running" | "completed" | "failed";

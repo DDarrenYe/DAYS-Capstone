@@ -8,15 +8,18 @@ import {
   createCourse,
   deleteStep,
   enrolStudents,
+  extractFinal,
   importSteps,
   openProject,
   previewImport,
   removeStudent,
   reviewFlag,
   saveCritique,
+  saveFinal,
   submitProject,
 } from "@/lib/data/actions";
 import {
+  cacheSavedFinal,
   invalidateAfterOpen,
   invalidateAfterReview,
   invalidateAfterSave,
@@ -35,6 +38,7 @@ import type {
   RemoveEnrolmentInput,
   RemoveStepInput,
   ReviewInput,
+  SaveFinalInput,
   StepsResult,
   SubmitInput,
   WriteResult,
@@ -42,11 +46,13 @@ import type {
 
 export class WriteError extends Error {
   field?: string;
+  conflict: boolean;
 
-  constructor(message: string, field?: string) {
+  constructor(message: string, field?: string, conflict = false) {
     super(message);
     this.name = "WriteError";
     this.field = field;
+    this.conflict = conflict;
   }
 }
 
@@ -110,6 +116,49 @@ export const useSaveCritique = (userId: string) => {
       invalidateAfterSave(queryClient, userId, projectId),
   });
 };
+
+export const useSaveFinal = (userId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: SaveFinalInput) => {
+      const { conflict, createdAt, error, id, version } =
+        await saveFinal(input);
+      if (error || !(createdAt && id && version)) {
+        throw new WriteError(
+          error ?? "Unable to save. Try again shortly.",
+          undefined,
+          conflict
+        );
+      }
+      return { createdAt, id, version };
+    },
+    onError: (error, { projectId }) =>
+      error instanceof WriteError && error.conflict
+        ? invalidateAfterSave(queryClient, userId, projectId)
+        : undefined,
+    onSuccess: ({ createdAt, id, version }, input) =>
+      cacheSavedFinal(queryClient, userId, input.projectId, {
+        created_at: createdAt,
+        extracted_text: input.text,
+        id,
+        original_filename: input.filename,
+        version_number: version,
+      }),
+  });
+};
+
+export const useExtractFinal = () =>
+  useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.set("file", file);
+      const { error, filename, text } = await extractFinal(form);
+      if (error || text === undefined || !filename) {
+        throw new WriteError(error ?? "Unable to read that document.");
+      }
+      return { filename, text };
+    },
+  });
 
 export const useDeleteStep = (userId: string) => {
   const queryClient = useQueryClient();

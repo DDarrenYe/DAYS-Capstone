@@ -9,6 +9,7 @@ import type { loadShare } from "@/lib/import/share";
 
 import {
   forbidden,
+  readFinalDocument,
   readImport,
   removeEnrolment,
   removeStep,
@@ -16,6 +17,7 @@ import {
   writeCourse,
   writeCritique,
   writeEnrolments,
+  writeFinal,
   writeImport,
   writeProject,
   writeReview,
@@ -531,6 +533,122 @@ test("removing a step the student cannot edit reads as forbidden", async () => {
     await removeStep(denied.client, { projectId, stepId }),
     forbidden
   );
+});
+
+test("saving final text goes through save_final_version with the version it was based on", async () => {
+  const saved = [
+    {
+      created_at: "2026-10-14T01:00:00Z",
+      id: "70000000-0000-0000-0000-000000000001",
+      version_number: 4,
+    },
+  ];
+  const { client, requests } = clientWith(() => Response.json(saved));
+  assert.deepEqual(
+    await writeFinal(client, {
+      base: 3,
+      filename: "  essay.docx ",
+      projectId,
+      text: "My essay",
+    }),
+    {
+      createdAt: "2026-10-14T01:00:00Z",
+      id: "70000000-0000-0000-0000-000000000001",
+      version: 4,
+    }
+  );
+  assert.equal(requests[0]?.url.pathname, "/rest/v1/rpc/save_final_version");
+  assert.deepEqual(requests[0]?.body, {
+    base: 3,
+    body: "My essay",
+    filename: "essay.docx",
+    project: projectId,
+  });
+  const typed = clientWith(() => Response.json(saved));
+  await writeFinal(typed.client, {
+    base: 0,
+    filename: null,
+    projectId,
+    text: "",
+  });
+  assert.deepEqual(typed.requests[0]?.body, {
+    base: 0,
+    body: "",
+    project: projectId,
+  });
+});
+
+test("invalid final text is rejected before the database is contacted", async () => {
+  const { client, requests } = clientWith();
+  const valid = { base: 0, filename: null, projectId, text: "Essay" };
+  const results = await Promise.all([
+    writeFinal(client, { ...valid, projectId: "nope" }),
+    writeFinal(client, { ...valid, base: -1 }),
+    writeFinal(client, { ...valid, base: 1.5 }),
+    writeFinal(client, { ...valid, filename: "   " }),
+    writeFinal(client, { ...valid, filename: "x".repeat(256) }),
+    writeFinal(client, { ...valid, text: "x".repeat(50_001) }),
+  ]);
+  for (const result of results) {
+    assert.deepEqual(result, { error: "Check the details and try again." });
+  }
+  assert.equal(requests.length, 0);
+});
+
+test("a final version changed elsewhere reads as a conflict, not a failure", async () => {
+  const stale = clientWith(() =>
+    Response.json(
+      { code: "40001", message: "The final version changed somewhere else" },
+      { status: 409 }
+    )
+  );
+  assert.deepEqual(
+    await writeFinal(stale.client, {
+      base: 1,
+      filename: null,
+      projectId,
+      text: "Mine",
+    }),
+    { conflict: true, error: "Your final version was changed somewhere else." }
+  );
+  const denied = clientWith(() =>
+    Response.json({ code: "42501", message: "denied" }, { status: 403 })
+  );
+  assert.deepEqual(
+    await writeFinal(denied.client, {
+      base: 0,
+      filename: null,
+      projectId,
+      text: "Mine",
+    }),
+    forbidden
+  );
+  const empty = clientWith(() => Response.json([]));
+  assert.deepEqual(
+    await writeFinal(empty.client, {
+      base: 0,
+      filename: null,
+      projectId,
+      text: "Mine",
+    }),
+    forbidden
+  );
+});
+
+test("a document upload needs a file and never reaches the database", async () => {
+  assert.deepEqual(await readFinalDocument(new FormData()), {
+    error: "Check the details and try again.",
+  });
+  const text = new FormData();
+  text.set("file", "not a file");
+  assert.deepEqual(await readFinalDocument(text), {
+    error: "Check the details and try again.",
+  });
+  const wrong = new FormData();
+  wrong.set("file", new File(["x"], "essay.pdf"));
+  assert.deepEqual(await readFinalDocument(wrong), {
+    error: "Choose a Word document (.docx).",
+  });
 });
 
 test("submitting only moves a draft the caller can update", async () => {

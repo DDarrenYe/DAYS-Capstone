@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import type { ProjectLog } from "@/lib/data/queries";
 import { composeCritique } from "@/lib/process";
 
-import { critiqueDraft, loggedAt } from "./step-meta";
+import { critiqueDraft, loggedAt, savedFinal } from "./step-meta";
 import type { LoggedStep } from "./step-meta";
 
 const step = (overrides: Partial<LoggedStep>): LoggedStep => ({
@@ -56,6 +57,43 @@ test("an older free-text critique is offered as the check so nothing is lost", (
     sources: [],
     verdict: null,
   });
+});
+
+const log = (rows: ProjectLog["final_versions"]): ProjectLog => ({
+  assignment_id: "assignment",
+  final_versions: rows,
+  id: "project",
+  iterations: [],
+  status: "draft",
+  submitted_at: null,
+});
+
+test("the saved final version is the current row, or empty before the first save", () => {
+  assert.deepEqual(savedFinal(log([])), {
+    createdAt: null,
+    filename: null,
+    text: "",
+    version: 0,
+  });
+  assert.deepEqual(
+    savedFinal(
+      log([
+        {
+          created_at: "2026-10-14T01:00:00Z",
+          extracted_text: "Essay",
+          id: "final",
+          original_filename: "essay.docx",
+          version_number: 3,
+        },
+      ])
+    ),
+    {
+      createdAt: "2026-10-14T01:00:00Z",
+      filename: "essay.docx",
+      text: "Essay",
+      version: 3,
+    }
+  );
 });
 
 test("a step with no critique yet starts empty", () => {

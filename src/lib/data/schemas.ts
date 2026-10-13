@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Database } from "@/lib/supabase/database.types";
 
 export const MAX_TEXT = 50_000;
+export const MAX_DOCX_BYTES = 4_000_000;
 const MAX_LABEL = 200;
 const MAX_EMAIL = 320;
 const MAX_ENROLMENTS = 500;

@@ -6,15 +6,18 @@ import { parseAsString, useQueryState } from "nuqs";
 
 import { AddStep } from "@/app/student/log/add-step";
 import { CritiqueForm } from "@/app/student/log/critique-form";
+import { FinalPanel } from "@/app/student/log/final-panel";
 import { LogSkeleton } from "@/app/student/log/log-skeleton";
-import { isSaved, logHref } from "@/app/student/log/step-meta";
-import type { LoggedStep } from "@/app/student/log/step-meta";
+import { isSaved, logHref, savedFinal } from "@/app/student/log/step-meta";
+import type { LoggedStep, SavedFinal } from "@/app/student/log/step-meta";
 import { StepRail } from "@/app/student/log/step-rail";
 import { StepView } from "@/app/student/log/step-view";
+import { useFinalDraft } from "@/app/student/log/use-final-draft";
 import { PageBar } from "@/components/shell/page-bar";
 import { Button } from "@/components/ui/button";
 import { assignmentsQuery, projectLogQuery } from "@/lib/data/queries";
 import type { AssignmentRows, ProjectLog } from "@/lib/data/queries";
+import { countWords } from "@/lib/process";
 import { createClient } from "@/lib/supabase/browser";
 
 type Assignment = AssignmentRows[number];
@@ -56,7 +59,10 @@ const chooseStep = (
   steps: readonly LoggedStep[],
   requested: string | null,
   locked: boolean
-): LoggedStep | "new" | undefined => {
+): LoggedStep | "new" | "final" | undefined => {
+  if (requested === "final") {
+    return "final";
+  }
   if (requested === "new" && !locked) {
     return "new";
   }
@@ -84,15 +90,29 @@ const nextAfter = (steps: readonly LoggedStep[], done: LoggedStep) => {
 const ActivePanel = ({
   view,
   log,
+  final,
+  saved,
   userId,
 }: {
-  view: LoggedStep | "new" | undefined;
+  view: LoggedStep | "new" | "final" | undefined;
   log: ProjectLog;
+  final: ReturnType<typeof useFinalDraft>;
+  saved: SavedFinal;
   userId: string;
 }) => {
   const [editParam] = useQueryState("edit", parseAsString);
   const steps = log.iterations;
   const locked = log.status !== "draft";
+  if (view === "final") {
+    return (
+      <FinalPanel
+        final={final}
+        locked={locked}
+        saved={saved}
+        stepCount={steps.length}
+      />
+    );
+  }
   if (view === "new") {
     return <AddStep projectId={log.id} steps={steps} userId={userId} />;
   }
@@ -143,8 +163,18 @@ const Workspace = ({
   const steps = log.iterations;
   const locked = log.status !== "draft";
   const view = chooseStep(steps, stepParam, locked);
-  const viewing = view === "new" ? view : view?.step_number;
-  const label = view === "new" ? "Add steps" : `Step ${viewing ?? 0}`;
+  const viewing = view === "new" || view === "final" ? view : view?.step_number;
+  const saved = savedFinal(log);
+  const final = useFinalDraft({
+    locked,
+    projectId: log.id,
+    saved,
+    userId,
+  });
+  const labels = { final: "Final version", new: "Add steps" };
+  const label =
+    view === "new" || view === "final" ? labels[view] : `Step ${viewing ?? 0}`;
+  const finalWords = countWords(final.text);
   return (
     <>
       <PageBar
@@ -156,6 +186,10 @@ const Workspace = ({
       />
       <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[252px_minmax(0,1fr)_300px] lg:overflow-hidden">
         <StepRail
+          finalLabel={
+            final.filename ??
+            (finalWords > 0 ? `${finalWords} words` : undefined)
+          }
           locked={locked}
           onView={(next) => {
             setEditParam(null);
@@ -165,7 +199,13 @@ const Workspace = ({
           title={assignment.title}
           viewing={viewing}
         />
-        <ActivePanel log={log} userId={userId} view={view} />
+        <ActivePanel
+          final={final}
+          log={log}
+          saved={saved}
+          userId={userId}
+          view={view}
+        />
       </div>
     </>
   );

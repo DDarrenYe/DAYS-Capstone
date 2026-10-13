@@ -7,9 +7,11 @@ import {
   writeAssignment,
   writeCourse,
   writeEnrolments,
+  readFinalDocument,
   readImport,
   removeStep,
   writeCritique,
+  writeFinal,
   writeImport,
   writeProject,
   writeReview,
@@ -21,8 +23,10 @@ import type {
   AssignmentInput,
   CourseInput,
   CritiqueInput,
+  DocumentResult,
   EnrolInput,
   EnrolResult,
+  FinalResult,
   ImportInput,
   PreviewInput,
   PreviewResult,
@@ -30,6 +34,7 @@ import type {
   RemoveStepInput,
   OpenInput,
   ReviewInput,
+  SaveFinalInput,
   StepsResult,
   SubmitInput,
   WriteResult,
@@ -78,6 +83,24 @@ export const saveCritique = async (
     return forbidden;
   }
   return writeCritique(await createClient(), input);
+};
+
+export const saveFinal = async (
+  input: SaveFinalInput
+): Promise<FinalResult> => {
+  const account = await getAccount();
+  if (account?.role !== "student") {
+    return forbidden;
+  }
+  return writeFinal(await createClient(), input);
+};
+
+export const extractFinal = async (form: FormData): Promise<DocumentResult> => {
+  const account = await getAccount();
+  if (account?.role !== "student") {
+    return forbidden;
+  }
+  return readFinalDocument(form);
 };
 
 export const deleteStep = async (
