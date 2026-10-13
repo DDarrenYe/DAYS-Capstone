@@ -61,6 +61,10 @@ const BOOK =
 const USED =
   "M9 3.25H6.25A2.25 2.25 0 0 0 4 5.5v9.25A2.25 2.25 0 0 0 6.25 17h7.5A2.25 2.25 0 0 0 16 14.75v-3";
 
+const TRASH =
+  "M5.5 7h9l-.7 8.1a1.75 1.75 0 0 1-1.75 1.65h-4.1a1.75 1.75 0 0 1-1.75-1.65z";
+const PENCIL = "M13.2 3.8a1.9 1.9 0 0 1 2.7 2.7L7.4 15l-3.65 1.25L5 12.6z";
+
 const glyphs = {
   submissions: (
     <>
@@ -213,6 +217,28 @@ const glyphs = {
         d="M12.25 4.4h2.25v4.85l-1.13-.9-1.12.9z"
         className="icon-accent-fill"
       />
+    </>
+  ),
+  trash: (
+    <>
+      <Tint d={TRASH} />
+      <path d={TRASH} />
+      <path d="M4 5.25h12 M8 5.25V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.25" />
+      <path d="M8.5 9.5v4 M11.5 9.5v4" className="icon-accent-stroke" />
+    </>
+  ),
+  edit: (
+    <>
+      <Tint d={`${PENCIL}z`} />
+      <path d={PENCIL} />
+      <path d="M11.5 5.5l3 3" className="icon-accent-stroke" />
+    </>
+  ),
+  more: (
+    <>
+      <Dot cx={4.5} cy={10} r={1.4} plain />
+      <Dot cx={10} cy={10} r={1.4} plain />
+      <Dot cx={15.5} cy={10} r={1.4} plain />
     </>
   ),
   lock: (

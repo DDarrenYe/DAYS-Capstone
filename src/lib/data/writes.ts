@@ -40,6 +40,7 @@ const previewSchema = z.object({
 const importSchema = previewSchema.extend({
   stepIds: z.array(z.string().max(200)).max(200).optional(),
 });
+const removeStepSchema = z.object({ projectId: z.guid(), stepId: z.guid() });
 const critiqueSchema = z.object({
   critique: text,
   marks: marksSchema.default([]),
@@ -57,6 +58,7 @@ export type AddStepInput = z.input<typeof addStepSchema>;
 export type PreviewInput = z.input<typeof previewSchema>;
 export type ImportInput = z.input<typeof importSchema>;
 export type CritiqueInput = z.input<typeof critiqueSchema>;
+export type RemoveStepInput = z.input<typeof removeStepSchema>;
 export type OpenInput = z.input<typeof openSchema>;
 export type SubmitInput = z.input<typeof submitSchema>;
 export type ReviewInput = z.input<typeof reviewSchema>;
@@ -276,6 +278,21 @@ export const writeCritique = async (
     .select("id")
     .maybeSingle();
   return settle(data, error);
+};
+
+export const removeStep = async (
+  client: Client,
+  input: RemoveStepInput
+): Promise<WriteResult> => {
+  const { data: removal, success } = removeStepSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { error } = await client.rpc("remove_step", {
+    project: removal.projectId,
+    step: removal.stepId,
+  });
+  return error ? failure(error) : {};
 };
 
 export const writeProject = async (

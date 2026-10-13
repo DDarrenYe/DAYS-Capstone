@@ -1,6 +1,7 @@
 import { CritiqueSidebar } from "@/app/student/log/critique-sidebar";
 import { MarkedAnswer } from "@/app/student/log/marked-answer";
 import { Center, Part, SourceChip } from "@/app/student/log/part";
+import { StepActions } from "@/app/student/log/step-actions";
 import { answerLabel, marksOf, stepTitle } from "@/app/student/log/step-meta";
 import type { LoggedStep } from "@/app/student/log/step-meta";
 import { Icon } from "@/components/icon";
@@ -116,9 +117,15 @@ const Evidence = ({ text }: { text: string }) => (
 export const StepView = ({
   step,
   steps,
+  projectId,
+  userId,
+  locked,
 }: {
   step: LoggedStep;
   steps: readonly LoggedStep[];
+  projectId: string;
+  userId: string;
+  locked: boolean;
 }) => {
   const marks = marksOf(step);
   return (
@@ -140,9 +147,20 @@ export const StepView = ({
               </Badge>
             )}
           </p>
-          <h1 className="text-title mt-2 mb-5 font-semibold text-balance">
-            {stepTitle(step)}
-          </h1>
+          <div className="mt-2 mb-5 flex items-start gap-3">
+            <h1 className="text-title flex-1 font-semibold text-balance">
+              {stepTitle(step)}
+            </h1>
+            {locked ? null : (
+              <StepActions
+                projectId={projectId}
+                saved={step.critique !== null}
+                step={step}
+                total={steps.length}
+                userId={userId}
+              />
+            )}
+          </div>
           <Part
             meta={<SourceChip step={step} />}
             number="01"

@@ -6,6 +6,7 @@ import {
   addStep,
   createAssignment,
   createCourse,
+  deleteStep,
   enrolStudents,
   importSteps,
   openProject,
@@ -32,6 +33,7 @@ import type {
   OpenInput,
   PreviewInput,
   RemoveEnrolmentInput,
+  RemoveStepInput,
   ReviewInput,
   StepsResult,
   SubmitInput,
@@ -104,6 +106,15 @@ export const useSaveCritique = (userId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: CritiqueInput) => succeeded(saveCritique(input)),
+    onSuccess: (_result, { projectId }) =>
+      invalidateAfterSave(queryClient, userId, projectId),
+  });
+};
+
+export const useDeleteStep = (userId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RemoveStepInput) => succeeded(deleteStep(input)),
     onSuccess: (_result, { projectId }) =>
       invalidateAfterSave(queryClient, userId, projectId),
   });

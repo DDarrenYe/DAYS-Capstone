@@ -81,6 +81,54 @@ const nextAfter = (steps: readonly LoggedStep[], done: LoggedStep) => {
   return (later ?? waiting[0])?.step_number ?? "new";
 };
 
+const ActivePanel = ({
+  view,
+  log,
+  userId,
+}: {
+  view: LoggedStep | "new" | undefined;
+  log: ProjectLog;
+  userId: string;
+}) => {
+  const [editParam] = useQueryState("edit", parseAsString);
+  const steps = log.iterations;
+  const locked = log.status !== "draft";
+  if (view === "new") {
+    return <AddStep projectId={log.id} steps={steps} userId={userId} />;
+  }
+  if (!view) {
+    return (
+      <p className="text-muted-foreground px-10 py-5.5 max-md:px-4">
+        This log was submitted without any steps.
+      </p>
+    );
+  }
+  const editing = !locked && editParam === String(view.step_number);
+  if (!locked && (!isSaved(view) || editing)) {
+    return (
+      <CritiqueForm
+        editing={editing}
+        key={`${view.id}-${editing}`}
+        next={nextAfter(steps, view)}
+        projectId={log.id}
+        step={view}
+        steps={steps}
+        userId={userId}
+      />
+    );
+  }
+  return (
+    <StepView
+      key={view.id}
+      locked={locked}
+      projectId={log.id}
+      step={view}
+      steps={steps}
+      userId={userId}
+    />
+  );
+};
+
 const Workspace = ({
   assignment,
   log,
@@ -91,6 +139,7 @@ const Workspace = ({
   userId: string;
 }) => {
   const [stepParam, setStepParam] = useQueryState("step", parseAsString);
+  const [, setEditParam] = useQueryState("edit", parseAsString);
   const steps = log.iterations;
   const locked = log.status !== "draft";
   const view = chooseStep(steps, stepParam, locked);
@@ -108,32 +157,15 @@ const Workspace = ({
       <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[252px_minmax(0,1fr)_300px] lg:overflow-hidden">
         <StepRail
           locked={locked}
-          onView={(next) => setStepParam(String(next))}
+          onView={(next) => {
+            setEditParam(null);
+            setStepParam(String(next));
+          }}
           steps={steps}
           title={assignment.title}
           viewing={viewing}
         />
-        {view === "new" ? (
-          <AddStep projectId={log.id} steps={steps} userId={userId} />
-        ) : null}
-        {view && view !== "new" && (locked || isSaved(view)) ? (
-          <StepView key={view.id} step={view} steps={steps} />
-        ) : null}
-        {view && view !== "new" && !locked && !isSaved(view) ? (
-          <CritiqueForm
-            key={view.id}
-            next={nextAfter(steps, view)}
-            projectId={log.id}
-            step={view}
-            steps={steps}
-            userId={userId}
-          />
-        ) : null}
-        {view ? null : (
-          <p className="text-muted-foreground px-10 py-5.5 max-md:px-4">
-            This log was submitted without any steps.
-          </p>
-        )}
+        <ActivePanel log={log} userId={userId} view={view} />
       </div>
     </>
   );

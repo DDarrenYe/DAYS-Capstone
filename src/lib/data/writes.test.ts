@@ -11,6 +11,7 @@ import {
   forbidden,
   readImport,
   removeEnrolment,
+  removeStep,
   writeAssignment,
   writeCourse,
   writeCritique,
@@ -501,6 +502,35 @@ test("a mark outside the answer, or a step the student cannot see, is not saved"
     Response.json([])
   );
   assert.deepEqual(await writeCritique(lost.client, critique), forbidden);
+});
+
+test("removing a step goes through remove_step for that project and step only", async () => {
+  const { client, requests } = clientWith(() => Response.json(null));
+  assert.deepEqual(await removeStep(client, { projectId, stepId }), {});
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0]?.method, "POST");
+  assert.equal(requests[0]?.url.pathname, "/rest/v1/rpc/remove_step");
+  assert.deepEqual(requests[0]?.body, { project: projectId, step: stepId });
+  const invalid = clientWith();
+  const results = await Promise.all([
+    removeStep(invalid.client, { projectId: "nope", stepId }),
+    removeStep(invalid.client, { projectId, stepId: "nope" }),
+  ]);
+  assert.deepEqual(results, [
+    { error: "Check the details and try again." },
+    { error: "Check the details and try again." },
+  ]);
+  assert.equal(invalid.requests.length, 0);
+});
+
+test("removing a step the student cannot edit reads as forbidden", async () => {
+  const denied = clientWith(() =>
+    Response.json({ code: "42501", message: "denied" }, { status: 403 })
+  );
+  assert.deepEqual(
+    await removeStep(denied.client, { projectId, stepId }),
+    forbidden
+  );
 });
 
 test("submitting only moves a draft the caller can update", async () => {

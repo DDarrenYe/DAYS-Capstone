@@ -604,6 +604,10 @@ export interface Database {
         };
         Returns: boolean;
       };
+      remove_step: {
+        Args: { project: string; step: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       analysis_status: "pending" | "running" | "completed" | "failed";

@@ -4,6 +4,7 @@ import { after, before, test } from "node:test";
 
 import { createClient } from "@supabase/supabase-js";
 import type {
+  SupabaseClient,
   PostgrestError,
   PostgrestSingleResponse,
 } from "@supabase/supabase-js";
@@ -31,6 +32,7 @@ import {
   removeEnrolment,
   writeEnrolments,
   readImport,
+  removeStep,
   writeCritique,
   writeImport,
   writeProject,
@@ -705,6 +707,109 @@ test("imports add steps in order, once, even when repeated or concurrent with ot
     await admin.from("projects").delete().eq("assignment_id", fresh.id);
     await admin.from("assignments").delete().eq("id", fresh.id);
   }
+});
+
+const withDraft = async (
+  student: { client: SupabaseClient<Database>; id: string },
+  title: string,
+  body: (projectId: string) => Promise<void>
+) => {
+  const { data: course } = await admin
+    .from("enrolments")
+    .select("course_id")
+    .eq("student_id", student.id)
+    .single();
+  const assignment = await must(
+    admin
+      .from("assignments")
+      .insert({
+        course_id: course?.course_id ?? "",
+        lane: "lane_2",
+        title: `${tag} ${title}`,
+      })
+      .select("id")
+      .single()
+  );
+  try {
+    await writeProject(student.client, student.id, {
+      assignmentId: assignment.id,
+    });
+    const project = await must(
+      admin
+        .from("projects")
+        .select("id")
+        .eq("assignment_id", assignment.id)
+        .single()
+    );
+    await body(project.id);
+  } finally {
+    await admin.from("projects").delete().eq("assignment_id", assignment.id);
+    await admin.from("assignments").delete().eq("id", assignment.id);
+  }
+};
+
+test("removing a middle step keeps the others attached to their own notes and numbers them in a row", async () => {
+  const { s1, s2, teacherA } = await fixture;
+  await withDraft(s1, "Remove", async (projectId) => {
+    await run(
+      admin.from("iterations").insert(
+        ["One", "Two", "Three", "Four"].map((name, index) => ({
+          ai_tool: "Tool",
+          project_id: projectId,
+          prompt: name,
+          raw_answer: `${name} answer`,
+          step_number: index + 1,
+        }))
+      )
+    );
+    const steps = () =>
+      must(
+        admin
+          .from("iterations")
+          .select("id, step_number, critique")
+          .eq("project_id", projectId)
+          .order("step_number")
+      );
+    const [first, second, third, fourth] = await steps();
+    await writeCritique(s1.client, {
+      critique: "About three",
+      projectId,
+      stepId: third?.id ?? "",
+    });
+    const denied = await Promise.all([
+      removeStep(s2.client, { projectId, stepId: second?.id ?? "" }),
+      removeStep(teacherA.client, { projectId, stepId: second?.id ?? "" }),
+      removeStep(s1.client, {
+        projectId,
+        stepId: "00000000-0000-4000-8000-000000000000",
+      }),
+    ]);
+    assert.deepEqual(denied, [forbidden, forbidden, forbidden]);
+    assert.deepEqual(
+      await removeStep(s1.client, { projectId, stepId: second?.id ?? "" }),
+      {}
+    );
+    const remaining = await steps();
+    assert.deepEqual(
+      remaining.map(({ id, step_number }) => [id, step_number]),
+      [
+        [first?.id, 1],
+        [third?.id, 2],
+        [fourth?.id, 3],
+      ]
+    );
+    assert.equal(remaining[1]?.critique, "About three");
+    const both = await Promise.all([
+      removeStep(s1.client, { projectId, stepId: first?.id ?? "" }),
+      removeStep(s1.client, { projectId, stepId: fourth?.id ?? "" }),
+    ]);
+    assert.deepEqual(both, [{}, {}]);
+    const last = await steps();
+    assert.deepEqual(
+      last.map(({ id, step_number }) => [id, step_number]),
+      [[third?.id, 1]]
+    );
+  });
 });
 
 test("opening a Lane 2 assignment creates one project, however often it is opened", async () => {

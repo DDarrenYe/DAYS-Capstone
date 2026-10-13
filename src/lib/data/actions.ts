@@ -8,6 +8,7 @@ import {
   writeCourse,
   writeEnrolments,
   readImport,
+  removeStep,
   writeCritique,
   writeImport,
   writeProject,
@@ -26,6 +27,7 @@ import type {
   PreviewInput,
   PreviewResult,
   RemoveEnrolmentInput,
+  RemoveStepInput,
   OpenInput,
   ReviewInput,
   StepsResult,
@@ -76,6 +78,16 @@ export const saveCritique = async (
     return forbidden;
   }
   return writeCritique(await createClient(), input);
+};
+
+export const deleteStep = async (
+  input: RemoveStepInput
+): Promise<WriteResult> => {
+  const account = await getAccount();
+  if (account?.role !== "student") {
+    return forbidden;
+  }
+  return removeStep(await createClient(), input);
 };
 
 export const submitProject = async (

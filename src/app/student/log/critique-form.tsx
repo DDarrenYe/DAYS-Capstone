@@ -1,15 +1,21 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useEffectEvent, useId } from "react";
+import { useEffect, useEffectEvent, useId, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { z } from "zod";
 
 import { AnswerMarker } from "@/app/student/log/answer-marker";
+import { ConfirmDialog } from "@/app/student/log/confirm-dialog";
 import { CritiqueSidebar } from "@/app/student/log/critique-sidebar";
 import { Center, Part, SourceChip } from "@/app/student/log/part";
 import { SourceList } from "@/app/student/log/source-list";
-import { answerLabel, stepTitle } from "@/app/student/log/step-meta";
+import { StepActions } from "@/app/student/log/step-actions";
+import {
+  answerLabel,
+  critiqueDraft,
+  stepTitle,
+} from "@/app/student/log/step-meta";
 import type { LoggedStep } from "@/app/student/log/step-meta";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/ui/badge";
@@ -99,6 +105,8 @@ const SaveBar = ({
   error,
   saving,
   disabled,
+  secondary,
+  saveLabel,
 }: {
   coverage: Record<(typeof critiqueOrder)[number], boolean>;
   status: string;
@@ -106,6 +114,8 @@ const SaveBar = ({
   error: string | undefined;
   saving: boolean;
   disabled: boolean;
+  secondary: ReactNode;
+  saveLabel: string;
 }) => (
   <div className="bg-card/85 sticky bottom-0 z-10 -mx-10 mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-10 py-3 backdrop-blur-md max-md:-mx-4 max-md:px-4">
     <ol aria-label="Questions answered" className="flex items-center gap-1">
@@ -141,10 +151,13 @@ const SaveBar = ({
         {error} Your draft is still here.
       </span>
     ) : null}
-    <Button className="ml-auto" disabled={disabled} size="lg" type="submit">
-      {saving ? "Saving…" : "Save step"}
-      <Kbd>⌘↵</Kbd>
-    </Button>
+    <span className="ml-auto flex items-center gap-2">
+      {secondary}
+      <Button disabled={disabled} size="lg" type="submit">
+        {saving ? "Saving…" : saveLabel}
+        <Kbd>⌘↵</Kbd>
+      </Button>
+    </span>
   </div>
 );
 
@@ -154,18 +167,26 @@ export const CritiqueForm = ({
   projectId,
   userId,
   next,
+  editing,
 }: {
   step: LoggedStep;
   steps: readonly LoggedStep[];
   projectId: string;
   userId: string;
   next: number | "new";
+  editing: boolean;
 }) => {
   const [, setStepParam] = useQueryState("step", parseAsString);
+  const [, setEditParam] = useQueryState("edit", parseAsString);
+  const [discarding, setDiscarding] = useState(false);
+  const start = useMemo(
+    () => (editing ? critiqueDraft(step) : EMPTY),
+    [editing, step]
+  );
   const [draft, setDraft, clearDraft] = usePersistentState(
-    `log:${projectId}:draft:${step.id}`,
+    `log:${projectId}:${editing ? "edit" : "draft"}:${step.id}`,
     draftSchema,
-    EMPTY
+    start
   );
   const { verdict, check, change, sources, marks } = draft;
   const edit = (patch: Partial<Draft>) =>
@@ -196,7 +217,18 @@ export const CritiqueForm = ({
       return;
     }
     clearDraft();
-    setStepParam(String(next));
+    if (editing) {
+      setEditParam(null);
+    } else {
+      setStepParam(String(next));
+    }
+  };
+
+  const kept = draft !== start;
+  const leave = () => {
+    clearDraft();
+    setEditParam(null);
+    setDiscarding(false);
   };
 
   const onShortcut = useEffectEvent((event: KeyboardEvent) => {
@@ -228,14 +260,28 @@ export const CritiqueForm = ({
             </span>
             <span>of {steps.length}</span>
             <Badge variant="ai">{step.ai_tool}</Badge>
-            <Badge variant="review">
-              <i className="bg-review size-1.5 rounded-full" />
-              Needs your critique
-            </Badge>
+            {editing ? (
+              <Badge variant="outline">Editing your critique</Badge>
+            ) : (
+              <Badge variant="review">
+                <i className="bg-review size-1.5 rounded-full" />
+                Needs your critique
+              </Badge>
+            )}
           </p>
-          <h1 className="text-title mt-2 mb-5 font-semibold text-balance">
-            {stepTitle(step)}
-          </h1>
+          <div className="mt-2 mb-5 flex items-start gap-3">
+            <h1 className="text-title flex-1 font-semibold text-balance">
+              {stepTitle(step)}
+            </h1>
+            <StepActions
+              editing={editing}
+              projectId={projectId}
+              saved={editing}
+              step={step}
+              total={steps.length}
+              userId={userId}
+            />
+          </div>
 
           <Part
             meta={<SourceChip step={step} />}
@@ -327,11 +373,37 @@ export const CritiqueForm = ({
             coverage={coverage}
             disabled={!complete || mutation.isPending}
             error={mutation.error?.message}
-            kept={draft !== EMPTY}
+            kept={kept}
+            saveLabel={editing ? "Save changes" : "Save step"}
             saving={mutation.isPending}
+            secondary={
+              editing || kept ? (
+                <Button
+                  onClick={() => (kept ? setDiscarding(true) : leave())}
+                  size="lg"
+                  type="button"
+                  variant="ghost"
+                >
+                  {editing ? "Cancel" : "Discard draft"}
+                </Button>
+              ) : null
+            }
             status={saveStatus(complete, unexplained, answered)}
           />
         </form>
+        <ConfirmDialog
+          confirm="Discard"
+          description={
+            editing
+              ? "Your edits to this critique will be thrown away. The saved critique stays as it was."
+              : "What you've written for this step so far will be deleted from this device. The step itself stays in your log."
+          }
+          onConfirm={leave}
+          onOpenChange={setDiscarding}
+          open={discarding}
+          pendingLabel="Discarding…"
+          title={editing ? "Discard your changes?" : "Discard this draft?"}
+        />
       </Center>
       <CritiqueSidebar
         coverage={coverage}
