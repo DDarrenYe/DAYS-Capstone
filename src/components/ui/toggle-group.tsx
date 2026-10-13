@@ -31,6 +31,7 @@ const itemVariants = cva(
           "data-pressed:bg-card data-pressed:text-foreground data-pressed:shadow-raised",
         review: "data-pressed:bg-review-soft data-pressed:text-review-ink",
         success: "data-pressed:bg-success-soft data-pressed:text-success",
+        thumb: "data-pressed:text-foreground",
       },
     },
   }

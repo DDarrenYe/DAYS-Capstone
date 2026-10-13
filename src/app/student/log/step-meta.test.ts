@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { composeCritique } from "@/lib/process";
 
-import { critiqueDraft } from "./step-meta";
+import { critiqueDraft, loggedAt } from "./step-meta";
 import type { LoggedStep } from "./step-meta";
 
 const step = (overrides: Partial<LoggedStep>): LoggedStep => ({
@@ -66,4 +66,10 @@ test("a step with no critique yet starts empty", () => {
     sources: [],
     verdict: null,
   });
+});
+
+test("a step shows the day and time it was saved to the log", () => {
+  const shown = loggedAt(step({ created_at: "2026-10-13T12:34:00Z" }));
+  assert.match(shown, /Oct/u);
+  assert.match(shown, /\d{1,2}:\d{2}/u);
 });

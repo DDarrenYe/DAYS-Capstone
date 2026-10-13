@@ -2,17 +2,16 @@ import { CritiqueSidebar } from "@/app/student/log/critique-sidebar";
 import { MarkedAnswer } from "@/app/student/log/marked-answer";
 import { Center, Part, SourceChip } from "@/app/student/log/part";
 import { StepActions } from "@/app/student/log/step-actions";
-import { answerLabel, marksOf, stepTitle } from "@/app/student/log/step-meta";
+import {
+  answerLabel,
+  loggedAt,
+  marksOf,
+  stepTitle,
+} from "@/app/student/log/step-meta";
 import type { LoggedStep } from "@/app/student/log/step-meta";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/ui/badge";
 import { parseCritique } from "@/lib/process";
-
-const logged = new Intl.DateTimeFormat("en", {
-  day: "numeric",
-  month: "short",
-  weekday: "short",
-});
 
 const verdictBadge = {
   partly: { label: "Partly right", variant: "review" },
@@ -137,7 +136,8 @@ export const StepView = ({
               Step {step.step_number}
             </span>
             <span>
-              of {steps.length} · {logged.format(new Date(step.created_at))}
+              of {steps.length} ·{" "}
+              <time dateTime={step.created_at}>{loggedAt(step)}</time>
             </span>
             <Badge variant="ai">{step.ai_tool}</Badge>
             {step.critique === null ? null : (
