@@ -10,6 +10,18 @@ const MAX_TITLE = 80;
 
 const marksList = z.array(markDraftSchema);
 
+const loggedFormat = new Intl.DateTimeFormat("en", {
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  month: "short",
+  weekday: "short",
+});
+
+export const loggedAt = ({
+  created_at: createdAt,
+}: Pick<LoggedStep, "created_at">) => loggedFormat.format(new Date(createdAt));
+
 export const stepTitle = ({ prompt }: Pick<LoggedStep, "prompt">) => {
   const line = prompt.trim().split("\n")[0] ?? "";
   return line.length > MAX_TITLE ? `${line.slice(0, MAX_TITLE)}…` : line;
