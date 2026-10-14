@@ -15,7 +15,7 @@
     },
     "M4": {
       "role": "AI + platform",
-      "owns": "Anthropic flagging pipeline, PDF export, Vercel, CI, Playwright"
+      "owns": "LLM flagging pipeline, PDF export, Vercel, CI, Playwright"
     }
   },
   "labels": {
@@ -50,7 +50,7 @@
     {
       "key": "M4",
       "title": "M4 · Sprint 4: LLM flagging and PDF export",
-      "description": "Anthropic flags on submit, cost guards, accuracy check, PDF export."
+      "description": "LLM flags on submit, cost guards, accuracy check, PDF export."
     },
     {
       "key": "M5",
@@ -69,7 +69,7 @@
       "title": "AI-Interaction Analytics: project tracker",
       "tracker": true,
       "labels": ["tracker"],
-      "body": "Capstone build for INFOMGMT 399 (Proposal 1). Students log each AI iteration (prompt, raw output, critique); graders get a Process Visualiser with human-vs-AI contribution, LLM flags and PDF export.\n\nStack: Next.js 15 (App Router), Tailwind + shadcn/ui (Base UI), Supabase (Postgres, Auth, RLS), Anthropic API, @react-pdf/renderer, Vercel.\n\nPlan: `docs/plan.md`. Mockups: `design/mockups/`, screenshots in `design/screenshots/`.\n\nReports 1 and 2 are already submitted; the remaining written deliverable is the Final Report. Each milestone has its own tracker as a sub-issue of this one. Difficulty markers: 🟢 easy, 🟡 medium, 🔴 hard. Reassess difficulty at task start, when evidence changes the estimate, and before the completion report; update the title marker and note the reason on the issue."
+      "body": "Capstone build for INFOMGMT 399 (Proposal 1). Students log each AI iteration (prompt, raw output, critique); graders get a Process Visualiser with human-vs-AI contribution, LLM flags and PDF export.\n\nStack: Next.js 15 (App Router), Tailwind + shadcn/ui (Base UI), Supabase (Postgres, Auth, RLS), Vercel AI SDK with an OpenAI-compatible LLM API (GLM on Z.ai), @react-pdf/renderer, Vercel.\n\nPlan: `docs/plan.md`. Mockups: `design/mockups/`, screenshots in `design/screenshots/`.\n\nReports 1 and 2 are already submitted; the remaining written deliverable is the Final Report. Each milestone has its own tracker as a sub-issue of this one. Difficulty markers: 🟢 easy, 🟡 medium, 🔴 hard. Reassess difficulty at task start, when evidence changes the estimate, and before the completion report; update the title marker and note the reason on the issue."
     },
     {
       "key": "T1",
@@ -142,7 +142,7 @@
       "labels": ["area:platform"],
       "blocked_by": ["F1"],
       "title": "Deploy to Vercel with preview deployments and environment variables",
-      "body": "Connect the GitHub repo to a Vercel project. Set the Supabase and Anthropic environment variables for Preview and Production. Confirm every PR gets a preview URL and `main` deploys to production.\n\nDone when: a PR comment shows a working preview URL and the production URL is in the README."
+      "body": "Connect the GitHub repo to a Vercel project. Set the Supabase and LLM API (base URL, key, model) environment variables for Preview and Production. Confirm every PR gets a preview URL and `main` deploys to production.\n\nDone when: a PR comment shows a working preview URL and the production URL is in the README."
     },
     {
       "key": "F7",
@@ -356,7 +356,7 @@
       "title": "Sprint 4: LLM flagging and PDF export (tracker)",
       "tracker": true,
       "labels": ["tracker"],
-      "body": "Anthropic-based flagging of low-effort, blind-accept and AI-written critiques, run once on submission with cost guards, surfaced in the dashboard, plus the PDF report export.\n\nDone when flags appear within a minute of submission and the PDF downloads for any submission."
+      "body": "LLM-based flagging of low-effort, blind-accept and AI-written critiques, run once on submission with cost guards, surfaced in the dashboard, plus the PDF report export.\n\nDone when flags appear within a minute of submission and the PDF downloads for any submission."
     },
     {
       "key": "L1",
@@ -366,8 +366,8 @@
       "difficulty": "medium",
       "labels": ["area:ai"],
       "blocked_by": ["F1"],
-      "title": "Anthropic client and the flagging prompt with a fixed rubric",
-      "body": "Add `src/lib/flagging/` with an Anthropic SDK client (`claude-haiku-5-5`), a system prompt that defines three flag kinds (low_effort, blind_accept, ai_written) with examples, and a tool-use schema returning `{kind, confidence, rationale}[]` per iteration. Input per call: prompt, AI output, critique, and whether the final version contains the output verbatim.\n\nDone when: a unit test with 6 fixture iterations returns the expected flag kinds and the prompt is documented in `docs/flagging.md`."
+      "title": "LLM client and the flagging prompt with a fixed rubric",
+      "body": "Add `src/lib/flagging/` with a client using the Vercel AI SDK's OpenAI-compatible provider (base URL, key and model from server environment variables, GLM on Z.ai), a system prompt that defines three flag kinds (low_effort, blind_accept, ai_written) with examples, and a zod schema returning `{kind, confidence, rationale}[]` per iteration. Input per call: prompt, AI output, critique, and whether the final version contains the output verbatim.\n\nDone when: a unit test with 6 fixture iterations returns the expected flag kinds and the prompt is documented in `docs/flagging.md`."
     },
     {
       "key": "L2",

@@ -15,7 +15,8 @@
         "NODE_ENV",
         "NEXT_PUBLIC_*",
         "SUPABASE_SERVICE_ROLE_KEY",
-        "DATABASE_URL"
+        "DATABASE_URL",
+        "LLM_*"
       ]
     },
     "db:start": {
@@ -41,7 +42,8 @@
         "NODE_ENV",
         "NEXT_PUBLIC_*",
         "SUPABASE_SERVICE_ROLE_KEY",
-        "DATABASE_URL"
+        "DATABASE_URL",
+        "LLM_*"
       ],
       "outputs": [".next/types/**", "next-env.d.ts", "src/lib/cn-tables.ts"],
       "outputLogs": "new-only"
@@ -93,7 +95,8 @@
         "NODE_ENV",
         "NEXT_PUBLIC_*",
         "SUPABASE_SERVICE_ROLE_KEY",
-        "DATABASE_URL"
+        "DATABASE_URL",
+        "LLM_*"
       ],
       "outputs": [
         ".next/**",
