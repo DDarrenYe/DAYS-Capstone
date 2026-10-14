@@ -5,7 +5,11 @@ import type { LoggedStep } from "@/app/student/log/step-meta";
 import { Icon } from "@/components/icon";
 import { SelectionHighlight } from "@/components/selection-highlight";
 import { Progress } from "@/components/ui/progress";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+  ToggleGroupThumb,
+} from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
 type Viewing = number | "new" | "final" | undefined;
@@ -130,11 +134,7 @@ const RailFilter = ({
     }}
     value={[value]}
   >
-    <SelectionHighlight
-      className="flex w-full"
-      selector="[data-pressed]"
-      thumbClassName="bg-card shadow-raised rounded-md"
-    >
+    <ToggleGroupThumb className="w-full">
       {filterOptions.map(({ key, label }) => (
         <ToggleGroupItem
           className="flex-1 justify-center"
@@ -148,7 +148,7 @@ const RailFilter = ({
           </span>
         </ToggleGroupItem>
       ))}
-    </SelectionHighlight>
+    </ToggleGroupThumb>
   </ToggleGroup>
 );
 

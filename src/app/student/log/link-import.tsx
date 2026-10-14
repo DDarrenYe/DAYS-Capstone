@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 import { Notice } from "@/app/student/log/part";
 import { PreviewList, PreviewSkeleton } from "@/app/student/log/preview-list";
 import { Icon } from "@/components/icon";
+import { SwapText } from "@/components/swap-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useImportSteps, usePreviewImport } from "@/lib/data/use-mutations";
@@ -104,7 +105,7 @@ export const LinkImport = ({
           type="submit"
           variant="outline"
         >
-          {preview.isPending ? "Reading…" : "Preview"}
+          <SwapText>{preview.isPending ? "Reading…" : "Preview"}</SwapText>
         </Button>
       </form>
       <p className="text-muted-foreground mt-2 text-xs">

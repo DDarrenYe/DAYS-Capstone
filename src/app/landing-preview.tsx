@@ -4,6 +4,7 @@ import { ProcessBars } from "@/components/process/process-bars";
 import { Avatar } from "@/components/shell/avatar";
 import { essay, steps, student, summary } from "@/lib/example-data";
 import { formatPercent } from "@/lib/process";
+import { cn } from "@/lib/utils";
 
 const flagged = steps.find((step) => step.flag);
 
@@ -37,27 +38,31 @@ export const LandingPreview = () => (
           />
         </div>
       </div>
-      <div className="mt-5 border-t pt-4">
+      <div className="mt-5 border-t pt-4" style={{ "--i": 5 }}>
         <ProcessBars
           base={70}
-          className="w-full"
+          className="animate-reveal stagger w-full"
           height={104}
           labels
           steps={steps}
           width={520}
         />
       </div>
-      <p className="text-reading text-lead mt-4 border-t pt-4 font-serif leading-relaxed">
+      <p
+        className="text-reading text-lead mt-4 border-t pt-4 font-serif leading-relaxed"
+        style={{ "--i": 14 }}
+      >
         {essay[4]?.map((run) =>
           run.step === undefined ? (
             run.text
           ) : (
             <mark
-              className={
+              className={cn(
+                "animate-trace stagger text-inherit motion-reduce:animate-none",
                 steps[run.step]?.flag
-                  ? "bg-flag-soft shadow-flagged text-inherit"
-                  : "bg-ai-wash shadow-traced text-inherit"
-              }
+                  ? "bg-flag-soft shadow-flagged"
+                  : "bg-ai-wash shadow-traced"
+              )}
               key={run.text}
             >
               {run.text}
@@ -69,7 +74,7 @@ export const LandingPreview = () => (
     {flagged?.flag ? (
       <div
         className="bg-card shadow-pop animate-rise stagger absolute -bottom-20 -left-10 w-76 rounded-xl p-3.5"
-        style={{ "--i": 5 }}
+        style={{ "--i": 16 }}
       >
         <p className="text-flag-ink font-heading flex items-center gap-1.75">
           <Icon name="flag" />
@@ -86,7 +91,7 @@ export const LandingPreview = () => (
     ) : null}
     <div
       className="bg-success-soft text-success shadow-pop animate-rise stagger text-meta font-emphasis absolute -top-5 -right-5 flex items-center gap-2 rounded-full py-1.5 pr-3.5 pl-2.5"
-      style={{ "--i": 6 }}
+      style={{ "--i": 18 }}
     >
       <Icon name="caught" />
       {summary.caught} AI errors caught

@@ -12,6 +12,7 @@ import type {
   useFinalDraft,
 } from "@/app/student/log/use-final-draft";
 import { Icon } from "@/components/icon";
+import { SwapText } from "@/components/swap-text";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -207,7 +208,9 @@ export const FinalPanel = ({
                     variant="outline"
                   >
                     <Icon className="size-3.5" name="export" />
-                    {extract.isPending ? "Reading…" : "Import a .docx"}
+                    <SwapText>
+                      {extract.isPending ? "Reading…" : "Import a .docx"}
+                    </SwapText>
                   </Button>
                 </>
               )}

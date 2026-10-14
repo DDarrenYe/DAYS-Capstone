@@ -7,10 +7,13 @@ import { ReviewProgress } from "@/app/instructor/review-progress";
 import { SubmissionsTable } from "@/app/instructor/submissions-table";
 import { UnmatchedDistribution } from "@/app/instructor/unmatched-distribution";
 import { Icon } from "@/components/icon";
-import { SelectionHighlight } from "@/components/selection-highlight";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+  ToggleGroupThumb,
+} from "@/components/ui/toggle-group";
 import {
   assignmentsOf,
   cohortSummary,
@@ -151,11 +154,7 @@ export const CohortOverview = ({ rows }: { rows: SubmissionRow[] }) => {
             }}
             value={[selected.id]}
           >
-            <SelectionHighlight
-              className="flex"
-              selector="[data-pressed]"
-              thumbClassName="bg-card shadow-raised rounded-md"
-            >
+            <ToggleGroupThumb>
               {assignments.map(({ id, submissions, title }) => (
                 <ToggleGroupItem key={id} tone="thumb" value={id}>
                   {title}
@@ -164,7 +163,7 @@ export const CohortOverview = ({ rows }: { rows: SubmissionRow[] }) => {
                   </span>
                 </ToggleGroupItem>
               ))}
-            </SelectionHighlight>
+            </ToggleGroupThumb>
           </ToggleGroup>
         </div>
       ) : null}
@@ -182,7 +181,10 @@ export const CohortOverview = ({ rows }: { rows: SubmissionRow[] }) => {
               </span>
             </div>
             <div className="mt-3">
-              <UnmatchedDistribution bins={summary.distribution} />
+              <UnmatchedDistribution
+                bins={summary.distribution}
+                median={summary.medianUnmatched}
+              />
             </div>
             <p className="text-muted-foreground text-meta mt-3 text-pretty">
               This is the share of the final text that matches none of the

@@ -3,6 +3,7 @@ import type { KeyboardEvent } from "react";
 
 import { Notice } from "@/app/student/log/part";
 import { Icon } from "@/components/icon";
+import { SwapText } from "@/components/swap-text";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { Textarea } from "@/components/ui/textarea";
@@ -104,7 +105,7 @@ export const PasteForm = ({
           Saved exactly as pasted
         </span>
         <Button className="ml-auto" disabled={!ready} type="submit">
-          {adding.isPending ? "Adding…" : "Add step"}
+          <SwapText>{adding.isPending ? "Adding…" : "Add step"}</SwapText>
           <Kbd>⌘↵</Kbd>
         </Button>
       </div>
