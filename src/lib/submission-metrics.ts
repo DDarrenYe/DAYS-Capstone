@@ -21,7 +21,10 @@ export interface MetricsFinal {
 export interface MetricsAnalysis {
   analysis_version: string;
   final_version_id: string;
-  flags: readonly { review_state: Enums["flag_review_state"] }[];
+  flags: readonly {
+    kind: string;
+    review_state: Enums["flag_review_state"];
+  }[];
 }
 
 export interface MetricsProject {
@@ -37,6 +40,7 @@ export interface FlagCounts {
   addedToFeedback: number;
   dismissed: number;
   open: number;
+  openKinds: { count: number; kind: string }[];
 }
 
 const flagCounts = (
@@ -55,18 +59,26 @@ const flagCounts = (
   if (status !== "completed" || current.length === 0) {
     return null;
   }
-  const states = current.flatMap(({ flags }) =>
-    flags.map(({ review_state: state }) => state)
-  );
+  const flags = current.flatMap((result) => result.flags);
   const count = (wanted: Enums["flag_review_state"]) =>
-    states.filter((state) => state === wanted).length;
+    flags.filter(({ review_state: state }) => state === wanted).length;
   const open = count("open");
   const addedToFeedback = count("added_to_feedback");
+  const openKinds = new Map<string, number>();
+  for (const { kind, review_state: state } of flags) {
+    if (state === "open") {
+      openKinds.set(kind, (openKinds.get(kind) ?? 0) + 1);
+    }
+  }
   return {
     active: open + addedToFeedback,
     addedToFeedback,
     dismissed: count("dismissed"),
     open,
+    openKinds: Array.from(openKinds, ([kind, total]) => ({
+      count: total,
+      kind,
+    })).toSorted((first, second) => first.kind.localeCompare(second.kind)),
   };
 };
 

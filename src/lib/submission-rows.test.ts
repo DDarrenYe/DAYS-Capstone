@@ -40,7 +40,10 @@ const entry = (
           {
             analysis_version: "v1",
             final_version_id: "final-1",
-            flags: flags.map((review_state) => ({ review_state })),
+            flags: flags.map((review_state) => ({
+              kind: "low_effort_reflection",
+              review_state,
+            })),
           },
         ]
       : [],

@@ -174,7 +174,10 @@ const result = (
 ) => ({
   analysis_version: version,
   final_version_id: finalId,
-  flags: states.map((review_state) => ({ review_state })),
+  flags: states.map((review_state) => ({
+    kind: "low_effort_reflection",
+    review_state,
+  })),
 });
 
 const analysed = (
@@ -208,7 +211,24 @@ test("flag counts cover the current analysis of the current final version", () =
     addedToFeedback: 1,
     dismissed: 1,
     open: 1,
+    openKinds: [{ count: 1, kind: "low_effort_reflection" }],
   });
+});
+
+test("open flags are counted by kind, and decided flags are not", () => {
+  const flagged = {
+    ...result("v2", "final-1"),
+    flags: [
+      { kind: "reads_like_ai", review_state: "open" as const },
+      { kind: "low_effort_reflection", review_state: "open" as const },
+      { kind: "reads_like_ai", review_state: "open" as const },
+      { kind: "low_effort_reflection", review_state: "dismissed" as const },
+    ],
+  };
+  assert.deepEqual(submissionMetrics(analysed([flagged])).flags?.openKinds, [
+    { count: 1, kind: "low_effort_reflection" },
+    { count: 2, kind: "reads_like_ai" },
+  ]);
 });
 
 test("a completed analysis without flags has zero counts", () => {
@@ -219,6 +239,7 @@ test("a completed analysis without flags has zero counts", () => {
       addedToFeedback: 0,
       dismissed: 0,
       open: 0,
+      openKinds: [],
     }
   );
 });

@@ -110,7 +110,7 @@ const readSubmissions = async (client: Client) =>
   );
 
 const METRICS_COLUMNS =
-  "analysis_status, analysis_version, iterations(id, step_number, raw_answer, critique, student_marked_ai_error), final_versions(id, version_number, extracted_text), analysis_results(final_version_id, analysis_version, flags(review_state))";
+  "analysis_status, analysis_version, iterations(id, step_number, raw_answer, critique, student_marked_ai_error), final_versions(id, version_number, extracted_text), analysis_results(final_version_id, analysis_version, flags(kind, review_state))";
 
 const readProjectMetrics = async (client: Client, projectId: string) =>
   submissionMetrics(

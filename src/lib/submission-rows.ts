@@ -1,4 +1,5 @@
 import type { CohortRows } from "@/lib/data/queries";
+import type { FlagCounts } from "@/lib/submission-metrics";
 
 /*
   Where a submission stands with the reflection check. Pending, running, failed and unavailable are
@@ -15,15 +16,19 @@ export type CheckState =
 
 export interface SubmissionRow {
   assignment: string;
+  assignmentId: string;
   critiqueAverage: number;
   email: string;
   id: string;
   name: string;
   openFlags: number;
+  openKinds: FlagCounts["openKinds"];
   state: CheckState;
   stepCount: number;
   submittedAt: string;
+  totalWords: number;
   unmatchedPercent: number | null;
+  unmatchedWords: number;
 }
 
 type Cohort = CohortRows[number];
@@ -77,16 +82,20 @@ export const submissionRows = (cohort: CohortRows): SubmissionRow[] =>
       const { email, profile } = student;
       return {
         assignment: entry.assignment.title,
+        assignmentId: entry.assignment.id,
         critiqueAverage:
           metrics.questionsAnswered / Math.max(metrics.stepCount, 1),
         email,
         id: entry.id,
         name: profile?.display_name ?? email,
         openFlags: metrics.flags?.open ?? 0,
+        openKinds: metrics.flags?.openKinds ?? [],
         state: checkState(entry),
         stepCount: metrics.stepCount,
         submittedAt: entry.submittedAt ?? "",
+        totalWords: metrics.totalWords,
         unmatchedPercent: metrics.unmatchedPercent,
+        unmatchedWords: metrics.unmatchedWords,
       };
     })
     .toSorted((first, second) => attention(second) - attention(first));
