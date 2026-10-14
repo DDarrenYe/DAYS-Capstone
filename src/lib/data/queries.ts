@@ -4,13 +4,18 @@ import type {
 } from "@supabase/supabase-js";
 import type { QueryClient, QueryKey } from "@tanstack/query-core";
 
+import { submissionMetrics } from "@/lib/submission-metrics";
 import type { Database } from "@/lib/supabase/database.types";
 
 type Client = SupabaseClient<Database>;
 
 export const queryKeys = {
   assignments: (userId: string) => ["users", userId, "assignments"] as const,
+  cohortMetrics: (userId: string) =>
+    [...queryKeys.submissions(userId), "metrics"] as const,
   courses: (userId: string) => ["users", userId, "courses"] as const,
+  metrics: (userId: string, projectId: string) =>
+    [...queryKeys.project(userId, projectId), "metrics"] as const,
   project: (userId: string, projectId: string) =>
     ["users", userId, "projects", projectId] as const,
   projectLog: (userId: string, projectId: string) =>
@@ -104,6 +109,43 @@ const readSubmissions = async (client: Client) =>
     "submissions"
   );
 
+const METRICS_COLUMNS =
+  "analysis_status, analysis_version, iterations(id, step_number, raw_answer, critique, student_marked_ai_error), final_versions(id, version_number, extracted_text), analysis_results(final_version_id, analysis_version, flags(review_state))";
+
+const readProjectMetrics = async (client: Client, projectId: string) =>
+  submissionMetrics(
+    unwrap(
+      await client
+        .from("projects")
+        .select(METRICS_COLUMNS)
+        .eq("id", projectId)
+        .eq("final_versions.is_current", true)
+        .maybeSingle(),
+      "the submission metrics"
+    )
+  );
+
+const readCohortMetrics = async (client: Client) =>
+  unwrap(
+    await client
+      .from("projects")
+      .select(
+        `id, submitted_at, assignment:assignments(id, title), student:enrolments(email), ${METRICS_COLUMNS}`
+      )
+      .eq("status", "submitted")
+      .eq("final_versions.is_current", true)
+      .order("submitted_at", { ascending: false }),
+    "the cohort metrics"
+  ).map(
+    ({ assignment, id, student, submitted_at: submittedAt, ...project }) => ({
+      assignment,
+      id,
+      metrics: submissionMetrics(project),
+      student,
+      submittedAt,
+    })
+  );
+
 const readReviews = async (client: Client, projectId: string) =>
   unwrap(
     await client
@@ -141,6 +183,21 @@ export const submissionsQuery = (client: Client, userId: string) => ({
   queryKey: queryKeys.submissions(userId),
 });
 
+export const projectMetricsQuery = (
+  client: Client,
+  userId: string,
+  projectId: string
+) => ({
+  queryFn: () =>
+    asUser(client, userId, (scoped) => readProjectMetrics(scoped, projectId)),
+  queryKey: queryKeys.metrics(userId, projectId),
+});
+
+export const cohortMetricsQuery = (client: Client, userId: string) => ({
+  queryFn: () => asUser(client, userId, readCohortMetrics),
+  queryKey: queryKeys.cohortMetrics(userId),
+});
+
 export const reviewsQuery = (
   client: Client,
   userId: string,
@@ -175,11 +232,13 @@ export const cacheSavedFinal = (
   userId: string,
   projectId: string,
   saved: ProjectLog["final_versions"][number]
-) =>
+) => {
   queryClient.setQueryData<ProjectLog>(
     queryKeys.projectLog(userId, projectId),
     (log) => log && { ...log, final_versions: [saved] }
   );
+  return invalidate(queryClient, queryKeys.metrics(userId, projectId));
+};
 
 export const invalidateAfterSubmit = (
   queryClient: QueryClient,

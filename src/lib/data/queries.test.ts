@@ -7,11 +7,13 @@ import { QueryClient } from "@tanstack/query-core";
 import {
   assignmentsQuery,
   cacheSavedFinal,
+  cohortMetricsQuery,
   invalidateAfterOpen,
   invalidateAfterReview,
   invalidateAfterSave,
   invalidateAfterSubmit,
   projectLogQuery,
+  projectMetricsQuery,
   queryKeys,
   reviewsQuery,
   submissionsQuery,
@@ -62,7 +64,9 @@ const seededCache = () => {
     for (const queryKey of [
       queryKeys.assignments(owner),
       queryKeys.submissions(owner),
+      queryKeys.cohortMetrics(owner),
       queryKeys.projectLog(owner, projectId),
+      queryKeys.metrics(owner, projectId),
       queryKeys.reviews(owner, projectId),
       queryKeys.projectLog(owner, otherProjectId),
     ]) {
@@ -88,6 +92,8 @@ test("query keys never share a prefix between users or projects", () => {
     queryKeys.assignments(userId),
     queryKeys.submissions(userId),
     queryKeys.projectLog(userId, projectId),
+    queryKeys.metrics(userId, projectId),
+    queryKeys.cohortMetrics(userId),
     queryKeys.reviews(userId, projectId),
   ];
   for (const key of keys) {
@@ -149,6 +155,7 @@ test("saving a step invalidates that project and the assignment list for the sam
       userId,
       "assignments",
       `projects/${projectId}/log`,
+      `projects/${projectId}/metrics`,
       `projects/${projectId}/reviews`
     )
   );
@@ -163,7 +170,9 @@ test("submitting also invalidates submissions", async () => {
       userId,
       "assignments",
       "submissions",
+      "submissions/metrics",
       `projects/${projectId}/log`,
+      `projects/${projectId}/metrics`,
       `projects/${projectId}/reviews`
     )
   );
@@ -177,7 +186,9 @@ test("reviewing invalidates the project and submissions but not assignments", as
     keysOf(
       userId,
       "submissions",
+      "submissions/metrics",
       `projects/${projectId}/log`,
+      `projects/${projectId}/metrics`,
       `projects/${projectId}/reviews`
     )
   );
@@ -192,6 +203,10 @@ test("reads stop before the database when the session belongs to someone else", 
       queryClient.query(submissionsQuery(client, userId)),
     (queryClient: QueryClient, client: TestClient) =>
       queryClient.query(projectLogQuery(client, userId, projectId)),
+    (queryClient: QueryClient, client: TestClient) =>
+      queryClient.query(projectMetricsQuery(client, userId, projectId)),
+    (queryClient: QueryClient, client: TestClient) =>
+      queryClient.query(cohortMetricsQuery(client, userId)),
     (queryClient: QueryClient, client: TestClient) =>
       queryClient.query(reviewsQuery(client, userId, projectId)),
   ];
@@ -262,5 +277,85 @@ test("database failures and missing projects become safe load errors", async () 
       )
     ),
     /Unable to load the project log\./u
+  );
+});
+
+test("saving a final version invalidates that project's metrics for the same user only", async () => {
+  const queryClient = seededCache();
+  await cacheSavedFinal(queryClient, userId, projectId, {
+    created_at: "2026-10-14T01:00:00Z",
+    extracted_text: "Essay",
+    id: "70000000-0000-0000-0000-000000000001",
+    original_filename: null,
+    version_number: 1,
+  });
+  assert.deepEqual(
+    invalidated(queryClient),
+    keysOf(userId, `projects/${projectId}/metrics`)
+  );
+});
+
+test("metrics are worked out from the rows the session can read", async () => {
+  const requests: URL[] = [];
+  const row = {
+    analysis_results: [],
+    analysis_status: "pending",
+    analysis_version: null,
+    final_versions: [
+      {
+        extracted_text: "Essay text",
+        id: "70000000-0000-0000-0000-000000000001",
+        version_number: 1,
+      },
+    ],
+    id: projectId,
+    iterations: [],
+  };
+  const client = clientFor(userId, (url) => {
+    requests.push(url);
+    return Response.json(
+      url.searchParams.has("status")
+        ? [
+            {
+              ...row,
+              assignment: { id: "a", title: "Essay 2" },
+              student: { email: "student@example.com" },
+              submitted_at: "2026-10-14T01:00:00Z",
+            },
+          ]
+        : [row]
+    );
+  });
+  const queryClient = new QueryClient();
+  const project = await queryClient.query(
+    projectMetricsQuery(client, userId, projectId)
+  );
+  assert.equal(project.totalWords, 2);
+  assert.equal(project.flags, null);
+  assert.equal(requests[0]?.pathname, "/rest/v1/projects");
+  assert.equal(requests[0]?.searchParams.get("id"), `eq.${projectId}`);
+  assert.equal(
+    requests[0]?.searchParams.get("final_versions.is_current"),
+    "eq.true"
+  );
+  const cohort = await queryClient.query(cohortMetricsQuery(client, userId));
+  assert.equal(cohort.length, 1);
+  assert.equal(cohort[0]?.id, projectId);
+  assert.equal(cohort[0]?.assignment.title, "Essay 2");
+  assert.equal(cohort[0]?.submittedAt, "2026-10-14T01:00:00Z");
+  assert.deepEqual(cohort[0]?.metrics, project);
+  assert.equal(requests[1]?.searchParams.get("status"), "eq.submitted");
+});
+
+test("a project that cannot be read has no metrics", async () => {
+  await assert.rejects(
+    new QueryClient().query(
+      projectMetricsQuery(
+        clientFor(userId, () => Response.json([])),
+        userId,
+        projectId
+      )
+    ),
+    /Unable to load the submission metrics\./u
   );
 });

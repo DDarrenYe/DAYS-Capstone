@@ -153,7 +153,7 @@ Things the diagram can't show:
 - **Final text is never edited.** A trigger rejects changes to the text. An edit saves a new version and moves `is_current`.
 - **Review history is automatic.** Changing a flag's decision appends a `flag_reviews` row, and that includes reopening a flag.
 - **Deletes are restricted.** Deleting a project also deletes its steps, finals, analysis, flags, history and notes. Courses, assignments, enrolments and profiles that still have records can't be deleted.
-- **Matching isn't a character count.** The old prompt and critique character model is gone. Match results live on `final_versions` with the matcher version that made them.
+- **Matching isn't a character count.** The old prompt and critique character model is gone. The matcher works its result out from the saved final text and the logged steps whenever it's read, and each result carries the matcher version. `match_results` stays empty until submission needs a frozen snapshot.
 
 ## Data flow
 
@@ -238,7 +238,7 @@ flowchart LR
 | 4 | Critique | Database-ready, [#20](https://github.com/DDarrenYe/DAYS-Capstone/issues/20) | The three questions are only guidance in the UI. The answer is one `critique` text. It's null while an imported step waits, and can't be blank once saved. Marking an AI error needs evidence, and it only records what the student said. |
 | 5 | Final essay | Database-ready, [#22](https://github.com/DDarrenYe/DAYS-Capstone/issues/22) | Every save is a new `final_versions` row. `.docx` extraction and the size and type checks will run on the server. |
 | 6 | Atomic submission | Partly database-ready, [#23](https://github.com/DDarrenYe/DAYS-Capstone/issues/23) | While the project is a draft, a student sets `status` and `submitted_at`. After that, RLS and a trigger that locks the project row reject student writes to the project, its steps and its finals. A save that runs at the same time waits for the submit. We haven't built the completeness check, picking the submitted final or starting analysis. |
-| 7 | Text matching | Planned, [#26](https://github.com/DDarrenYe/DAYS-Capstone/issues/26) | A deterministic matcher compares the final text with the logged AI answers on the server. It writes `match_results` and `matching_version`, and makes no outside call. |
+| 7 | Text matching | Working, [#26](https://github.com/DDarrenYe/DAYS-Capstone/issues/26) | A deterministic matcher compares the saved final text with the logged AI answers and makes no outside call. Students and instructors read the same numbers through RLS. It doesn't write `match_results`. See "Final-text matching" in `supabase/README.md`. |
 | 8 | Reflection check | Tables ready, job planned, [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32) [#34](https://github.com/DDarrenYe/DAYS-Capstone/issues/34) | A server job sets `analysis_status`, calls Anthropic, validates the answer, and writes one `analysis_results` row per step plus any `flags`. A finished run with no flags is different from pending or failed. A new run keeps the old results and their reviews. |
 | 9 | Grader decisions | Database-ready, [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33) | An instructor of that course changes a flag's decision, reviewer and time, and a trigger appends it to `flag_reviews`. They can only add, edit and delete their own `grader_notes`. |
 | 10 | Export | Planned, [#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36) | The server builds the PDF and CSV from the same submitted snapshot, matches and decisions the instructor sees. Notes only go in when the grader picks that. |
@@ -282,17 +282,17 @@ Matching and export stay inside the app. We haven't fixed what the reflection ch
 | --- | --- |
 | Sign-in, sign-out, role routing | Working. Unit tests cover the proxy, account and credential helpers. |
 | Schema, constraints, triggers, RLS and grants | Working and covered by `supabase/tests`. The app only reads `profiles` so far. |
-| Seed data | Working, local only. `supabase/seed.sql` builds one course, eight accounts and eight example projects, listed in `supabase/README.md`. The pages don't show any of it yet, and `match_results` is left empty until the matcher exists. |
+| Seed data | Working, local only. `supabase/seed.sql` builds one course, eight accounts and eight example projects, listed in `supabase/README.md`. The pages don't show any of it yet, and `match_results` stays empty because the matcher works its result out on read. |
 | Student assignments page | Prototype. Three hard-coded cards, and "Add steps" opens a placeholder. |
 | My log, progress, privacy | Placeholders. No data and no consent text. |
 | Instructor overview and essay plot | Prototype. Names and percentages are hard-coded from the mockups. The flags and reports pages are placeholders. |
 | Import, critique, final essay, submit | Not built. The tables and locks are ready. |
-| Matching, reflection check, grader decisions, export | Not built. The tables, versions and review history are ready. |
+| Matching | Working as code and reads (`src/lib/final-match.ts`, `src/lib/submission-metrics.ts`). No page shows it yet. |
+| Reflection check, grader decisions, export | Not built. The tables, versions and review history are ready. |
 
 ## What's still missing
 
 - **Instructors can't read student names.** `profiles` only lets a user read their own row. The submissions table in [#28](https://github.com/DDarrenYe/DAYS-Capstone/issues/28) needs names, so we need a server read or a new policy.
 - **The database doesn't check that a log is complete.** A student client can set `status = 'submitted'` on an empty draft. Only the lock after submitting is enforced. [#23](https://github.com/DDarrenYe/DAYS-Capstone/issues/23) should add the check, in a database function if we want direct writes rejected too.
-- **Students can't read their own match results.** `match_results` is server-only, so the preview in [#22](https://github.com/DDarrenYe/DAYS-Capstone/issues/22) needs a server read or has to work the result out on request.
 - **Flag decisions have no note column.** [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33) mentions an optional note, but the review columns and `flag_reviews` don't store one.
 - **Roles can't be changed from the app.** Instructors are promoted by a trusted administrator. Enrolling by email never changes a role, and an invitation is only linked to a confirmed student account.

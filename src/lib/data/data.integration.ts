@@ -17,11 +17,13 @@ import type { Database } from "@/lib/supabase/database.types";
 
 import {
   assignmentsQuery,
+  cohortMetricsQuery,
   coursesQuery,
   invalidateAfterReview,
   invalidateAfterSave,
   invalidateAfterSubmit,
   projectLogQuery,
+  projectMetricsQuery,
   reviewsQuery,
   submissionsQuery,
 } from "./queries";
@@ -1187,4 +1189,237 @@ test("instructors set up a course whose assignments enrolled and invited student
     Object.fromEntries(profiles.map(({ id, role }) => [id, role])),
     { [late.id]: "student", [teacherB.id]: "instructor" }
   );
+});
+
+test("the student preview and the grader read the same final-text totals", async () => {
+  const { s1, teacherA, teacherB } = await fixture;
+  const writer = await createAccount("matcher", "student");
+  const course = await must(
+    admin
+      .from("courses")
+      .insert({
+        code: `M-${tag}`,
+        instructor_id: teacherA.id,
+        title: "Matching",
+      })
+      .select("id")
+      .single()
+  );
+  created.courses.add(course.id);
+  const assignment = await must(
+    admin
+      .from("assignments")
+      .insert({ course_id: course.id, lane: "lane_2", title: `${tag} Match` })
+      .select("id")
+      .single()
+  );
+  created.assignments.add(assignment.id);
+  await run(
+    admin.from("enrolments").insert({
+      course_id: course.id,
+      email: writer.email,
+      student_id: writer.id,
+    })
+  );
+  const project = await must(
+    admin
+      .from("projects")
+      .insert({
+        assignment_id: assignment.id,
+        course_id: course.id,
+        student_id: writer.id,
+      })
+      .select("id")
+      .single()
+  );
+  created.projects.add(project.id);
+  const answer =
+    "Photosynthesis converts light energy into chemical energy stored in glucose.";
+  const logged = await must(
+    admin
+      .from("iterations")
+      .insert([
+        {
+          ai_tool: "Tool",
+          project_id: project.id,
+          prompt: "First",
+          raw_answer: answer,
+          step_number: 1,
+        },
+        {
+          ai_tool: "Tool",
+          project_id: project.id,
+          prompt: "Second",
+          raw_answer:
+            "Cellular respiration releases the energy that glucose stores.",
+          step_number: 2,
+        },
+      ])
+      .select("id, step_number")
+  );
+  const firstStep = logged.find(({ step_number: number }) => number === 1);
+
+  const read = (client: SupabaseClient<Database>, userId: string, id: string) =>
+    newQueryClient().query(projectMetricsQuery(client, userId, id));
+  const own = () => read(writer.client, writer.id, project.id);
+
+  const empty = await own();
+  assert.equal(empty.finalVersion, 0);
+  assert.equal(empty.unmatchedPercent, null);
+  assert.equal(empty.stepCount, 2);
+
+  const saved = await writeFinal(writer.client, {
+    base: 0,
+    filename: null,
+    projectId: project.id,
+    text: `${answer} My own closing thought here.`,
+  });
+  assert.equal(saved.version, 1);
+  const first = await own();
+  assert.equal(first.totalWords, 15);
+  assert.equal(first.matchedWords, 10);
+  assert.equal(first.unmatchedWords, 5);
+  assert.equal(first.unmatchedPercent, 33.3);
+  assert.deepEqual(
+    first.steps.map(({ retainedWords }) => retainedWords),
+    [10, 0]
+  );
+  assert.deepEqual(
+    first.spans.map(({ stepId, words }) => [stepId, words]),
+    [[firstStep?.id, 10]]
+  );
+  assert.equal(first.flags, null);
+
+  const edited = await writeFinal(writer.client, {
+    base: 1,
+    filename: null,
+    projectId: project.id,
+    text: `${answer} ${answer} Fresh ending.`,
+  });
+  assert.equal(edited.version, 2);
+  const second = await own();
+  assert.equal(second.finalVersion, 2);
+  assert.equal(second.matchedWords, 20);
+  assert.equal(second.totalWords, 22);
+
+  await assert.rejects(
+    read(teacherA.client, teacherA.id, project.id),
+    /Unable to load the submission metrics/u
+  );
+  assert.deepEqual(
+    await writeSubmission(writer.client, { projectId: project.id }),
+    {}
+  );
+
+  const graded = await read(teacherA.client, teacherA.id, project.id);
+  assert.deepEqual(graded, second);
+  await assert.rejects(
+    read(teacherB.client, teacherB.id, project.id),
+    /Unable to load the submission metrics/u
+  );
+  await assert.rejects(
+    read(s1.client, s1.id, project.id),
+    /Unable to load the submission metrics/u
+  );
+
+  const cohort = await newQueryClient().query(
+    cohortMetricsQuery(teacherA.client, teacherA.id)
+  );
+  const entry = cohort.find(({ id }) => id === project.id);
+  assert.deepEqual(entry?.metrics, second);
+  assert.equal(entry?.assignment.title, `${tag} Match`);
+  assert.equal(entry?.student.email, writer.email);
+  const foreign = await newQueryClient().query(
+    cohortMetricsQuery(teacherB.client, teacherB.id)
+  );
+  assert.equal(
+    foreign.some(({ id }) => id === project.id),
+    false
+  );
+  const peer = await newQueryClient().query(
+    cohortMetricsQuery(s1.client, s1.id)
+  );
+  assert.equal(
+    peer.some(({ id }) => id === project.id),
+    false
+  );
+
+  const now = new Date().toISOString();
+  await run(
+    admin
+      .from("projects")
+      .update({
+        analysis_finished_at: now,
+        analysis_started_at: now,
+        analysis_status: "completed",
+        analysis_version: "v1",
+      })
+      .eq("id", project.id)
+  );
+  const result = await must(
+    admin
+      .from("analysis_results")
+      .insert({
+        ai_correctness_addressed: true,
+        ai_correctness_evidence: "Evidence",
+        analysis_version: "v1",
+        changes_addressed: true,
+        changes_evidence: "Evidence",
+        explanation: "Explanation",
+        final_version_id: second.finalVersionId ?? "",
+        iteration_id: firstStep?.id ?? "",
+        model: "model",
+        project_id: project.id,
+        rubric_version: "rubric",
+        uncertainty: "Uncertainty",
+        verification_addressed: true,
+        verification_evidence: "Evidence",
+      })
+      .select("id")
+      .single()
+  );
+  const flags = await must(
+    admin
+      .from("flags")
+      .insert([
+        {
+          analysis_result_id: result.id,
+          evidence: "Evidence",
+          explanation: "Explanation",
+          kind: "thin",
+        },
+        {
+          analysis_result_id: result.id,
+          evidence: "Evidence",
+          explanation: "Explanation",
+          kind: "blind",
+        },
+      ])
+      .select("id")
+  );
+  const withFlags = await read(teacherA.client, teacherA.id, project.id);
+  assert.deepEqual(withFlags.flags, {
+    active: 2,
+    addedToFeedback: 0,
+    dismissed: 0,
+    open: 2,
+  });
+  const studentView = await own();
+  assert.equal(studentView.flags, null);
+  assert.deepEqual({ ...withFlags, flags: null }, studentView);
+
+  assert.deepEqual(
+    await writeReview(teacherA.client, teacherA.id, {
+      flagId: flags[0]?.id ?? "",
+      state: "dismissed",
+    }),
+    {}
+  );
+  const reviewed = await read(teacherA.client, teacherA.id, project.id);
+  assert.deepEqual(reviewed.flags, {
+    active: 1,
+    addedToFeedback: 0,
+    dismissed: 1,
+    open: 1,
+  });
 });
