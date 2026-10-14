@@ -288,7 +288,7 @@ Matching and export stay inside the app. We haven't fixed what the reflection ch
 | Privacy | Working. `/privacy` describes the flow above, linked from sign-in, the account menu and Add steps. It says the reflection check isn't on and no retention period is set. Update it when [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) and [#39](https://github.com/DDarrenYe/DAYS-Capstone/issues/39) settle those. |
 | Instructor overview and essay plot | Prototype. Names and percentages are hard-coded from the mockups. The flags and reports pages are placeholders. |
 | Import, critique, final essay, submit | Not built. The tables and locks are ready. |
-| Matching | Working as code and reads (`src/lib/final-match.ts`, `src/lib/submission-metrics.ts`). No page shows it yet. |
+| Matching | Working as code and reads (`src/lib/final-match.ts`, `src/lib/submission-metrics.ts`). The final-version panel in My log shows the preview from the saved text. The grader pages don't show it yet. |
 | Reflection check, grader decisions, export | Not built. The tables, versions and review history are ready. |
 
 ## What's still missing

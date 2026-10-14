@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MAX_TEXT } from "@/lib/data/schemas";
 import { useExtractFinal, WriteError } from "@/lib/data/use-mutations";
 import { countWords } from "@/lib/process";
+import type { SubmissionMetrics } from "@/lib/submission-metrics";
 import { cn } from "@/lib/utils";
 
 const DOCX_TYPES =
@@ -94,13 +95,14 @@ export const FinalPanel = ({
   final,
   saved,
   locked,
-  stepCount,
+  metrics,
 }: {
   final: ReturnType<typeof useFinalDraft>;
   saved: SavedFinal;
   locked: boolean;
-  stepCount: number;
+  metrics: SubmissionMetrics;
 }) => {
+  const { stepCount } = metrics;
   const id = useId();
   const picker = useRef<HTMLInputElement>(null);
   const extract = useExtractFinal();
@@ -224,7 +226,11 @@ export const FinalPanel = ({
           </Card>
         </article>
       </Center>
-      <FinalSidebar />
+      <FinalSidebar
+        metrics={metrics}
+        pending={final.status !== "saved"}
+        saved={saved}
+      />
       <ConfirmDialog
         confirm="Replace text"
         description={`Importing ${incoming?.filename ?? "this document"} replaces the text in the editor.`}

@@ -3,8 +3,14 @@ import { test } from "node:test";
 
 import type { ProjectLog } from "@/lib/data/queries";
 import { composeCritique } from "@/lib/process";
+import { submissionMetrics } from "@/lib/submission-metrics";
 
-import { critiqueDraft, loggedAt, savedFinal } from "./step-meta";
+import {
+  critiqueDraft,
+  loggedAt,
+  matchedPassages,
+  savedFinal,
+} from "./step-meta";
 import type { LoggedStep } from "./step-meta";
 
 const step = (overrides: Partial<LoggedStep>): LoggedStep => ({
@@ -110,4 +116,37 @@ test("a step shows the day and time it was saved to the log", () => {
   const shown = loggedAt(step({ created_at: "2026-10-13T12:34:00Z" }));
   assert.match(shown, /Oct/u);
   assert.match(shown, /\d{1,2}:\d{2}/u);
+});
+
+test("matched passages quote the saved text and name the step they came from", () => {
+  const text =
+    "My own opening. Plants turn light into stored sugar every day. Done.";
+  const metrics = submissionMetrics({
+    final_versions: [{ extracted_text: text, id: "final", version_number: 1 }],
+    iterations: [
+      {
+        critique: null,
+        id: "second",
+        raw_answer:
+          "Plants turn light into stored sugar every day of the year.",
+        step_number: 2,
+        student_marked_ai_error: false,
+      },
+    ],
+  });
+  assert.deepEqual(matchedPassages(metrics, text), [
+    {
+      start: 16,
+      stepNumber: 2,
+      text: "Plants turn light into stored sugar every day",
+      words: 8,
+    },
+  ]);
+  assert.deepEqual(
+    matchedPassages(
+      submissionMetrics({ final_versions: [], iterations: [] }),
+      ""
+    ),
+    []
+  );
 });

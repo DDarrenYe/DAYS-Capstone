@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { ProjectLog } from "@/lib/data/queries";
 import { markDraftSchema } from "@/lib/data/schemas";
 import { countWords, readCritique } from "@/lib/process";
+import type { SubmissionMetrics } from "@/lib/submission-metrics";
 
 export type LoggedStep = ProjectLog["iterations"][number];
 
@@ -51,6 +52,24 @@ export const savedFinal = ({ final_versions: [current] }: ProjectLog) => ({
 });
 
 export type SavedFinal = ReturnType<typeof savedFinal>;
+
+export const matchedPassages = (
+  { spans, steps }: Pick<SubmissionMetrics, "spans" | "steps">,
+  text: string
+) =>
+  spans.flatMap(({ end, start, stepId, words }) => {
+    const step = steps.find(({ id }) => id === stepId);
+    return step
+      ? [
+          {
+            start,
+            stepNumber: step.stepNumber,
+            text: text.slice(start, end),
+            words,
+          },
+        ]
+      : [];
+  });
 
 export const logHref = (assignmentId: string) =>
   `/student/log?assignment=${assignmentId}`;

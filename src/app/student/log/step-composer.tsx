@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { assignmentsQuery, projectLogQuery } from "@/lib/data/queries";
 import type { AssignmentRows, ProjectLog } from "@/lib/data/queries";
 import { countWords } from "@/lib/process";
+import { submissionMetrics } from "@/lib/submission-metrics";
 import { createClient } from "@/lib/supabase/browser";
 
 type Assignment = AssignmentRows[number];
@@ -108,8 +109,8 @@ const ActivePanel = ({
       <FinalPanel
         final={final}
         locked={locked}
+        metrics={submissionMetrics(log)}
         saved={saved}
-        stepCount={steps.length}
       />
     );
   }
