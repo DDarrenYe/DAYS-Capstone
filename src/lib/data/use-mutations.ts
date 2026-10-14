@@ -16,6 +16,7 @@ import {
   reviewFlag,
   saveCritique,
   saveFinal,
+  saveNote,
   submitProject,
 } from "@/lib/data/actions";
 import {
@@ -33,6 +34,7 @@ import type {
   CritiqueInput,
   EnrolInput,
   ImportInput,
+  NoteInput,
   OpenInput,
   PreviewInput,
   RemoveEnrolmentInput,
@@ -185,6 +187,9 @@ export const useReviewFlag = (userId: string, projectId: string) => {
     onSuccess: () => invalidateAfterReview(queryClient, userId, projectId),
   });
 };
+
+export const useSaveNote = () =>
+  useMutation({ mutationFn: (input: NoteInput) => succeeded(saveNote(input)) });
 
 export const useCreateCourse = (userId: string) => {
   const queryClient = useQueryClient();

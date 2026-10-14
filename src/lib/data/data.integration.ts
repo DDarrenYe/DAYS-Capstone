@@ -39,6 +39,7 @@ import {
   removeStep,
   writeCritique,
   writeImport,
+  writeNote,
   writeProject,
   writeReview,
   writeSteps,
@@ -1171,6 +1172,72 @@ test("reviewing a flag refreshes reviews and keeps the decision history", async 
     ["dismissed", "open"]
   );
   stop();
+});
+
+test("a grader's step note is private to the course instructor and survives a reload", async () => {
+  const { p2, s2, teacherA, teacherB } = await fixture;
+  const [step] = await must(
+    admin.from("iterations").select("id").eq("project_id", p2)
+  );
+  const stepId = step?.id;
+  assert.ok(stepId);
+  const input = { body: "Check the source.", projectId: p2, stepId };
+  const noteOf = async () => {
+    const submission = await newQueryClient().query(
+      submissionQuery(teacherA.client, teacherA.id, p2)
+    );
+    return submission?.grader_notes ?? [];
+  };
+
+  const denied = await Promise.all([
+    writeNote(s2.client, s2.id, input),
+    writeNote(teacherB.client, teacherB.id, input),
+  ]);
+  assert.deepEqual(denied, [forbidden, forbidden]);
+  assert.deepEqual(await noteOf(), []);
+
+  assert.deepEqual(await writeNote(teacherA.client, teacherA.id, input), {});
+  assert.deepEqual(await writeNote(teacherA.client, teacherA.id, input), {});
+  assert.deepEqual(await noteOf(), [
+    { body: "Check the source.", iteration_id: stepId },
+  ]);
+  const second = await writeNote(teacherA.client, teacherA.id, {
+    ...input,
+    body: "Revised.",
+  });
+  assert.deepEqual(second, {});
+  const [revised] = await noteOf();
+  assert.equal(revised?.body, "Revised.");
+  const rows = await must(
+    admin.from("grader_notes").select("author_id").eq("project_id", p2)
+  );
+  assert.deepEqual(rows, [{ author_id: teacherA.id }]);
+  const duplicate = await admin.from("grader_notes").insert({
+    author_id: teacherA.id,
+    body: "Twin",
+    iteration_id: stepId,
+    project_id: p2,
+  });
+  assert.equal(duplicate.error?.code, "23505");
+
+  const hidden = await Promise.all(
+    [s2, teacherB].map(({ client }) =>
+      must(client.from("grader_notes").select("id").eq("project_id", p2))
+    )
+  );
+  assert.deepEqual(hidden, [[], []]);
+  assert.deepEqual(
+    await writeNote(teacherB.client, teacherB.id, { ...input, body: "" }),
+    {}
+  );
+  const kept = await noteOf();
+  assert.equal(kept.length, 1);
+
+  assert.deepEqual(
+    await writeNote(teacherA.client, teacherA.id, { ...input, body: " " }),
+    {}
+  );
+  assert.deepEqual(await noteOf(), []);
 });
 
 const outcomes = (results: { address: string; outcome: string }[] = []) =>

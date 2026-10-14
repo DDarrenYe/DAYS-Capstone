@@ -60,6 +60,7 @@ const project = (
       version_number: 1,
     },
   ],
+  grader_notes: [{ body: "Check the cited source.", iteration_id: "step-2" }],
   id: "project-1",
   iterations: [
     {
@@ -212,6 +213,14 @@ test("each step carries its retained words, critique depth, marks and open flags
   assert.equal(steps[1]?.marks.length, 1);
   assert.equal(steps[1]?.critique, "");
   assert.equal(steps[0]?.title, "Explain photosynthesis");
+});
+
+test("each step carries only its own saved note", () => {
+  const { steps } = submissionDetail(project());
+  assert.deepEqual(
+    steps.map(({ note }) => note),
+    ["", "Check the cited source."]
+  );
 });
 
 test("a check that has not finished invents no flags or counts", () => {

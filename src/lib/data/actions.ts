@@ -13,6 +13,7 @@ import {
   writeCritique,
   writeFinal,
   writeImport,
+  writeNote,
   writeProject,
   writeReview,
   writeSteps,
@@ -28,6 +29,7 @@ import type {
   EnrolResult,
   FinalResult,
   ImportInput,
+  NoteInput,
   PreviewInput,
   PreviewResult,
   RemoveEnrolmentInput,
@@ -129,6 +131,14 @@ export const reviewFlag = async (input: ReviewInput): Promise<WriteResult> => {
     return forbidden;
   }
   return writeReview(await createClient(), account.id, input);
+};
+
+export const saveNote = async (input: NoteInput): Promise<WriteResult> => {
+  const account = await getAccount();
+  if (account?.role !== "instructor") {
+    return forbidden;
+  }
+  return writeNote(await createClient(), account.id, input);
 };
 
 export const createCourse = async (

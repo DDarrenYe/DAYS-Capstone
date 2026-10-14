@@ -8,13 +8,12 @@ import { withEntry } from "@/lib/stored";
 
 /*
   A grader's decisions on the example cohort, shared by the Visualiser, Flags and Submissions so every screen
-  agrees and nothing is lost on reload. When the review tables land (#30, #33) these hooks become mutations.
+  agrees and nothing is lost on reload. When flag decisions land (#33) these hooks become mutations.
 */
 type Decision = "kept" | "dismissed";
 
 const decisionsSchema = z.record(z.string(), z.enum(["kept", "dismissed"]));
 const reviewedSchema = z.record(z.string(), z.boolean());
-const notesSchema = z.record(z.string(), z.string());
 
 const NONE: Record<string, never> = {};
 
@@ -49,18 +48,4 @@ export const useReviewed = () => {
     [setReviewed]
   );
   return { markReviewed, reviewed };
-};
-
-export const useStepNotes = () => {
-  const [notes, setNotes] = usePersistentState(
-    "review:notes",
-    notesSchema,
-    NONE
-  );
-  const writeNote = useCallback(
-    (key: string, note: string) =>
-      setNotes((current) => withEntry(current, key, note || undefined)),
-    [setNotes]
-  );
-  return { notes, writeNote };
 };

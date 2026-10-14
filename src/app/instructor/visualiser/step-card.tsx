@@ -155,11 +155,13 @@ const CritiqueQuestions = ({
 
 export const StepCard = ({
   animate,
+  children,
   index,
   onSelect,
   step,
 }: {
   animate: boolean;
+  children: ReactNode;
   index: number;
   onSelect: (index: number) => void;
   step: DetailStep;
@@ -254,5 +256,6 @@ export const StepCard = ({
         <CritiqueQuestions answered={step.answered} />
       </Field>
     </div>
+    {children}
   </Card>
 );

@@ -469,5 +469,6 @@ export const graderNotes = pgTable(
     index("grader_notes_iteration").on(t.iterationId, t.projectId),
     index("grader_notes_final").on(t.finalVersionId, t.projectId),
     index("grader_notes_author").on(t.authorId),
+    uniqueIndex("grader_notes_author_step").on(t.authorId, t.iterationId),
   ]
 ).enableRLS();
