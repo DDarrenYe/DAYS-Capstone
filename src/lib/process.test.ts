@@ -8,6 +8,7 @@ import {
   parseCritique,
   critiqueCoverage,
   formatPercent,
+  formatWords,
   niceCeil,
   wordsAxis,
   summarise,
@@ -36,6 +37,12 @@ test("countWords ignores surrounding and repeated whitespace", () => {
   assert.equal(countWords(""), 0);
   assert.equal(countWords("   "), 0);
   assert.equal(countWords("  Looks   good. "), 2);
+});
+
+test("formatWords says one word and groups thousands", () => {
+  assert.equal(formatWords(0), "0 words");
+  assert.equal(formatWords(1), "1 word");
+  assert.equal(formatWords(1204), "1,204 words");
 });
 
 test("a critique answers a question only with a verdict or six words", () => {

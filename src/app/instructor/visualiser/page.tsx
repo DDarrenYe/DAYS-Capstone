@@ -1,8 +1,10 @@
 import { Suspense } from "react";
 
-import { Visualiser } from "@/app/instructor/visualiser/visualiser";
+import { Submission } from "@/app/instructor/visualiser/submission";
 
-const VisualiserPage = () => (
+const VisualiserPage = ({
+  searchParams,
+}: PageProps<"/instructor/visualiser">) => (
   <Suspense
     fallback={
       <div className="flex flex-col gap-3.5 p-6">
@@ -18,7 +20,7 @@ const VisualiserPage = () => (
       </div>
     }
   >
-    <Visualiser />
+    <Submission searchParams={searchParams} />
   </Suspense>
 );
 

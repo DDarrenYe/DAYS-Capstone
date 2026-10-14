@@ -6,9 +6,21 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { wordsAxis } from "@/lib/process";
-import type { Step } from "@/lib/process";
+import { critiqueOrder, wordsAxis } from "@/lib/process";
 import { cn } from "@/lib/utils";
+
+export interface ChartStep {
+  carried: number;
+  critiqueWords: number;
+  day: string;
+  depth: number;
+  flag?: string;
+  id: string;
+  markedError: boolean;
+  time: string;
+  title: string;
+  words: number;
+}
 
 /* Bars rise into 84px (h-21) above the baseline; critiques hang into 22px below it. */
 const UP = 84;
@@ -20,7 +32,7 @@ const TITLED_STEPS = 12;
 const TITLED_COLUMN = 72;
 const COMPACT_COLUMN = 14;
 
-const dayRuns = (steps: readonly Step[]) => {
+const dayRuns = (steps: readonly ChartStep[]) => {
   const runs: { day: string; span: number }[] = [];
   for (const step of steps) {
     const last = runs.at(-1);
@@ -33,13 +45,14 @@ const dayRuns = (steps: readonly Step[]) => {
   return runs;
 };
 
-const describe = (step: Step, index: number) =>
+const describe = (step: ChartStep, index: number) =>
   [
     `Step ${index + 1}, ${step.title}: ${step.words} AI words`,
     `${step.carried} reached the essay`,
     `${step.critiqueWords} critique words`,
-    step.flag ? `flagged: ${step.flag.title}` : "",
-    step.caught ? `AI error caught: ${step.caught}` : "",
+    `${step.depth} of ${critiqueOrder.length} critique questions answered`,
+    step.flag ? `open flag: ${step.flag}` : "",
+    step.markedError ? "student marked an AI error" : "",
   ]
     .filter(Boolean)
     .join(", ");
@@ -60,7 +73,7 @@ export const ProcessChart = ({
   onSelect,
   onHover,
 }: {
-  steps: readonly Step[];
+  steps: readonly ChartStep[];
   selected: number;
   animate: boolean;
   onSelect: (index: number) => void;
@@ -134,7 +147,7 @@ export const ProcessChart = ({
                 const numbered =
                   titled || isSelected || index === 0 || (index + 1) % 5 === 0;
                 return (
-                  <Tooltip key={`${step.time}-${step.title}`}>
+                  <Tooltip key={step.id}>
                     <TooltipTrigger
                       className={cn(
                         "group/col relative flex cursor-pointer flex-col items-center rounded-lg pb-2 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2",
@@ -193,7 +206,7 @@ export const ProcessChart = ({
                         {step.flag ? (
                           <i className="bg-flag ring-flag/25 block size-2 rounded-full ring-3" />
                         ) : null}
-                        {step.caught ? (
+                        {step.markedError ? (
                           <i className="bg-success block size-2 rounded-full" />
                         ) : null}
                       </span>
@@ -230,6 +243,10 @@ export const ProcessChart = ({
                         <dd>{step.carried} words</dd>
                         <dt>Critique</dt>
                         <dd>{step.critiqueWords} words</dd>
+                        <dt>Questions answered</dt>
+                        <dd>
+                          {step.depth} of {critiqueOrder.length}
+                        </dd>
                       </dl>
                     </TooltipContent>
                   </Tooltip>

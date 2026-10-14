@@ -59,6 +59,9 @@ export const summarise = (steps: readonly Step[], finalWords: number) => {
   };
 };
 
+export const formatWords = (words: number) =>
+  `${words.toLocaleString("en")} ${words === 1 ? "word" : "words"}`;
+
 export const formatPercent = (share: number) => `${Math.round(share * 100)}%`;
 
 export const MIN_ANSWER_WORDS = 6;

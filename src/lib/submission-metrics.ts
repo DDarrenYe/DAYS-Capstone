@@ -43,20 +43,32 @@ export interface FlagCounts {
   openKinds: { count: number; kind: string }[];
 }
 
-const flagCounts = (
+export const currentAnalyses = <T extends MetricsAnalysis>(
   {
-    analysis_results: results = [],
     analysis_status: status,
     analysis_version: version,
-  }: MetricsProject,
+  }: Pick<MetricsProject, "analysis_status" | "analysis_version">,
+  results: readonly T[],
+  finalVersionId: string | null | undefined
+) =>
+  status === "completed"
+    ? results.filter(
+        (result) =>
+          result.final_version_id === finalVersionId &&
+          result.analysis_version === version
+      )
+    : [];
+
+const flagCounts = (
+  project: MetricsProject,
   final: MetricsFinal | undefined
 ): FlagCounts | null => {
-  const current = results.filter(
-    (result) =>
-      result.final_version_id === final?.id &&
-      result.analysis_version === version
+  const current = currentAnalyses(
+    project,
+    project.analysis_results ?? [],
+    final?.id
   );
-  if (status !== "completed" || current.length === 0) {
+  if (current.length === 0) {
     return null;
   }
   const flags = current.flatMap((result) => result.flags);
@@ -125,3 +137,9 @@ export const submissionMetrics = (project: MetricsProject) => {
 };
 
 export type SubmissionMetrics = ReturnType<typeof submissionMetrics>;
+
+export const critiqueAverage = ({
+  questionsAnswered,
+  stepCount,
+}: Pick<SubmissionMetrics, "questionsAnswered" | "stepCount">) =>
+  questionsAnswered / Math.max(stepCount, 1);
