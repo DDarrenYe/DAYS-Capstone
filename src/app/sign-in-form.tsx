@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import { signIn } from "@/app/actions";
@@ -58,7 +59,11 @@ export const SignInForm = () => {
       </Button>
       <p className="text-muted-foreground text-xs">
         Use the account your instructor gave you. For help signing in, contact
-        your instructor.
+        your instructor. See{" "}
+        <Link className="text-ai-ink hover:underline" href="/privacy">
+          what we store and who sees it
+        </Link>
+        .
       </p>
     </form>
   );

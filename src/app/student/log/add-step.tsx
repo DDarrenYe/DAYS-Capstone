@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import { useId, useState } from "react";
 import { z } from "zod";
@@ -121,6 +122,16 @@ export const AddStep = ({
           <p className="text-muted-foreground mt-1.5 max-w-xl text-pretty">
             Bring in what you asked and what the AI said, exactly as it was
             said. You write your critique on the next screen.
+          </p>
+          <p className="text-muted-foreground mt-2 max-w-xl text-xs text-pretty">
+            Added steps are saved to your log. Only you can read them until you
+            submit, then your instructors can. A share link is fetched from
+            ChatGPT by our server. Once the reflection check is on, submitted
+            step text will be sent to a third-party AI provider.{" "}
+            <Link className="text-ai-ink hover:underline" href="/privacy">
+              Read the privacy notice
+            </Link>
+            .
           </p>
 
           <Card className="mt-5" variant="raised">

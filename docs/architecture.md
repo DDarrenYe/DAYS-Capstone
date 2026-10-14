@@ -274,7 +274,7 @@ The plan adds two outside calls. Both run on the server, never in the browser.
 | Share-link import (step 3) | The URL the student pasted, sent to an allowlisted host | The public chat page | [#20](https://github.com/DDarrenYe/DAYS-Capstone/issues/20) |
 | Reflection check (step 8, after submission) | Text from the submitted steps, sent to Anthropic | A validated, structured result | [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31), [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32) |
 
-Matching and export stay inside the app. We haven't fixed what the reflection check sends. We should settle it in [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) and put it on the privacy page in [#25](https://github.com/DDarrenYe/DAYS-Capstone/issues/25). What we'd propose is submitted steps only (prompt, AI answer and critique), sent from a server job, with no names, emails, grader notes or review decisions. Whether any essay text goes too is still open. We can't control Anthropic's own retention, and the privacy page can't say that no text leaves the app.
+Matching and export stay inside the app. We haven't fixed what the reflection check sends. We should settle it in [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) and update the privacy page, which [#25](https://github.com/DDarrenYe/DAYS-Capstone/issues/25) added. What we'd propose is submitted steps only (prompt, AI answer and critique), sent from a server job, with no names, emails, grader notes or review decisions. Whether any essay text goes too is still open. We can't control Anthropic's own retention, and the privacy page can't say that no text leaves the app.
 
 ## Prototype versus working
 
@@ -284,7 +284,8 @@ Matching and export stay inside the app. We haven't fixed what the reflection ch
 | Schema, constraints, triggers, RLS and grants | Working and covered by `supabase/tests`. The app only reads `profiles` so far. |
 | Seed data | Working, local only. `supabase/seed.sql` builds one course, eight accounts and eight example projects, listed in `supabase/README.md`. The pages don't show any of it yet, and `match_results` stays empty because the matcher works its result out on read. |
 | Student assignments page | Prototype. Three hard-coded cards, and "Add steps" opens a placeholder. |
-| My log, progress, privacy | Placeholders. No data and no consent text. |
+| Progress | Prototype. Example data. |
+| Privacy | Working. `/privacy` describes the flow above, linked from sign-in, the account menu and Add steps. It says the reflection check isn't on and no retention period is set. Update it when [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) and [#39](https://github.com/DDarrenYe/DAYS-Capstone/issues/39) settle those. |
 | Instructor overview and essay plot | Prototype. Names and percentages are hard-coded from the mockups. The flags and reports pages are placeholders. |
 | Import, critique, final essay, submit | Not built. The tables and locks are ready. |
 | Matching | Working as code and reads (`src/lib/final-match.ts`, `src/lib/submission-metrics.ts`). No page shows it yet. |
