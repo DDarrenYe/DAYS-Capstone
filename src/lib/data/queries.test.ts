@@ -319,7 +319,10 @@ test("metrics are worked out from the rows the session can read", async () => {
             {
               ...row,
               assignment: { id: "a", title: "Essay 2" },
-              student: { email: "student@example.com" },
+              student: {
+                email: "student@example.com",
+                profile: { display_name: "Student One" },
+              },
               submitted_at: "2026-10-14T01:00:00Z",
             },
           ]
@@ -344,7 +347,41 @@ test("metrics are worked out from the rows the session can read", async () => {
   assert.equal(cohort[0]?.assignment.title, "Essay 2");
   assert.equal(cohort[0]?.submittedAt, "2026-10-14T01:00:00Z");
   assert.deepEqual(cohort[0]?.metrics, project);
+  assert.equal(cohort[0]?.analysisStatus, "pending");
+  assert.equal(cohort[0]?.student.profile?.display_name, "Student One");
   assert.equal(requests[1]?.searchParams.get("status"), "eq.submitted");
+});
+
+const cohortProject = (index: number) => ({
+  analysis_results: [],
+  analysis_status: "pending",
+  analysis_version: null,
+  assignment: { id: "a", title: "Essay 2" },
+  final_versions: [],
+  id: `project-${index}`,
+  iterations: [],
+  student: { email: `s${index}@example.com`, profile: null },
+  submitted_at: "2026-10-14T01:00:00Z",
+});
+
+test("a cohort larger than one batch is read to the end", async () => {
+  const ranges: string[] = [];
+  const client = clientFor(userId, (url) => {
+    const offset = Number(url.searchParams.get("offset"));
+    const limit = Number(url.searchParams.get("limit"));
+    ranges.push(`${offset}+${limit}`);
+    return Response.json(
+      Array.from({ length: offset === 0 ? limit : 5 }, (_, index) =>
+        cohortProject(offset + index)
+      )
+    );
+  });
+  const cohort = await new QueryClient().query(
+    cohortMetricsQuery(client, userId)
+  );
+  assert.equal(cohort.length, 205);
+  assert.deepEqual(ranges, ["0+200", "200+200"]);
+  assert.equal(new Set(cohort.map(({ id }) => id)).size, 205);
 });
 
 test("a project that cannot be read has no metrics", async () => {

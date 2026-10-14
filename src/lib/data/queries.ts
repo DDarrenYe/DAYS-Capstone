@@ -125,19 +125,39 @@ const readProjectMetrics = async (client: Client, projectId: string) =>
     )
   );
 
-const readCohortMetrics = async (client: Client) =>
+/* Each project carries its steps and essay text, so the cohort is read in batches; one request would also stop at the API's row limit. */
+const COHORT_BATCH = 200;
+
+const readCohortBatch = async (client: Client, from: number) =>
   unwrap(
     await client
       .from("projects")
       .select(
-        `id, submitted_at, assignment:assignments(id, title), student:enrolments(email), ${METRICS_COLUMNS}`
+        `id, submitted_at, assignment:assignments(id, title), student:enrolments(email, profile:profiles(display_name)), ${METRICS_COLUMNS}`
       )
       .eq("status", "submitted")
       .eq("final_versions.is_current", true)
-      .order("submitted_at", { ascending: false }),
+      .order("submitted_at", { ascending: false })
+      .order("id")
+      .range(from, from + COHORT_BATCH - 1),
     "the cohort metrics"
-  ).map(
+  );
+
+const readCohortProjects = async (
+  client: Client,
+  from = 0
+): Promise<Awaited<ReturnType<typeof readCohortBatch>>> => {
+  const batch = await readCohortBatch(client, from);
+  return batch.length < COHORT_BATCH
+    ? batch
+    : [...batch, ...(await readCohortProjects(client, from + COHORT_BATCH))];
+};
+
+const readCohortMetrics = async (client: Client) => {
+  const projects = await readCohortProjects(client);
+  return projects.map(
     ({ assignment, id, student, submitted_at: submittedAt, ...project }) => ({
+      analysisStatus: project.analysis_status,
       assignment,
       id,
       metrics: submissionMetrics(project),
@@ -145,6 +165,9 @@ const readCohortMetrics = async (client: Client) =>
       submittedAt,
     })
   );
+};
+
+export type CohortRows = Awaited<ReturnType<typeof readCohortMetrics>>;
 
 const readReviews = async (client: Client, projectId: string) =>
   unwrap(

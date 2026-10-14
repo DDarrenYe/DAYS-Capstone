@@ -249,7 +249,7 @@ The database enforces this for any client using the anon key and a user session.
 
 | Table | Student (own enrolled courses) | Instructor (own courses) | `service_role` |
 | --- | --- | --- | --- |
-| `profiles` | Read own row | Read own row | Read and write |
+| `profiles` | Read own row | Read own row, and the display name of students enrolled in their courses | Read and write |
 | `courses`, `assignments` | Read | Read, create their own course, add assignments to it | Read and write |
 | `enrolments` | Read own row | Read the course, add students through `enrol_students`, remove students who have no project | Read and write |
 | `projects` | Read own, create a Lane 2 draft, submit it through `submit_project`, delete while draft | Read submitted projects | Read and write |
@@ -287,12 +287,12 @@ Matching and export stay inside the app. We haven't fixed what the reflection ch
 | Progress | Prototype. Example data. |
 | Privacy | Working. `/privacy` describes the flow above, linked from sign-in, the account menu and Add steps. It says the reflection check isn't on and no retention period is set. Update it when [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) and [#39](https://github.com/DDarrenYe/DAYS-Capstone/issues/39) settle those. |
 | Instructor overview and essay plot | Prototype. Names and percentages are hard-coded from the mockups. The flags and reports pages are placeholders. |
+| Submissions table | Working. The table on `/instructor` reads submitted projects from Supabase on the server and shows the shared match and critique figures, the reflection-check state, search, a filter and 50-row pages in the URL. The overview above it is still example data, so its totals won't match the table until [#27](https://github.com/DDarrenYe/DAYS-Capstone/issues/27). |
 | Import, critique, final essay, submit | Working in My log. |
-| Matching | Working as code and reads (`src/lib/final-match.ts`, `src/lib/submission-metrics.ts`). The final-version panel in My log shows the preview from the saved text. The grader pages don't show it yet. |
+| Matching | Working as code and reads (`src/lib/final-match.ts`, `src/lib/submission-metrics.ts`). The final-version panel in My log shows the preview from the saved text. The submissions table shows it per student; the Visualiser doesn't yet. |
 | Reflection check, grader decisions, export | Not built. The tables, versions and review history are ready. |
 
 ## What's still missing
 
-- **Instructors can't read student names.** `profiles` only lets a user read their own row. The submissions table in [#28](https://github.com/DDarrenYe/DAYS-Capstone/issues/28) needs names, so we need a server read or a new policy.
 - **Flag decisions have no note column.** [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33) mentions an optional note, but the review columns and `flag_reviews` don't store one.
 - **Roles can't be changed from the app.** Instructors are promoted by a trusted administrator. Enrolling by email never changes a role, and an invitation is only linked to a confirmed student account.

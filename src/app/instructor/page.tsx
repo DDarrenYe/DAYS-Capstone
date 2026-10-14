@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { CohortPlot } from "@/app/instructor/cohort-plot";
 import { ReviewProgress } from "@/app/instructor/review-progress";
-import { SubmissionsTable } from "@/app/instructor/submissions-table";
+import { Submissions } from "@/app/instructor/submissions";
 import { Icon } from "@/components/icon";
 import { PageBar } from "@/components/shell/page-bar";
 import { Badge } from "@/components/ui/badge";
@@ -186,7 +186,7 @@ const InstructorPage = () => (
           </div>
         }
       >
-        <SubmissionsTable students={cohort} />
+        <Submissions />
       </Suspense>
     </div>
   </>

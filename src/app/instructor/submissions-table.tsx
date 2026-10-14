@@ -17,16 +17,16 @@ import {
 import type { SortingState } from "@tanstack/react-table";
 import Link from "next/link";
 import {
-  parseAsBoolean,
+  parseAsInteger,
   parseAsString,
   parseAsStringLiteral,
   useQueryStates,
 } from "nuqs";
-import { useId, useMemo } from "react";
+import { useId } from "react";
 
 import { Icon } from "@/components/icon";
 import { CompositionBar, DepthMeter } from "@/components/process/metrics";
-import { ProcessBars } from "@/components/process/process-bars";
+import { SelectionHighlight } from "@/components/selection-highlight";
 import { Avatar } from "@/components/shell/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,63 +39,61 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Toggle } from "@/components/ui/toggle";
-import type { CohortStudent } from "@/lib/example-data";
-import { formatPercent, wordsAxis } from "@/lib/process";
-import { useReviewed } from "@/lib/review-state";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { critiqueOrder } from "@/lib/process";
+import { attention, isUnfinished } from "@/lib/submission-rows";
+import type { CheckState, SubmissionRow } from "@/lib/submission-rows";
 import { cn } from "@/lib/utils";
 
-const STATUS = {
-  done: { dot: "bg-success", label: "Reviewed", rank: 0 },
-  flagged: {
-    dot: "bg-flag ring-3 ring-flag-soft",
-    label: "Needs review",
-    rank: 2,
-  },
-  review: {
-    dot: "bg-review ring-3 ring-review-soft",
-    label: "Needs review",
-    rank: 1,
-  },
+const PAGE_SIZE = 50;
+
+const STATE: Record<CheckState, { dot: string; label: string }> = {
+  failed: { dot: "bg-flag", label: "Check failed" },
+  flagged: { dot: "bg-flag ring-3 ring-flag-soft", label: "Needs review" },
+  none: { dot: "bg-success", label: "Checked, no flags" },
+  pending: { dot: "bg-border-strong", label: "Check pending" },
+  reviewed: { dot: "bg-success", label: "Flags reviewed" },
+  running: { dot: "bg-review ring-3 ring-review-soft", label: "Checking now" },
+  unavailable: { dot: "bg-border-strong", label: "No check result" },
 };
-
-const statusOf = (student: CohortStudent) =>
-  student.status === "review" && student.flags > 0 ? "flagged" : student.status;
-
-/* With no sort chosen, rows keep this order: open flags, then work waiting for review, then the most AI-traced. */
-const lookCloserFirst = (a: CohortStudent, b: CohortStudent) =>
-  b.flags - a.flags ||
-  STATUS[statusOf(b)].rank - STATUS[statusOf(a)].rank ||
-  b.traced - a.traced;
 
 const SORTABLE = [
   "student",
-  "traced",
-  "caught",
-  "depth",
-  "flags",
-  "status",
+  "assignment",
+  "steps",
+  "unmatched",
+  "critique",
+  "review",
   "submitted",
 ] as const;
 
 const SORT_LABEL: Record<(typeof SORTABLE)[number], string> = {
-  caught: "Errors caught",
-  depth: "Critique depth",
-  flags: "Flags",
-  status: "Status",
+  assignment: "Assignment",
+  critique: "Critique questions",
+  review: "Review",
+  steps: "Steps",
   student: "Student",
   submitted: "Submitted",
-  traced: "Traced to logged AI",
+  unmatched: "Not from logged AI",
 };
 
 /* Columns whose values line up on the right. */
-const NUMERIC = new Set(["caught", "submitted"]);
+const NUMERIC = new Set(["steps", "submitted"]);
 
-/* Search, the flagged filter and sort live in the URL, so Back from a student restores the same view. */
+const SHOWN = ["flagged", "unfinished"] as const;
+
+const submittedFormat = new Intl.DateTimeFormat("en", {
+  day: "numeric",
+  month: "short",
+  weekday: "short",
+});
+
+/* Search, the filter, sort and page live in the URL, so Back from a student restores the same view. */
 const viewParams = {
-  flagged: parseAsBoolean.withDefault(false),
   order: parseAsStringLiteral(["asc", "desc"] as const).withDefault("desc"),
+  page: parseAsInteger.withDefault(1),
   q: parseAsString.withDefault(""),
+  show: parseAsStringLiteral(SHOWN),
   sort: parseAsStringLiteral(SORTABLE),
 };
 
@@ -109,146 +107,125 @@ const features = tableFeatures({
   sortedRowModel: createSortedRowModel(),
 });
 
-const helper = createColumnHelper<typeof features, CohortStudent>();
+const helper = createColumnHelper<typeof features, SubmissionRow>();
 
-/* axis is the shared words maximum, so every row's process bars use the same scale and compare fairly. */
-const columnsFor = (axis: number) =>
-  helper.columns([
-    helper.accessor((row) => `${row.name} ${row.id}`, {
-      cell: ({ row }) => (
-        <span className="flex items-center gap-2.5">
-          <Avatar name={row.original.name} />
-          {row.original.detail ? (
-            <Link
-              className="font-emphasis after:absolute after:inset-0 hover:underline"
-              href="/instructor/visualiser"
-            >
-              {row.original.name}
-            </Link>
-          ) : (
-            <b className="font-emphasis">{row.original.name}</b>
-          )}
+const columns = helper.columns([
+  helper.accessor((row) => `${row.name} ${row.email}`, {
+    cell: ({ row }) => (
+      <span className="flex items-center gap-2.5">
+        <Avatar name={row.original.name} />
+        <span className="flex flex-col">
+          <Link
+            className="font-emphasis after:absolute after:inset-0 hover:underline"
+            href={`/instructor/visualiser?project=${row.original.id}`}
+          >
+            {row.original.name}
+          </Link>
           <span className="text-faint text-label font-mono">
-            {row.original.id}
+            {row.original.email}
           </span>
         </span>
-      ),
-      header: "Student",
-      id: "student",
-      sortFn: "text",
-    }),
-    helper.display({
-      cell: ({ row }) => (
-        <ProcessBars
-          base={21}
-          height={32}
-          max={axis}
-          steps={row.original.steps}
-          width={120}
-        />
-      ),
-      header: "Process",
-      id: "process",
-    }),
-    helper.accessor("traced", {
-      cell: ({ row }) => (
+      </span>
+    ),
+    header: "Student",
+    id: "student",
+    sortFn: "text",
+  }),
+  helper.accessor("assignment", {
+    cell: ({ row }) => (
+      <span className="text-body block max-w-40 text-pretty">
+        {row.original.assignment}
+      </span>
+    ),
+    header: "Assignment",
+    sortFn: "text",
+  }),
+  helper.accessor("stepCount", {
+    cell: ({ row }) => (
+      <span className="tabular-nums">{row.original.stepCount}</span>
+    ),
+    header: "Steps",
+    id: "steps",
+    sortDescFirst: true,
+    sortFn: "basic",
+  }),
+  helper.accessor((row) => row.unmatchedPercent ?? -1, {
+    cell: ({ row }) =>
+      row.original.unmatchedPercent === null ? (
+        <span className="text-faint">No final text</span>
+      ) : (
         <span className="flex items-center gap-2.5 tabular-nums">
-          <CompositionBar className="w-16" traced={row.original.traced} />
-          {formatPercent(row.original.traced)}
+          <CompositionBar
+            className="w-16"
+            traced={1 - row.original.unmatchedPercent / 100}
+          />
+          {row.original.unmatchedPercent}%
         </span>
       ),
-      header: "Traced to logged AI",
-      sortDescFirst: true,
-      sortFn: "basic",
-    }),
-    helper.accessor("caught", {
-      cell: ({ row }) => (
-        <span className="tabular-nums">{row.original.caught}</span>
-      ),
-      header: "Errors caught",
-      sortDescFirst: true,
-      sortFn: "basic",
-    }),
-    helper.accessor("depth", {
-      cell: ({ row }) => (
-        <span className="flex items-center gap-2">
-          <DepthMeter depth={row.original.depth} />
-          <span className="text-muted-foreground tabular-nums">
-            {row.original.depth.toFixed(1)}
-          </span>
+    header: "Not from logged AI",
+    id: "unmatched",
+    sortDescFirst: true,
+    sortFn: "basic",
+  }),
+  helper.accessor("critiqueAverage", {
+    cell: ({ row }) => (
+      <span className="flex items-center gap-2">
+        <DepthMeter depth={row.original.critiqueAverage} />
+        <span className="text-muted-foreground tabular-nums">
+          {row.original.critiqueAverage.toFixed(1)}
+          <span className="text-faint"> / {critiqueOrder.length}</span>
         </span>
-      ),
-      header: "Critique depth",
-      sortDescFirst: false,
-      sortFn: "basic",
-    }),
-    helper.accessor("flags", {
-      cell: ({ row }) =>
-        row.original.flags > 0 ? (
-          <Badge variant="flag">
-            <Icon name="flag" />
-            {row.original.flags}
-          </Badge>
-        ) : (
-          <span className="text-faint">—</span>
-        ),
-      filterFn: (row, columnId, onlyFlagged) =>
-        !onlyFlagged || row.getValue<number>(columnId) > 0,
-      header: "Flags",
-      sortDescFirst: true,
-      sortFn: "basic",
-    }),
-    helper.accessor((row) => STATUS[statusOf(row)].rank, {
-      cell: ({ row }) => {
-        const status = STATUS[statusOf(row.original)];
-        return (
-          <span className="text-body text-meta flex items-center gap-1.75">
-            <i className={cn("block size-1.5 rounded-full", status.dot)} />
-            {status.label}
-          </span>
-        );
-      },
-      header: "Status",
-      id: "status",
-      sortDescFirst: true,
-      sortFn: "basic",
-    }),
-    helper.accessor("submittedAt", {
-      cell: ({ row }) => (
-        <span className="text-muted-foreground text-label font-mono">
-          {row.original.submitted}
+      </span>
+    ),
+    header: "Critique questions",
+    id: "critique",
+    sortFn: "basic",
+  }),
+  helper.accessor(attention, {
+    cell: ({ row }) => {
+      const { label, dot } = STATE[row.original.state];
+      return (
+        <span className="text-body text-meta flex items-center gap-1.75">
+          <i className={cn("block size-1.5 rounded-full", dot)} />
+          {label}
+          {row.original.openFlags > 0 ? (
+            <Badge variant="flag">
+              <Icon name="flag" />
+              {row.original.openFlags}
+            </Badge>
+          ) : null}
         </span>
-      ),
-      header: "Submitted",
-      id: "submitted",
-      sortDescFirst: true,
-      sortFn: "basic",
-    }),
-  ]);
+      );
+    },
+    filterFn: (row, _columnId, show) =>
+      show === "flagged"
+        ? row.original.state === "flagged"
+        : isUnfinished(row.original),
+    header: "Review",
+    id: "review",
+    sortDescFirst: true,
+    sortFn: "basic",
+  }),
+  helper.accessor((row) => Date.parse(row.submittedAt), {
+    cell: ({ row }) => (
+      <time
+        className="text-muted-foreground text-label font-mono"
+        dateTime={row.original.submittedAt}
+        suppressHydrationWarning
+      >
+        {submittedFormat.format(new Date(row.original.submittedAt))}
+      </time>
+    ),
+    header: "Submitted",
+    id: "submitted",
+    sortDescFirst: true,
+    sortFn: "basic",
+  }),
+]);
 
-export const SubmissionsTable = ({
-  students,
-}: {
-  students: readonly CohortStudent[];
-}) => {
+export const SubmissionsTable = ({ rows: data }: { rows: SubmissionRow[] }) => {
   const [view, setView] = useQueryStates(viewParams);
   const searchId = useId();
-  const { reviewed } = useReviewed();
-  const data = useMemo(
-    () =>
-      students
-        .map((student) =>
-          reviewed[student.id]
-            ? { ...student, status: "done" as const }
-            : student
-        )
-        .toSorted(lookCloserFirst),
-    [students, reviewed]
-  );
-  const columns = useMemo(
-    () => columnsFor(wordsAxis(students.flatMap((student) => student.steps))),
-    [students]
-  );
   const sorting: SortingState = view.sort
     ? [{ desc: view.order === "desc", id: view.sort }]
     : [];
@@ -265,18 +242,28 @@ export const SubmissionsTable = ({
       const id = SORTABLE.find((sortable) => sortable === next?.id);
       setView({
         order: id && next?.desc === false ? "asc" : null,
+        page: null,
         sort: id ?? null,
       });
     },
     state: {
-      columnFilters: view.flagged ? [{ id: "flags", value: true }] : [],
+      columnFilters: view.show ? [{ id: "review", value: view.show }] : [],
       globalFilter: view.q,
       sorting,
     },
   });
 
   const { rows } = table.getRowModel();
-  const flagged = students.filter((student) => student.flags > 0).length;
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const page = Math.min(Math.max(view.page, 1), pageCount);
+  const first = (page - 1) * PAGE_SIZE;
+  const visible = rows.slice(first, first + PAGE_SIZE);
+  const flagged = data.filter(({ state }) => state === "flagged").length;
+  const unfinished = data.filter(isUnfinished).length;
+  const goTo = (target: number) => {
+    setView({ page: target > 1 ? target : null });
+    document.querySelector("#submissions")?.scrollIntoView();
+  };
 
   return (
     <section
@@ -287,7 +274,7 @@ export const SubmissionsTable = ({
       <div className="flex flex-wrap items-center gap-2 pt-4 pb-2.5">
         <div className="relative w-65 max-sm:w-full">
           <label className="sr-only" htmlFor={searchId}>
-            Filter by name or ID
+            Filter by name or email
           </label>
           <Icon
             className="text-faint pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2"
@@ -297,33 +284,57 @@ export const SubmissionsTable = ({
             density="compact"
             id={searchId}
             inset="icon"
-            onChange={(event) => setView({ q: event.target.value || null })}
-            placeholder="Filter by name or ID"
+            onChange={(event) =>
+              setView({ page: null, q: event.target.value || null })
+            }
+            placeholder="Filter by name or email"
             type="search"
             value={view.q}
           />
         </div>
-        <Toggle
-          onPressedChange={(pressed) => setView({ flagged: pressed || null })}
-          pressed={view.flagged}
+        <ToggleGroup
+          aria-label="Show submissions"
+          onValueChange={([next]) =>
+            setView({
+              page: null,
+              show: SHOWN.find((shown) => shown === next) ?? null,
+            })
+          }
+          value={view.show ? [view.show] : []}
         >
-          <Icon name="flag" />
-          Flagged
-          <Badge variant="flag">{flagged}</Badge>
-        </Toggle>
+          <SelectionHighlight
+            className="flex"
+            selector="[data-pressed]"
+            thumbClassName="bg-card shadow-raised rounded-md"
+          >
+            <ToggleGroupItem tone="thumb" value="flagged">
+              <Icon name="flag" />
+              Flagged
+              <span className="text-faint font-mono tabular-nums">
+                {flagged}
+              </span>
+            </ToggleGroupItem>
+            <ToggleGroupItem tone="thumb" value="unfinished">
+              Check not finished
+              <span className="text-faint font-mono tabular-nums">
+                {unfinished}
+              </span>
+            </ToggleGroupItem>
+          </SelectionHighlight>
+        </ToggleGroup>
         <span
           aria-live="polite"
           className="text-muted-foreground text-meta ml-auto flex items-center gap-1.5"
         >
-          {rows.length === students.length
-            ? `${students.length} submissions`
-            : `${rows.length} of ${students.length}`}
+          {rows.length === data.length
+            ? `${data.length} ${data.length === 1 ? "submission" : "submissions"}`
+            : `${rows.length} of ${data.length}`}
           <span aria-hidden="true">·</span>
           {view.sort ? (
             <>
               Sorted by {SORT_LABEL[view.sort]}
               <Button
-                onClick={() => setView({ order: null, sort: null })}
+                onClick={() => setView({ order: null, page: null, sort: null })}
                 size="sm"
                 variant="ghost"
               >
@@ -345,40 +356,31 @@ export const SubmissionsTable = ({
               {group.headers.map((header) => {
                 const sorted = header.column.getIsSorted();
                 const numeric = NUMERIC.has(header.column.id);
-                const sortable = header.column.getCanSort();
                 return (
                   <TableHead
-                    aria-sort={
-                      sortable
-                        ? (sorted && `${sorted}ending`) || "none"
-                        : undefined
-                    }
+                    aria-sort={(sorted && `${sorted}ending`) || "none"}
                     className={numeric ? "text-right" : undefined}
                     key={header.id}
                   >
-                    {sortable ? (
-                      <button
-                        className={cn(
-                          "hover:text-foreground -mx-1 inline-flex items-center gap-1 rounded-sm px-1",
-                          sorted && "text-foreground",
-                          numeric && "flex-row-reverse"
-                        )}
-                        onClick={header.column.getToggleSortingHandler()}
-                        type="button"
-                      >
-                        <table.FlexRender header={header} />
-                        <Icon
-                          className={cn(
-                            "size-3.5",
-                            !sorted && "invisible",
-                            sorted === "asc" && "rotate-180"
-                          )}
-                          name="down"
-                        />
-                      </button>
-                    ) : (
+                    <button
+                      className={cn(
+                        "hover:text-foreground -mx-1 inline-flex items-center gap-1 rounded-sm px-1",
+                        sorted && "text-foreground",
+                        numeric && "flex-row-reverse"
+                      )}
+                      onClick={header.column.getToggleSortingHandler()}
+                      type="button"
+                    >
                       <table.FlexRender header={header} />
-                    )}
+                      <Icon
+                        className={cn(
+                          "size-3.5",
+                          !sorted && "invisible",
+                          sorted === "asc" && "rotate-180"
+                        )}
+                        name="down"
+                      />
+                    </button>
                   </TableHead>
                 );
               })}
@@ -386,12 +388,8 @@ export const SubmissionsTable = ({
           ))}
         </TableHeader>
         <TableBody>
-          {rows.map((row) => (
-            <TableRow
-              className={row.original.detail ? "relative" : undefined}
-              data-state={row.original.detail ? "selected" : undefined}
-              key={row.id}
-            >
+          {visible.map((row) => (
+            <TableRow className="relative" key={row.id}>
               {row.getAllCells().map((cell) => (
                 <TableCell
                   className={
@@ -407,10 +405,55 @@ export const SubmissionsTable = ({
         </TableBody>
       </Table>
       {rows.length === 0 ? (
-        <p className="text-muted-foreground py-8 text-center">
-          No submissions match this view.
-        </p>
+        <div className="text-muted-foreground flex flex-col items-center gap-2 py-8">
+          <p>No submissions match this view.</p>
+          <Button
+            onClick={() => setView({ page: null, q: null, show: null })}
+            size="sm"
+            variant="outline"
+          >
+            Clear search and filter
+          </Button>
+        </div>
       ) : null}
+      {pageCount > 1 ? (
+        <nav
+          aria-label="Pagination"
+          className="flex items-center gap-2 pt-3 tabular-nums"
+        >
+          <span className="text-muted-foreground text-meta mr-auto">
+            {first + 1}–{first + visible.length} of {rows.length}
+          </span>
+          <Button
+            disabled={page === 1}
+            onClick={() => goTo(page - 1)}
+            size="sm"
+            variant="outline"
+          >
+            <Icon name="left" />
+            Previous
+          </Button>
+          <span className="text-muted-foreground text-meta">
+            Page {page} of {pageCount}
+          </span>
+          <Button
+            disabled={page === pageCount}
+            onClick={() => goTo(page + 1)}
+            size="sm"
+            variant="outline"
+          >
+            Next
+            <Icon name="right" />
+          </Button>
+        </nav>
+      ) : null}
+      <p className="text-muted-foreground text-meta mt-3 max-w-prose text-pretty">
+        “Not from logged AI” is the share of final-essay words that match none
+        of the logged AI answers. It doesn’t say who wrote them: a paraphrase,
+        or an AI answer that wasn’t logged, counts as not matched. Use it to
+        decide where to look, not as a verdict. A submission whose check is
+        pending or failed shows that state in place of a flag count.
+      </p>
     </section>
   );
 };
