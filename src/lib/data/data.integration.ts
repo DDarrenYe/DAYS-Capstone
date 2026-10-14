@@ -31,6 +31,7 @@ import {
   writeCourse,
   removeEnrolment,
   writeEnrolments,
+  writeFinal,
   readImport,
   removeStep,
   writeCritique,
@@ -809,6 +810,84 @@ test("removing a middle step keeps the others attached to their own notes and nu
       last.map(({ id, step_number }) => [id, step_number]),
       [[third?.id, 1]]
     );
+  });
+});
+
+test("final text saves as versions, the log shows the current one, and stale, foreign and locked saves are refused", async () => {
+  const { s1, s2, teacherA } = await fixture;
+  await withDraft(s1, "Final", async (projectId) => {
+    const current = async () => {
+      const log = await projectLogQuery(s1.client, s1.id, projectId).queryFn();
+      return log.final_versions;
+    };
+    assert.deepEqual(await current(), []);
+
+    const first = await writeFinal(s1.client, {
+      base: 0,
+      filename: "essay.docx",
+      projectId,
+      text: "First",
+    });
+    assert.equal(first.version, 1);
+    const second = await writeFinal(s1.client, {
+      base: 1,
+      filename: "essay.docx",
+      projectId,
+      text: "Second",
+    });
+    assert.equal(second.version, 2);
+    const [saved, ...others] = await current();
+    assert.deepEqual(others, []);
+    assert.deepEqual(
+      [saved?.extracted_text, saved?.original_filename, saved?.version_number],
+      ["Second", "essay.docx", 2]
+    );
+
+    const stale = await writeFinal(s1.client, {
+      base: 1,
+      filename: null,
+      projectId,
+      text: "Stale",
+    });
+    assert.equal(stale.conflict, true);
+    const [unchanged] = await current();
+    assert.equal(unchanged?.extracted_text, "Second");
+
+    const raced = await Promise.all(
+      ["Tab one", "Tab two"].map((text) =>
+        writeFinal(s1.client, { base: 2, filename: null, projectId, text })
+      )
+    );
+    assert.deepEqual(raced.map(({ version }) => version).toSorted(), [
+      3,
+      undefined,
+    ]);
+    assert.equal(raced.filter(({ conflict }) => conflict).length, 1);
+    const versions = await must(
+      admin
+        .from("final_versions")
+        .select("version_number, is_current")
+        .eq("project_id", projectId)
+        .order("version_number")
+    );
+    assert.deepEqual(
+      versions.map(({ is_current: isCurrent }) => isCurrent),
+      [false, false, true]
+    );
+
+    const input = { base: 3, filename: null, projectId, text: "Not yours" };
+    assert.deepEqual(await writeFinal(s2.client, input), forbidden);
+    assert.deepEqual(await writeFinal(teacherA.client, input), forbidden);
+    const { error: hidden } = await s1.client
+      .from("final_versions")
+      .select("match_results")
+      .eq("project_id", projectId);
+    assert.ok(hidden, "matching outputs are not readable by students");
+
+    await writeSubmission(s1.client, { projectId });
+    assert.deepEqual(await writeFinal(s1.client, input), forbidden);
+    const [locked] = await current();
+    assert.equal(locked?.version_number, 3);
   });
 });
 

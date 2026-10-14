@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
-type Viewing = number | "new" | undefined;
+type Viewing = number | "new" | "final" | undefined;
 type Filter = "all" | "saved" | "waiting";
 
 const filterOptions = [
@@ -157,13 +157,15 @@ export const StepRail = ({
   steps,
   viewing,
   locked,
+  finalLabel,
   onView,
 }: {
   title: string;
   steps: readonly LoggedStep[];
   viewing: Viewing;
   locked: boolean;
-  onView: (view: number | "new") => void;
+  finalLabel?: string;
+  onView: (view: number | "new" | "final") => void;
 }) => {
   const [filter, setFilter] = useState<Filter>("all");
   const saved = steps.filter(isSaved);
@@ -252,6 +254,30 @@ export const StepRail = ({
             </span>
           </button>
         )}
+        <button
+          aria-current={viewing === "final" ? "step" : undefined}
+          className={cn(
+            itemClassName,
+            "bg-card shadow-hairline aria-[current=step]:shadow-none"
+          )}
+          onClick={() => onView("final")}
+          type="button"
+        >
+          <span className="text-body bg-muted shadow-hairline row-span-2 mt-0.5 grid size-5.5 place-items-center rounded-full">
+            <Icon className="size-3.5" name="essay" />
+          </span>
+          <b
+            className={cn(
+              "text-control font-medium",
+              viewing === "final" ? "text-foreground" : "text-body"
+            )}
+          >
+            Final version
+          </b>
+          <span className="text-faint text-label">
+            {finalLabel ?? "Your essay text"}
+          </span>
+        </button>
       </SelectionHighlight>
     </nav>
   );

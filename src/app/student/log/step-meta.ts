@@ -18,6 +18,14 @@ const loggedFormat = new Intl.DateTimeFormat("en", {
   weekday: "short",
 });
 
+const savedFormat = new Intl.DateTimeFormat("en", {
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+export const savedTime = (createdAt: string) =>
+  savedFormat.format(new Date(createdAt));
+
 export const loggedAt = ({
   created_at: createdAt,
 }: Pick<LoggedStep, "created_at">) => loggedFormat.format(new Date(createdAt));
@@ -34,6 +42,15 @@ export const marksOf = ({ marks }: Pick<LoggedStep, "marks">) => {
   const parsed = marksList.safeParse(marks);
   return parsed.success ? parsed.data : [];
 };
+
+export const savedFinal = ({ final_versions: [current] }: ProjectLog) => ({
+  createdAt: current?.created_at ?? null,
+  filename: current?.original_filename ?? null,
+  text: current?.extracted_text ?? "",
+  version: current?.version_number ?? 0,
+});
+
+export type SavedFinal = ReturnType<typeof savedFinal>;
 
 export const logHref = (assignmentId: string) =>
   `/student/log?assignment=${assignmentId}`;

@@ -81,9 +81,10 @@ const readProjectLog = async (client: Client, projectId: string) =>
     await client
       .from("projects")
       .select(
-        "id, assignment_id, status, submitted_at, iterations(id, step_number, ai_tool, prompt, raw_answer, critique, import_source, source_url, imported_at, marks, student_marked_ai_error, ai_error_evidence, created_at)"
+        "id, assignment_id, status, submitted_at, iterations(id, step_number, ai_tool, prompt, raw_answer, critique, import_source, source_url, imported_at, marks, student_marked_ai_error, ai_error_evidence, created_at), final_versions(id, version_number, extracted_text, original_filename, created_at)"
       )
       .eq("id", projectId)
+      .eq("final_versions.is_current", true)
       .order("step_number", { referencedTable: "iterations" })
       .maybeSingle(),
     "the project log"
@@ -167,6 +168,17 @@ export const invalidateAfterSave = (
     queryClient,
     queryKeys.project(userId, projectId),
     queryKeys.assignments(userId)
+  );
+
+export const cacheSavedFinal = (
+  queryClient: QueryClient,
+  userId: string,
+  projectId: string,
+  saved: ProjectLog["final_versions"][number]
+) =>
+  queryClient.setQueryData<ProjectLog>(
+    queryKeys.projectLog(userId, projectId),
+    (log) => log && { ...log, final_versions: [saved] }
   );
 
 export const invalidateAfterSubmit = (

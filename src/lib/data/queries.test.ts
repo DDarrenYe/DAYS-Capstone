@@ -6,6 +6,7 @@ import { QueryClient } from "@tanstack/query-core";
 
 import {
   assignmentsQuery,
+  cacheSavedFinal,
   invalidateAfterOpen,
   invalidateAfterReview,
   invalidateAfterSave,
@@ -103,6 +104,33 @@ test("query keys never share a prefix between users or projects", () => {
   assert.notDeepEqual(
     queryKeys.projectLog(userId, projectId),
     queryKeys.projectLog(userId, otherProjectId)
+  );
+});
+
+test("a saved final version replaces the cached one for that user's project only", () => {
+  const queryClient = new QueryClient();
+  const log = { final_versions: [], id: projectId, iterations: [] };
+  const own = queryKeys.projectLog(userId, projectId);
+  const other = queryKeys.projectLog(otherUserId, projectId);
+  queryClient.setQueryData(own, log);
+  queryClient.setQueryData(other, log);
+  const saved = {
+    created_at: "2026-10-14T01:00:00Z",
+    extracted_text: "Essay",
+    id: "70000000-0000-0000-0000-000000000001",
+    original_filename: null,
+    version_number: 2,
+  };
+  cacheSavedFinal(queryClient, userId, projectId, saved);
+  assert.deepEqual(queryClient.getQueryData(own), {
+    ...log,
+    final_versions: [saved],
+  });
+  assert.deepEqual(queryClient.getQueryData(other), log);
+  cacheSavedFinal(queryClient, userId, otherProjectId, saved);
+  assert.equal(
+    queryClient.getQueryData(queryKeys.projectLog(userId, otherProjectId)),
+    undefined
   );
 });
 
