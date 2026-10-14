@@ -25,6 +25,7 @@ import {
   projectLogQuery,
   projectMetricsQuery,
   reviewsQuery,
+  submissionQuery,
   submissionsQuery,
 } from "./queries";
 import {
@@ -1315,6 +1316,51 @@ test("instructors set up a course whose assignments enrolled and invited student
   );
 });
 
+interface Reader {
+  client: SupabaseClient<Database>;
+  id: string;
+}
+
+const assertSubmissionDetail = async ({
+  firstStep,
+  outsiders,
+  project,
+  secondStep,
+  teacher,
+}: {
+  firstStep: { id: string } | undefined;
+  outsiders: Reader[];
+  project: { id: string };
+  secondStep: { id: string } | undefined;
+  teacher: Reader;
+}) => {
+  const submission = await newQueryClient().query(
+    submissionQuery(teacher.client, teacher.id, project.id)
+  );
+  assert.equal(submission?.id, project.id);
+  assert.equal(submission?.assignment.title, `${tag} Match`);
+  assert.equal(submission?.student.profile?.display_name, "matcher");
+  assert.equal(submission?.final_versions.length, 1);
+  assert.deepEqual(
+    submission?.iterations.map(({ id }) => id).toSorted(),
+    [firstStep?.id, secondStep?.id].toSorted()
+  );
+  assert.equal(submission?.analysis_results.length, 1);
+  assert.equal(submission?.analysis_results[0]?.iteration_id, firstStep?.id);
+  assert.deepEqual(
+    submission?.analysis_results[0]?.flags.map(({ kind }) => kind).toSorted(),
+    ["blind", "thin"]
+  );
+  const unseen = await Promise.all(
+    outsiders.map((outsider) =>
+      newQueryClient().query(
+        submissionQuery(outsider.client, outsider.id, project.id)
+      )
+    )
+  );
+  assert.deepEqual(unseen, [null, null]);
+};
+
 test("the student preview and the grader read the same final-text totals", async () => {
   const { s1, teacherA, teacherB } = await fixture;
   const writer = await createAccount("matcher", "student");
@@ -1382,6 +1428,7 @@ test("the student preview and the grader read the same final-text totals", async
       .select("id, step_number")
   );
   const firstStep = logged.find(({ step_number: number }) => number === 1);
+  const secondStep = logged.find(({ step_number: number }) => number === 2);
 
   const read = (client: SupabaseClient<Database>, userId: string, id: string) =>
     newQueryClient().query(projectMetricsQuery(client, userId, id));
@@ -1555,6 +1602,14 @@ test("the student preview and the grader read the same final-text totals", async
   const studentView = await own();
   assert.equal(studentView.flags, null);
   assert.deepEqual({ ...withFlags, flags: null }, studentView);
+
+  await assertSubmissionDetail({
+    firstStep,
+    outsiders: [teacherB, s1],
+    project,
+    secondStep,
+    teacher: teacherA,
+  });
 
   assert.deepEqual(
     await writeReview(teacherA.client, teacherA.id, {

@@ -24,6 +24,7 @@ import {
 } from "nuqs";
 import { useId } from "react";
 
+import { CHECK_STATE } from "@/app/instructor/check-state";
 import { Icon } from "@/components/icon";
 import { CompositionBar, DepthMeter } from "@/components/process/metrics";
 import { SelectionHighlight } from "@/components/selection-highlight";
@@ -42,20 +43,10 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { critiqueOrder } from "@/lib/process";
 import { attention, isUnfinished } from "@/lib/submission-rows";
-import type { CheckState, SubmissionRow } from "@/lib/submission-rows";
+import type { SubmissionRow } from "@/lib/submission-rows";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 50;
-
-const STATE: Record<CheckState, { dot: string; label: string }> = {
-  failed: { dot: "bg-flag", label: "Check failed" },
-  flagged: { dot: "bg-flag ring-3 ring-flag-soft", label: "Needs review" },
-  none: { dot: "bg-success", label: "Checked, no flags" },
-  pending: { dot: "bg-border-strong", label: "Check pending" },
-  reviewed: { dot: "bg-success", label: "Flags reviewed" },
-  running: { dot: "bg-review ring-3 ring-review-soft", label: "Checking now" },
-  unavailable: { dot: "bg-border-strong", label: "No check result" },
-};
 
 const SORTABLE = [
   "student",
@@ -183,7 +174,7 @@ const columns = helper.columns([
   }),
   helper.accessor(attention, {
     cell: ({ row }) => {
-      const { label, dot } = STATE[row.original.state];
+      const { label, dot } = CHECK_STATE[row.original.state];
       return (
         <span className="text-body text-meta flex items-center gap-1.75">
           <i className={cn("block size-1.5 rounded-full", dot)} />

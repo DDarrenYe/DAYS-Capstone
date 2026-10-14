@@ -1,4 +1,5 @@
 import type { CohortRows } from "@/lib/data/queries";
+import { critiqueAverage } from "@/lib/submission-metrics";
 import type { FlagCounts } from "@/lib/submission-metrics";
 
 /*
@@ -33,7 +34,10 @@ export interface SubmissionRow {
 
 type Cohort = CohortRows[number];
 
-const checkState = ({ analysisStatus, metrics }: Cohort): CheckState => {
+export const checkState = ({
+  analysisStatus,
+  metrics,
+}: Pick<Cohort, "analysisStatus" | "metrics">): CheckState => {
   if (analysisStatus !== "completed") {
     return analysisStatus;
   }
@@ -83,8 +87,7 @@ export const submissionRows = (cohort: CohortRows): SubmissionRow[] =>
       return {
         assignment: entry.assignment.title,
         assignmentId: entry.assignment.id,
-        critiqueAverage:
-          metrics.questionsAnswered / Math.max(metrics.stepCount, 1),
+        critiqueAverage: critiqueAverage(metrics),
         email,
         id: entry.id,
         name: profile?.display_name ?? email,

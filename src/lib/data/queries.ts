@@ -22,6 +22,8 @@ export const queryKeys = {
     [...queryKeys.project(userId, projectId), "log"] as const,
   reviews: (userId: string, projectId: string) =>
     [...queryKeys.project(userId, projectId), "reviews"] as const,
+  submission: (userId: string, projectId: string) =>
+    [...queryKeys.submissions(userId), projectId] as const,
   submissions: (userId: string) => ["users", userId, "submissions"] as const,
 };
 
@@ -169,6 +171,27 @@ const readCohortMetrics = async (client: Client) => {
 
 export type CohortRows = Awaited<ReturnType<typeof readCohortMetrics>>;
 
+const SUBMISSION_COLUMNS =
+  "id, submitted_at, analysis_status, analysis_version, assignment:assignments(id, title), student:enrolments(email, profile:profiles(display_name)), iterations(id, step_number, prompt, raw_answer, critique, marks, student_marked_ai_error, ai_error_evidence, created_at), final_versions(id, version_number, extracted_text, original_filename), analysis_results(final_version_id, analysis_version, iteration_id, flags(id, kind, evidence, explanation, review_state))";
+
+const readSubmission = async (client: Client, projectId: string) => {
+  const { data, error } = await client
+    .from("projects")
+    .select(SUBMISSION_COLUMNS)
+    .eq("id", projectId)
+    .eq("status", "submitted")
+    .eq("final_versions.is_current", true)
+    .maybeSingle();
+  if (error) {
+    throw new Error("Unable to load the submission.", { cause: error });
+  }
+  return data;
+};
+
+export type SubmissionProject = NonNullable<
+  Awaited<ReturnType<typeof readSubmission>>
+>;
+
 const readReviews = async (client: Client, projectId: string) =>
   unwrap(
     await client
@@ -219,6 +242,16 @@ export const projectMetricsQuery = (
 export const cohortMetricsQuery = (client: Client, userId: string) => ({
   queryFn: () => asUser(client, userId, readCohortMetrics),
   queryKey: queryKeys.cohortMetrics(userId),
+});
+
+export const submissionQuery = (
+  client: Client,
+  userId: string,
+  projectId: string
+) => ({
+  queryFn: () =>
+    asUser(client, userId, (scoped) => readSubmission(scoped, projectId)),
+  queryKey: queryKeys.submission(userId, projectId),
 });
 
 export const reviewsQuery = (
