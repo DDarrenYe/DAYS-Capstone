@@ -651,14 +651,34 @@ test("a document upload needs a file and never reaches the database", async () =
   });
 });
 
-test("submitting only moves a draft the caller can update", async () => {
-  const { client, requests } = clientWith();
+test("submitting calls the database function, which owns the checks and the lock", async () => {
+  const { client, requests } = clientWith(() =>
+    Response.json("2026-10-14T00:00:00+00:00")
+  );
   assert.deepEqual(await writeSubmission(client, { projectId }), {});
-  assert.equal(requests[0]?.method, "PATCH");
-  assert.equal(requests[0]?.url.searchParams.get("id"), `eq.${projectId}`);
-  assert.equal(requests[0]?.url.searchParams.get("status"), "eq.draft");
-  assert.equal(requests[0]?.body?.status, "submitted");
-  assert.match(String(requests[0]?.body?.submitted_at), /^\d{4}-\d\d-\d\dT/u);
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0]?.method, "POST");
+  assert.equal(requests[0]?.url.pathname, "/rest/v1/rpc/submit_project");
+  assert.deepEqual(requests[0]?.body, { project: projectId });
+});
+
+const failing = (code: string, message: string) =>
+  clientWith(() => Response.json({ code, message }, { status: 400 })).client;
+
+test("an incomplete log reports the database's reason and nothing else leaks", async () => {
+  assert.deepEqual(
+    await writeSubmission(
+      failing("P0001", "Save your final version before you submit."),
+      { projectId }
+    ),
+    { error: "Save your final version before you submit." }
+  );
+  assert.deepEqual(
+    await writeSubmission(failing("42501", "Only the enrolled student"), {
+      projectId,
+    }),
+    forbidden
+  );
 });
 
 test("a review is attributed to the verified reviewer, not the caller's input", async () => {
@@ -682,11 +702,6 @@ test("a review is attributed to the verified reviewer, not the caller's input", 
 });
 
 test("rows the database hides and policy violations both read as forbidden", async () => {
-  const hidden = clientWith(noRow);
-  assert.deepEqual(
-    await writeSubmission(hidden.client, { projectId }),
-    forbidden
-  );
   const results = await Promise.all(
     ["42501", "23514"].flatMap((code) => {
       const denied = () =>

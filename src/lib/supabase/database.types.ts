@@ -621,6 +621,7 @@ export interface Database {
           version_number: number;
         }[];
       };
+      submit_project: { Args: { project: string }; Returns: string };
     };
     Enums: {
       analysis_status: "pending" | "running" | "completed" | "failed";

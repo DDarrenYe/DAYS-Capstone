@@ -19,6 +19,7 @@ export const ConfirmDialog = ({
   pendingLabel,
   pending = false,
   error,
+  variant = "destructive",
   onConfirm,
 }: {
   open: boolean;
@@ -29,6 +30,7 @@ export const ConfirmDialog = ({
   pendingLabel: string;
   pending?: boolean;
   error?: string;
+  variant?: "default" | "destructive";
   onConfirm: () => void;
 }) => (
   <AlertDialog onOpenChange={onOpenChange} open={open}>
@@ -42,7 +44,7 @@ export const ConfirmDialog = ({
         <AlertDialogClose render={<Button variant="outline" />}>
           Cancel
         </AlertDialogClose>
-        <Button disabled={pending} onClick={onConfirm} variant="destructive">
+        <Button disabled={pending} onClick={onConfirm} variant={variant}>
           {pending ? pendingLabel : confirm}
         </Button>
       </AlertDialogFooter>

@@ -10,6 +10,7 @@ import {
   loggedAt,
   matchedPassages,
   savedFinal,
+  submitBlockers,
 } from "./step-meta";
 import type { LoggedStep } from "./step-meta";
 
@@ -147,6 +148,25 @@ test("matched passages quote the saved text and name the step they came from", (
       submissionMetrics({ final_versions: [], iterations: [] }),
       ""
     ),
+    []
+  );
+});
+
+test("a log is ready to submit only with a critique on every step and a saved final version", () => {
+  const checked = step({ critique: "Checked." });
+  const open = [
+    step({ critique: "  ", step_number: 2 }),
+    step({ step_number: 3 }),
+  ];
+  assert.deepEqual(submitBlockers({ iterations: [] }, { text: "Essay" }), [
+    "Add at least one step.",
+  ]);
+  assert.deepEqual(
+    submitBlockers({ iterations: [checked, ...open] }, { text: " \n" }),
+    ["Add a critique to step 2, 3.", "Save your final version."]
+  );
+  assert.deepEqual(
+    submitBlockers({ iterations: [checked] }, { text: "Essay" }),
     []
   );
 });
