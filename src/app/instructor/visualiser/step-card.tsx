@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { useState } from "react";
 import type { ReactNode } from "react";
 
@@ -101,9 +102,15 @@ const FlagCard = ({ flag }: { flag: DetailStep["flags"][number] }) => (
         {flag.evidence}
       </blockquote>
     ) : null}
-    <p className="text-label mt-2 ml-5.75 opacity-60">
-      Reflection check · suggested
-    </p>
+    <div className="text-label mt-2 ml-5.75 flex items-center gap-2">
+      <p className="opacity-60">Reflection check · suggested</p>
+      <Link
+        className="font-emphasis ml-auto underline-offset-4 hover:underline"
+        href="/instructor/flags"
+      >
+        Review in Flags
+      </Link>
+    </div>
   </div>
 );
 
