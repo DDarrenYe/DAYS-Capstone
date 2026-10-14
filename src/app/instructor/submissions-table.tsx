@@ -26,6 +26,7 @@ import { useId } from "react";
 
 import { Icon } from "@/components/icon";
 import { CompositionBar, DepthMeter } from "@/components/process/metrics";
+import { SelectionHighlight } from "@/components/selection-highlight";
 import { Avatar } from "@/components/shell/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -301,17 +302,25 @@ export const SubmissionsTable = ({ rows: data }: { rows: SubmissionRow[] }) => {
           }
           value={view.show ? [view.show] : []}
         >
-          <ToggleGroupItem tone="flag" value="flagged">
-            <Icon name="flag" />
-            Flagged
-            <span className="text-faint font-mono tabular-nums">{flagged}</span>
-          </ToggleGroupItem>
-          <ToggleGroupItem tone="review" value="unfinished">
-            Check not finished
-            <span className="text-faint font-mono tabular-nums">
-              {unfinished}
-            </span>
-          </ToggleGroupItem>
+          <SelectionHighlight
+            className="flex"
+            selector="[data-pressed]"
+            thumbClassName="bg-card shadow-raised rounded-md"
+          >
+            <ToggleGroupItem tone="thumb" value="flagged">
+              <Icon name="flag" />
+              Flagged
+              <span className="text-faint font-mono tabular-nums">
+                {flagged}
+              </span>
+            </ToggleGroupItem>
+            <ToggleGroupItem tone="thumb" value="unfinished">
+              Check not finished
+              <span className="text-faint font-mono tabular-nums">
+                {unfinished}
+              </span>
+            </ToggleGroupItem>
+          </SelectionHighlight>
         </ToggleGroup>
         <span
           aria-live="polite"
