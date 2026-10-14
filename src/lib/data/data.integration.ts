@@ -751,6 +751,18 @@ const withDraft = async (
   }
 };
 
+const addCheckedStep = (projectId: string) =>
+  run(
+    admin.from("iterations").insert({
+      ai_tool: "Tool",
+      critique: "Checked the answer.",
+      project_id: projectId,
+      prompt: "Prompt",
+      raw_answer: "Answer",
+      step_number: 1,
+    })
+  );
+
 test("removing a middle step keeps the others attached to their own notes and numbers them in a row", async () => {
   const { s1, s2, teacherA } = await fixture;
   await withDraft(s1, "Remove", async (projectId) => {
@@ -886,7 +898,8 @@ test("final text saves as versions, the log shows the current one, and stale, fo
       .eq("project_id", projectId);
     assert.ok(hidden, "matching outputs are not readable by students");
 
-    await writeSubmission(s1.client, { projectId });
+    await addCheckedStep(projectId);
+    assert.deepEqual(await writeSubmission(s1.client, { projectId }), {});
     assert.deepEqual(await writeFinal(s1.client, input), forbidden);
     const [locked] = await current();
     assert.equal(locked?.version_number, 3);
@@ -952,7 +965,7 @@ test("opening a Lane 2 assignment creates one project, however often it is opene
   }
 });
 
-test("submitting refreshes state, locks the project and rejects other users", async () => {
+test("submitting refuses incomplete logs, then locks the project and rejects other users", async () => {
   const { p1, p3, s1, s2, teacherA } = await fixture;
   const rejected = await Promise.all([
     writeSubmission(s2.client, { projectId: p1 }),
@@ -969,14 +982,61 @@ test("submitting refreshes state, locks the project and rejects other users", as
     return list.flatMap(({ projects }) => projects).find(({ id }) => id === p1)
       ?.status;
   };
+  const stored = () =>
+    must(
+      admin
+        .from("projects")
+        .select("status, submitted_at")
+        .eq("id", p1)
+        .single()
+    );
   assert.equal(await statusOf(), "draft");
+
+  const noCritique = await writeSubmission(s1.client, { projectId: p1 });
+  assert.match(noCritique.error ?? "", /Add a critique to every step/u);
+  await run(
+    admin
+      .from("iterations")
+      .update({ critique: "Checked the answer." })
+      .eq("project_id", p1)
+  );
+  assert.deepEqual(await writeSubmission(s1.client, { projectId: p1 }), {
+    error: "Save your final version before you submit.",
+  });
+  assert.deepEqual(await stored(), { status: "draft", submitted_at: null });
+  const saved = await writeFinal(s1.client, {
+    base: 0,
+    filename: null,
+    projectId: p1,
+    text: "Final essay",
+  });
+  assert.equal(saved.version, 1);
+
+  const retries = await Promise.all([
+    writeSubmission(s1.client, { projectId: p1 }),
+    writeSubmission(s1.client, { projectId: p1 }),
+    writeSubmission(s1.client, { projectId: p1 }),
+  ]);
+  assert.deepEqual(retries, [{}, {}, {}]);
+  const first = await stored();
+  assert.equal(first.status, "submitted");
   assert.deepEqual(await writeSubmission(s1.client, { projectId: p1 }), {});
+  assert.deepEqual(await stored(), first);
+  const stamped = await must(
+    admin
+      .from("final_versions")
+      .select("submitted_at")
+      .eq("project_id", p1)
+      .eq("is_current", true)
+      .single()
+  );
+  assert.equal(stamped.submitted_at, first.submitted_at);
+
   assert.equal(await statusOf(), "draft");
   await invalidateAfterSubmit(queryClient, s1.id, p1);
   assert.equal(await statusOf(), "submitted");
   const submitted = await queryClient.query(log);
   assert.equal(submitted.status, "submitted");
-  const again = await writeSubmission(s1.client, { projectId: p1 });
   const late = await writeSteps(s1.client, {
     aiTool: "Tool",
     projectId: p1,
@@ -989,10 +1049,23 @@ test("submitting refreshes state, locks the project and rejects other users", as
     projectId: p1,
     stepId: firstStep?.id ?? "",
   });
+  const lateFinal = await writeFinal(s1.client, {
+    base: 1,
+    filename: null,
+    projectId: p1,
+    text: "Late essay",
+  });
   assert.deepEqual(
-    [again, late, lateCritique],
+    [late, lateCritique, lateFinal],
     [forbidden, forbidden, forbidden]
   );
+  const reopened = await s1.client
+    .from("projects")
+    .update({ status: "draft", submitted_at: null })
+    .eq("id", p1)
+    .select("id");
+  assert.deepEqual(reopened.data, []);
+  assert.deepEqual(await stored(), first);
   const visible = await newQueryClient().query(
     submissionsQuery(teacherA.client, teacherA.id)
   );
@@ -1000,6 +1073,57 @@ test("submitting refreshes state, locks the project and rejects other users", as
   for (const stop of stops) {
     stop();
   }
+});
+
+test("a student cannot submit by writing the project row, and a save racing a submit never changes the submitted text", async () => {
+  const { s1 } = await fixture;
+  await withDraft(s1, "Submit race", async (projectId) => {
+    await addCheckedStep(projectId);
+    const direct = await s1.client
+      .from("projects")
+      .update({ status: "submitted", submitted_at: new Date().toISOString() })
+      .eq("id", projectId);
+    assert.equal(direct.error?.code, "42501");
+    const stamp = await s1.client
+      .from("final_versions")
+      .update({ submitted_at: new Date().toISOString() })
+      .eq("project_id", projectId);
+    assert.equal(stamp.error?.code, "42501");
+
+    const first = await writeFinal(s1.client, {
+      base: 0,
+      filename: null,
+      projectId,
+      text: "First text",
+    });
+    assert.equal(first.version, 1);
+    const [saveResult, submitResult] = await Promise.all([
+      writeFinal(s1.client, {
+        base: 1,
+        filename: null,
+        projectId,
+        text: "Racing text",
+      }),
+      writeSubmission(s1.client, { projectId }),
+    ]);
+    assert.deepEqual(submitResult, {});
+    const current = await must(
+      admin
+        .from("final_versions")
+        .select("version_number, extracted_text, submitted_at")
+        .eq("project_id", projectId)
+        .eq("is_current", true)
+        .single()
+    );
+    assert.ok(current.submitted_at);
+    if (saveResult.version === 2) {
+      assert.equal(current.extracted_text, "Racing text");
+    } else {
+      assert.deepEqual(saveResult, forbidden);
+      assert.equal(current.extracted_text, "First text");
+    }
+    assert.equal(current.version_number, saveResult.version ?? 1);
+  });
 });
 
 test("reviewing a flag refreshes reviews and keeps the decision history", async () => {
@@ -1305,6 +1429,12 @@ test("the student preview and the grader read the same final-text totals", async
   await assert.rejects(
     read(teacherA.client, teacherA.id, project.id),
     /Unable to load the submission metrics/u
+  );
+  await run(
+    admin
+      .from("iterations")
+      .update({ critique: "Checked the answer." })
+      .eq("project_id", project.id)
   );
   assert.deepEqual(
     await writeSubmission(writer.client, { projectId: project.id }),

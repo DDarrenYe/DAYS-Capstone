@@ -53,6 +53,26 @@ export const savedFinal = ({ final_versions: [current] }: ProjectLog) => ({
 
 export type SavedFinal = ReturnType<typeof savedFinal>;
 
+export const submitBlockers = (
+  { iterations }: Pick<ProjectLog, "iterations">,
+  saved: Pick<SavedFinal, "text">
+) => {
+  const blockers: string[] = [];
+  if (iterations.length === 0) {
+    blockers.push("Add at least one step.");
+  }
+  const open = iterations
+    .filter(({ critique }) => (critique ?? "").trim() === "")
+    .map(({ step_number: number }) => number);
+  if (open.length > 0) {
+    blockers.push(`Add a critique to step ${open.join(", ")}.`);
+  }
+  if (saved.text.trim() === "") {
+    blockers.push("Save your final version.");
+  }
+  return blockers;
+};
+
 export const matchedPassages = (
   { spans, steps }: Pick<SubmissionMetrics, "spans" | "steps">,
   text: string

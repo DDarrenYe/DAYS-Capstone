@@ -173,7 +173,7 @@ flowchart LR
     s3["3 Import a link or paste text"]:::planned
     s4["4 Critique each step"]:::planned
     s5["5 Type or upload the final essay"]:::planned
-    s6["6 Submit"]:::planned
+    s6["6 Submit"]:::live
     s1 -.-> s2 -.-> s3 -.-> s4 -.-> s5 -.-> s6
   end
 
@@ -237,7 +237,7 @@ flowchart LR
 | 3 | Import or manual entry | Database-ready, [#20](https://github.com/DDarrenYe/DAYS-Capstone/issues/20) | `iterations` stores the prompt, raw answer, tool and where it came from (`import_source`, source URL and IDs). A unique key on tool, conversation and step ID stops the same imported step being saved twice. Fetching a public link isn't built. |
 | 4 | Critique | Database-ready, [#20](https://github.com/DDarrenYe/DAYS-Capstone/issues/20) | The three questions are only guidance in the UI. The answer is one `critique` text. It's null while an imported step waits, and can't be blank once saved. Marking an AI error needs evidence, and it only records what the student said. |
 | 5 | Final essay | Database-ready, [#22](https://github.com/DDarrenYe/DAYS-Capstone/issues/22) | Every save is a new `final_versions` row. `.docx` extraction and the size and type checks will run on the server. |
-| 6 | Atomic submission | Partly database-ready, [#23](https://github.com/DDarrenYe/DAYS-Capstone/issues/23) | While the project is a draft, a student sets `status` and `submitted_at`. After that, RLS and a trigger that locks the project row reject student writes to the project, its steps and its finals. A save that runs at the same time waits for the submit. We haven't built the completeness check, picking the submitted final or starting analysis. |
+| 6 | Atomic submission | Working, [#23](https://github.com/DDarrenYe/DAYS-Capstone/issues/23) | The Submit button on the final-version panel calls `public.submit_project`. It locks the project row, then checks that the student is enrolled, the project is a Lane 2 draft, there's at least one step, every step has a critique and the saved final version isn't blank. If so, it sets `status`, `submitted_at` and the final version's `submitted_at` in one transaction. Submitting twice returns the first time. Students can no longer write `status` or `submitted_at` themselves, and a save that runs at the same time waits for the submit and is refused if it comes second. We haven't built starting analysis. |
 | 7 | Text matching | Working, [#26](https://github.com/DDarrenYe/DAYS-Capstone/issues/26) | A deterministic matcher compares the saved final text with the logged AI answers and makes no outside call. Students and instructors read the same numbers through RLS. It doesn't write `match_results`. See "Final-text matching" in `supabase/README.md`. |
 | 8 | Reflection check | Tables ready, job planned, [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32) [#34](https://github.com/DDarrenYe/DAYS-Capstone/issues/34) | A server job sets `analysis_status`, calls Anthropic, validates the answer, and writes one `analysis_results` row per step plus any `flags`. A finished run with no flags is different from pending or failed. A new run keeps the old results and their reviews. |
 | 9 | Grader decisions | Database-ready, [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33) | An instructor of that course changes a flag's decision, reviewer and time, and a trigger appends it to `flag_reviews`. They can only add, edit and delete their own `grader_notes`. |
@@ -252,7 +252,7 @@ The database enforces this for any client using the anon key and a user session.
 | `profiles` | Read own row | Read own row | Read and write |
 | `courses`, `assignments` | Read | Read, create their own course, add assignments to it | Read and write |
 | `enrolments` | Read own row | Read the course, add students through `enrol_students`, remove students who have no project | Read and write |
-| `projects` | Read own, create a Lane 2 draft, submit it, delete while draft | Read submitted projects | Read and write |
+| `projects` | Read own, create a Lane 2 draft, submit it through `submit_project`, delete while draft | Read submitted projects | Read and write |
 | `iterations` | Read own, write while draft | Read submitted projects | Read and write |
 | `final_versions` (text columns) | Read own, write while draft | Read submitted projects | Read and write |
 | `matching_version`, `match_results` | No access | No access | Read and write |
@@ -287,13 +287,12 @@ Matching and export stay inside the app. We haven't fixed what the reflection ch
 | Progress | Prototype. Example data. |
 | Privacy | Working. `/privacy` describes the flow above, linked from sign-in, the account menu and Add steps. It says the reflection check isn't on and no retention period is set. Update it when [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) and [#39](https://github.com/DDarrenYe/DAYS-Capstone/issues/39) settle those. |
 | Instructor overview and essay plot | Prototype. Names and percentages are hard-coded from the mockups. The flags and reports pages are placeholders. |
-| Import, critique, final essay, submit | Not built. The tables and locks are ready. |
+| Import, critique, final essay, submit | Working in My log. |
 | Matching | Working as code and reads (`src/lib/final-match.ts`, `src/lib/submission-metrics.ts`). The final-version panel in My log shows the preview from the saved text. The grader pages don't show it yet. |
 | Reflection check, grader decisions, export | Not built. The tables, versions and review history are ready. |
 
 ## What's still missing
 
 - **Instructors can't read student names.** `profiles` only lets a user read their own row. The submissions table in [#28](https://github.com/DDarrenYe/DAYS-Capstone/issues/28) needs names, so we need a server read or a new policy.
-- **The database doesn't check that a log is complete.** A student client can set `status = 'submitted'` on an empty draft. Only the lock after submitting is enforced. [#23](https://github.com/DDarrenYe/DAYS-Capstone/issues/23) should add the check, in a database function if we want direct writes rejected too.
 - **Flag decisions have no note column.** [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33) mentions an optional note, but the review columns and `flag_reviews` don't store one.
 - **Roles can't be changed from the app.** Instructors are promoted by a trusted administrator. Enrolling by email never changes a role, and an invitation is only linked to a confirmed student account.

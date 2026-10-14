@@ -6,6 +6,7 @@ import { FinalSidebar } from "@/app/student/log/final-sidebar";
 import { Center, Notice } from "@/app/student/log/part";
 import { savedTime } from "@/app/student/log/step-meta";
 import type { SavedFinal } from "@/app/student/log/step-meta";
+import { SubmitCard } from "@/app/student/log/submit-card";
 import type {
   FinalStatus,
   useFinalDraft,
@@ -15,7 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_TEXT } from "@/lib/data/schemas";
-import { useExtractFinal, WriteError } from "@/lib/data/use-mutations";
+import {
+  useExtractFinal,
+  useSubmitProject,
+  WriteError,
+} from "@/lib/data/use-mutations";
 import { countWords } from "@/lib/process";
 import type { SubmissionMetrics } from "@/lib/submission-metrics";
 import { cn } from "@/lib/utils";
@@ -96,20 +101,35 @@ export const FinalPanel = ({
   saved,
   locked,
   metrics,
+  projectId,
+  userId,
+  blockers,
 }: {
   final: ReturnType<typeof useFinalDraft>;
   saved: SavedFinal;
   locked: boolean;
   metrics: SubmissionMetrics;
+  projectId: string;
+  userId: string;
+  blockers: string[];
 }) => {
   const { stepCount } = metrics;
   const id = useId();
   const picker = useRef<HTMLInputElement>(null);
   const extract = useExtractFinal();
+  const submit = useSubmitProject(userId);
   const [incoming, setIncoming] = useState<{
     filename: string;
     text: string;
   } | null>(null);
+  const waiting = [
+    ...(extract.isPending || incoming
+      ? ["Finish importing your document."]
+      : []),
+    ...(final.status === "saved"
+      ? []
+      : ["Wait for your final version to finish saving."]),
+  ];
 
   const choose = async (event: ChangeEvent<HTMLInputElement>) => {
     const [file] = event.target.files ?? [];
@@ -182,7 +202,7 @@ export const FinalPanel = ({
                   />
                   <Button
                     className="ml-auto"
-                    disabled={extract.isPending}
+                    disabled={extract.isPending || submit.isPending}
                     onClick={() => picker.current?.click()}
                     variant="outline"
                   >
@@ -202,7 +222,7 @@ export const FinalPanel = ({
                 maxLength={MAX_TEXT}
                 onChange={(event) => final.change({ text: event.target.value })}
                 placeholder="Paste or type your final essay"
-                readOnly={locked}
+                readOnly={locked || submit.isPending}
                 value={final.text}
               />
               <div className="text-muted-foreground mt-2.5 flex flex-wrap items-center gap-x-3 text-xs">
@@ -224,6 +244,13 @@ export const FinalPanel = ({
               <SaveProblem final={final} />
             </div>
           </Card>
+          {locked ? null : (
+            <SubmitCard
+              blockers={[...blockers, ...waiting]}
+              projectId={projectId}
+              submit={submit}
+            />
+          )}
         </article>
       </Center>
       <FinalSidebar

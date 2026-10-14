@@ -19,6 +19,7 @@ import type { Database, Json } from "@/lib/supabase/database.types";
 type Client = SupabaseClient<Database>;
 
 const UNIQUE_VIOLATION = "23505";
+const RAISE_EXCEPTION = "P0001";
 const SERIALIZATION_FAILURE = "40001";
 const IMPORT_TOOL = "ChatGPT";
 const MAX_TOOL = 100;
@@ -115,6 +116,9 @@ export const forbidden: WriteResult = { error: "You can't make that change." };
 const failure = (error: PostgrestError, duplicate?: string): WriteResult => {
   if (error.code === "42501" || error.code === "23514") {
     return forbidden;
+  }
+  if (error.code === RAISE_EXCEPTION) {
+    return { error: error.message };
   }
   if (error.code === UNIQUE_VIOLATION && duplicate) {
     return { error: duplicate };
@@ -400,14 +404,10 @@ export const writeSubmission = async (
   if (!success) {
     return invalidInput;
   }
-  const { data, error } = await client
-    .from("projects")
-    .update({ status: "submitted", submitted_at: new Date().toISOString() })
-    .eq("id", submission.projectId)
-    .eq("status", "draft")
-    .select("id")
-    .maybeSingle();
-  return settle(data, error);
+  const { error } = await client.rpc("submit_project", {
+    project: submission.projectId,
+  });
+  return error ? failure(error) : {};
 };
 
 export const writeReview = async (

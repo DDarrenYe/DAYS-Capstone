@@ -3,12 +3,18 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
+import { useEffect } from "react";
 
 import { AddStep } from "@/app/student/log/add-step";
 import { CritiqueForm } from "@/app/student/log/critique-form";
 import { FinalPanel } from "@/app/student/log/final-panel";
 import { LogSkeleton } from "@/app/student/log/log-skeleton";
-import { isSaved, logHref, savedFinal } from "@/app/student/log/step-meta";
+import {
+  isSaved,
+  logHref,
+  savedFinal,
+  submitBlockers,
+} from "@/app/student/log/step-meta";
 import type { LoggedStep, SavedFinal } from "@/app/student/log/step-meta";
 import { StepRail } from "@/app/student/log/step-rail";
 import { StepView } from "@/app/student/log/step-view";
@@ -107,10 +113,13 @@ const ActivePanel = ({
   if (view === "final") {
     return (
       <FinalPanel
+        blockers={submitBlockers(log, saved)}
         final={final}
         locked={locked}
         metrics={submissionMetrics(log)}
+        projectId={log.id}
         saved={saved}
+        userId={userId}
       />
     );
   }
@@ -234,23 +243,32 @@ const ProjectWorkspace = ({
 };
 
 export const StepComposer = ({ userId }: { userId: string }) => {
-  const [assignmentId] = useQueryState("assignment", parseAsString);
+  const [assignmentId, setAssignmentId] = useQueryState(
+    "assignment",
+    parseAsString
+  );
   const { data, error, refetch } = useQuery(
     assignmentsQuery(createClient(), userId)
   );
-  if (error) {
-    return <LoadError message={error.message} retry={refetch} />;
-  }
-  if (!data) {
-    return <LogSkeleton />;
-  }
-  const logs = data.filter(
+  const logs = (data ?? []).filter(
     ({ lane, projects }) => lane === "lane_2" && projects.length > 0
   );
   const assignment =
     logs.find(({ id }) => id === assignmentId) ??
     logs.find(({ projects }) => projects[0]?.status === "draft") ??
     logs[0];
+  const chosenId = assignment?.id;
+  useEffect(() => {
+    if (chosenId && !assignmentId) {
+      setAssignmentId(chosenId);
+    }
+  }, [assignmentId, chosenId, setAssignmentId]);
+  if (error) {
+    return <LoadError message={error.message} retry={refetch} />;
+  }
+  if (!data) {
+    return <LogSkeleton />;
+  }
   const project = assignment?.projects[0];
   if (!(assignment && project)) {
     return <NoLog />;
