@@ -1459,6 +1459,20 @@ test("the student preview and the grader read the same final-text totals", async
   assert.deepEqual(entry?.metrics, second);
   assert.equal(entry?.assignment.title, `${tag} Match`);
   assert.equal(entry?.student.email, writer.email);
+  assert.equal(entry?.student.profile?.display_name, "matcher");
+  assert.equal(entry?.analysisStatus, "pending");
+  const namesFor = async (client: typeof teacherA.client) => {
+    const profiles = await must(client.from("profiles").select("display_name"));
+    return profiles.map(({ display_name: name }) => name);
+  };
+  const [teacherANames, teacherBNames, peerNames] = await Promise.all([
+    namesFor(teacherA.client),
+    namesFor(teacherB.client),
+    namesFor(s1.client),
+  ]);
+  assert.ok(teacherANames.includes("matcher"));
+  assert.equal(teacherBNames.includes("matcher"), false);
+  assert.deepEqual(peerNames, ["student-1"]);
   const foreign = await newQueryClient().query(
     cohortMetricsQuery(teacherB.client, teacherB.id)
   );

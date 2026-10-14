@@ -71,6 +71,13 @@
       "when": 1791950320118,
       "tag": "20261014035840_submit_project",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791971571262,
+      "tag": "20261014095251_instructor_reads_student_names",
+      "breakpoints": true
     }
   ]
 }
