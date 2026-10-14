@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
+import { MAX_NOTE } from "@/lib/data/schemas";
 import { ImportError } from "@/lib/import/errors";
 import type { loadShare } from "@/lib/import/share";
 
@@ -19,6 +20,7 @@ import {
   writeEnrolments,
   writeFinal,
   writeImport,
+  writeNote,
   writeProject,
   writeReview,
   writeSteps,
@@ -30,6 +32,7 @@ import type {
   CourseInput,
   CritiqueInput,
   ImportInput,
+  NoteInput,
   OpenInput,
   ReviewInput,
   SubmitInput,
@@ -80,6 +83,7 @@ const wire = (
   ImportInput &
   SubmitInput &
   ReviewInput &
+  NoteInput &
   OpenInput &
   CourseInput &
   AssignmentInput => JSON.parse(json);
@@ -172,6 +176,13 @@ test("invalid input is rejected before the database is contacted", async () => {
     writeProject(client, studentId, { assignmentId: "nope" }),
     writeSubmission(client, { projectId: "nope" }),
     writeReview(client, reviewerId, { flagId: "nope", state: "dismissed" }),
+    writeNote(client, reviewerId, { body: "x", projectId: "nope", stepId }),
+    writeNote(client, reviewerId, { body: "x", projectId, stepId: "nope" }),
+    writeNote(client, reviewerId, {
+      body: "x".repeat(MAX_NOTE + 1),
+      projectId,
+      stepId,
+    }),
     writeReview(
       client,
       reviewerId,
@@ -699,6 +710,97 @@ test("a review is attributed to the verified reviewer, not the caller's input", 
   assert.equal(requests[0]?.url.searchParams.get("id"), `eq.${flagId}`);
   assert.equal(requests[0]?.body?.reviewed_by, reviewerId);
   assert.equal(requests[0]?.body?.review_state, "added_to_feedback");
+});
+
+test("a note is saved for the verified author and the step it names", async () => {
+  const { client, requests } = clientWith();
+  const result = await writeNote(
+    client,
+    reviewerId,
+    wire(
+      JSON.stringify({
+        author_id: "someone-else",
+        body: "  Check the source.  ",
+        projectId,
+        stepId,
+      })
+    )
+  );
+  assert.deepEqual(result, {});
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0]?.method, "PATCH");
+  assert.equal(requests[0]?.url.pathname, "/rest/v1/grader_notes");
+  assert.equal(
+    requests[0]?.url.searchParams.get("author_id"),
+    `eq.${reviewerId}`
+  );
+  assert.equal(
+    requests[0]?.url.searchParams.get("iteration_id"),
+    `eq.${stepId}`
+  );
+  assert.equal(
+    requests[0]?.url.searchParams.get("project_id"),
+    `eq.${projectId}`
+  );
+  assert.deepEqual(requests[0]?.body, { body: "Check the source." });
+});
+
+test("the first note on a step is inserted, and a racing insert falls back to an update", async () => {
+  const first = clientWith(noRow);
+  assert.deepEqual(
+    await writeNote(first.client, reviewerId, {
+      body: "New",
+      projectId,
+      stepId,
+    }),
+    {}
+  );
+  assert.deepEqual(
+    first.requests.map(({ method }) => method),
+    ["PATCH", "POST"]
+  );
+  assert.deepEqual(first.requests[1]?.body, {
+    author_id: reviewerId,
+    body: "New",
+    iteration_id: stepId,
+    project_id: projectId,
+  });
+  const responses = [
+    noRow(),
+    Response.json({ code: "23505", message: "duplicate key" }, { status: 409 }),
+    Response.json([{ id: "x" }]),
+  ];
+  const raced = clientWith(() => responses.shift() ?? noRow());
+  assert.deepEqual(
+    await writeNote(raced.client, reviewerId, {
+      body: "New",
+      projectId,
+      stepId,
+    }),
+    {}
+  );
+  assert.deepEqual(
+    raced.requests.map(({ method }) => method),
+    ["PATCH", "POST", "PATCH"]
+  );
+});
+
+test("clearing a note deletes only the author's note on that step", async () => {
+  const { client, requests } = clientWith();
+  assert.deepEqual(
+    await writeNote(client, reviewerId, { body: "   ", projectId, stepId }),
+    {}
+  );
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0]?.method, "DELETE");
+  assert.equal(
+    requests[0]?.url.searchParams.get("author_id"),
+    `eq.${reviewerId}`
+  );
+  assert.equal(
+    requests[0]?.url.searchParams.get("iteration_id"),
+    `eq.${stepId}`
+  );
 });
 
 test("rows the database hides and policy violations both read as forbidden", async () => {

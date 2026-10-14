@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { flagReviewState } from "@/db/schema";
 import {
+  MAX_NOTE,
   MAX_TEXT,
   assignmentSchema,
   courseSchema,
@@ -63,6 +64,11 @@ const reviewSchema = z.object({
   flagId: z.guid(),
   state: z.enum(flagReviewState.enumValues),
 });
+const noteSchema = z.object({
+  body: z.string().max(MAX_NOTE),
+  projectId: z.guid(),
+  stepId: z.guid(),
+});
 
 export type AddStepInput = z.input<typeof addStepSchema>;
 export type PreviewInput = z.input<typeof previewSchema>;
@@ -73,6 +79,7 @@ export type SaveFinalInput = z.input<typeof saveFinalSchema>;
 export type OpenInput = z.input<typeof openSchema>;
 export type SubmitInput = z.input<typeof submitSchema>;
 export type ReviewInput = z.input<typeof reviewSchema>;
+export type NoteInput = z.input<typeof noteSchema>;
 export type CourseInput = z.input<typeof courseSchema>;
 export type AssignmentInput = z.input<typeof assignmentSchema>;
 export type EnrolInput = z.input<typeof enrolSchema>;
@@ -430,6 +437,52 @@ export const writeReview = async (
     .select("id")
     .maybeSingle();
   return settle(data, error);
+};
+
+export const writeNote = async (
+  client: Client,
+  authorId: string,
+  input: NoteInput
+): Promise<WriteResult> => {
+  const { data: note, success } = noteSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { projectId, stepId } = note;
+  const body = note.body.trim();
+  if (body === "") {
+    const { error } = await client
+      .from("grader_notes")
+      .delete()
+      .eq("project_id", projectId)
+      .eq("iteration_id", stepId)
+      .eq("author_id", authorId);
+    return error ? failure(error) : {};
+  }
+  const save = async (retry: boolean): Promise<WriteResult> => {
+    const { data, error } = await client
+      .from("grader_notes")
+      .update({ body })
+      .eq("project_id", projectId)
+      .eq("iteration_id", stepId)
+      .eq("author_id", authorId)
+      .select("id")
+      .maybeSingle();
+    if (error || data) {
+      return settle(data, error);
+    }
+    const { error: insertError } = await client.from("grader_notes").insert({
+      author_id: authorId,
+      body,
+      iteration_id: stepId,
+      project_id: projectId,
+    });
+    if (insertError?.code === UNIQUE_VIOLATION && retry) {
+      return save(false);
+    }
+    return insertError ? failure(insertError) : {};
+  };
+  return save(true);
 };
 
 export const writeCourse = async (

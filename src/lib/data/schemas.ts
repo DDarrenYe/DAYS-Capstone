@@ -20,7 +20,7 @@ const lane = z.enum(["lane_1", "lane_2"]) satisfies z.ZodType<
 
 const brief = z.string().max(MAX_TEXT, "Use 50,000 characters or fewer");
 
-const MAX_NOTE = 2000;
+export const MAX_NOTE = 2000;
 const MAX_MARKS = 100;
 
 export const markDraftSchema = z.object({

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "grader_notes_author_step" ON "grader_notes" USING btree ("author_id","iteration_id");

@@ -172,15 +172,20 @@ const readCohortMetrics = async (client: Client) => {
 export type CohortRows = Awaited<ReturnType<typeof readCohortMetrics>>;
 
 const SUBMISSION_COLUMNS =
-  "id, submitted_at, analysis_status, analysis_version, assignment:assignments(id, title), student:enrolments(email, profile:profiles(display_name)), iterations(id, step_number, prompt, raw_answer, critique, marks, student_marked_ai_error, ai_error_evidence, created_at), final_versions(id, version_number, extracted_text, original_filename), analysis_results(final_version_id, analysis_version, iteration_id, flags(id, kind, evidence, explanation, review_state))";
+  "id, submitted_at, analysis_status, analysis_version, assignment:assignments(id, title), student:enrolments(email, profile:profiles(display_name)), iterations(id, step_number, prompt, raw_answer, critique, marks, student_marked_ai_error, ai_error_evidence, created_at), final_versions(id, version_number, extracted_text, original_filename), analysis_results(final_version_id, analysis_version, iteration_id, flags(id, kind, evidence, explanation, review_state)), grader_notes(iteration_id, body)";
 
-const readSubmission = async (client: Client, projectId: string) => {
+const readSubmission = async (
+  client: Client,
+  userId: string,
+  projectId: string
+) => {
   const { data, error } = await client
     .from("projects")
     .select(SUBMISSION_COLUMNS)
     .eq("id", projectId)
     .eq("status", "submitted")
     .eq("final_versions.is_current", true)
+    .eq("grader_notes.author_id", userId)
     .maybeSingle();
   if (error) {
     throw new Error("Unable to load the submission.", { cause: error });
@@ -250,7 +255,9 @@ export const submissionQuery = (
   projectId: string
 ) => ({
   queryFn: () =>
-    asUser(client, userId, (scoped) => readSubmission(scoped, projectId)),
+    asUser(client, userId, (scoped) =>
+      readSubmission(scoped, userId, projectId)
+    ),
   queryKey: queryKeys.submission(userId, projectId),
 });
 

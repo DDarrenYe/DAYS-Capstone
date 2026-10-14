@@ -85,6 +85,9 @@ export const submissionDetail = (project: SubmissionProject) => {
     currentAnalyses(project, project.analysis_results, metrics.finalVersionId),
     ({ iteration_id: id }) => id
   );
+  const notes = new Map(
+    project.grader_notes.map(({ body, iteration_id: id }) => [id, body])
+  );
   const steps = metrics.steps.flatMap((metric) => {
     const iteration = iterations.get(metric.id);
     if (!iteration) {
@@ -121,6 +124,7 @@ export const submissionDetail = (project: SubmissionProject) => {
         id: metric.id,
         markedError: metric.markedError,
         marks: marksOf(iteration),
+        note: notes.get(metric.id) ?? "",
         time: timeFormat.format(createdAt),
         title: stepTitle(iteration),
         words: metric.answerWords,

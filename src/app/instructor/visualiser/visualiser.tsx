@@ -6,7 +6,9 @@ import { useEffect, useEffectEvent, useState } from "react";
 import { CHECK_STATE } from "@/app/instructor/check-state";
 import { EssayCard } from "@/app/instructor/visualiser/essay-card";
 import { StepCard } from "@/app/instructor/visualiser/step-card";
+import { StepNote } from "@/app/instructor/visualiser/step-note";
 import type { SubmissionDetail } from "@/app/instructor/visualiser/submission-detail";
+import { useStepNotes } from "@/app/instructor/visualiser/use-step-notes";
 import { CompositionBar, Stat } from "@/components/process/metrics";
 import { ProcessChart } from "@/components/process/process-chart";
 import { Avatar } from "@/components/shell/avatar";
@@ -75,6 +77,11 @@ const Summary = ({ detail }: { detail: SubmissionDetail }) => {
   );
 };
 
+const isTyping = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (target.isContentEditable ||
+    ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+
 const stepParser = parseAsInteger.withOptions({ history: "replace" });
 
 export const Visualiser = ({ detail }: { detail: SubmissionDetail }) => {
@@ -84,6 +91,7 @@ export const Visualiser = ({ detail }: { detail: SubmissionDetail }) => {
   const [hovered, setHovered] = useState<number | null>(null);
   const [animate, setAnimate] = useState(false);
   const [traced, setTraced] = useState(true);
+  const { noteOf, save, write } = useStepNotes(detail);
   const selected =
     Math.min(Math.max(stepParam ?? firstFlagged, 1), steps.length) - 1;
   const step = steps[selected];
@@ -94,7 +102,7 @@ export const Visualiser = ({ detail }: { detail: SubmissionDetail }) => {
   };
 
   const onKey = useEffectEvent((event: KeyboardEvent) => {
-    if (event.metaKey || event.ctrlKey) {
+    if (isTyping(event.target) || event.metaKey || event.ctrlKey) {
       return;
     }
     if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
@@ -170,7 +178,15 @@ export const Visualiser = ({ detail }: { detail: SubmissionDetail }) => {
             index={selected}
             onSelect={select}
             step={step}
-          />
+          >
+            <StepNote
+              name={detail.name}
+              note={noteOf(step.id)}
+              number={selected + 1}
+              onSave={() => save(step.id)}
+              onWrite={(draft) => write(step.id, draft)}
+            />
+          </StepCard>
         </div>
       </div>
     </>
