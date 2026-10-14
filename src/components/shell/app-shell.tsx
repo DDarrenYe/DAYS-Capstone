@@ -5,16 +5,11 @@ import { AccountMenu } from "@/components/shell/account-menu";
 import { Brand } from "@/components/shell/brand";
 import { SidebarNav } from "@/components/shell/shell-navigation";
 import type { NavItem, UserRole } from "@/components/shell/shell-navigation";
-import { cohort, cohortFlags } from "@/lib/example-data";
+import { cohortFlags } from "@/lib/example-data";
 
 const navigation: Record<UserRole, NavItem[]> = {
   instructor: [
-    {
-      count: cohort.length,
-      icon: "submissions",
-      label: "Submissions",
-      segment: null,
-    },
+    { icon: "submissions", label: "Submissions", segment: null },
     { icon: "essay", label: "Visualiser", segment: "visualiser" },
     {
       count: cohortFlags.length,

@@ -282,12 +282,12 @@ Matching and export stay inside the app. We haven't fixed what the reflection ch
 | --- | --- |
 | Sign-in, sign-out, role routing | Working. Unit tests cover the proxy, account and credential helpers. |
 | Schema, constraints, triggers, RLS and grants | Working and covered by `supabase/tests`. The app only reads `profiles` so far. |
-| Seed data | Working, local only. `supabase/seed.sql` builds one course, eight accounts and eight example projects, listed in `supabase/README.md`. The pages don't show any of it yet, and `match_results` stays empty because the matcher works its result out on read. |
+| Seed data | Working, local only. `supabase/seed.sql` builds one course, eight accounts and eight example projects, listed in `supabase/README.md`. The instructor overview shows the submitted projects, and `match_results` stays empty because the matcher works its result out on read. |
 | Student assignments page | Prototype. Three hard-coded cards, and "Add steps" opens a placeholder. |
 | Progress | Prototype. Example data. |
 | Privacy | Working. `/privacy` describes the flow above, linked from sign-in, the account menu and Add steps. It says the reflection check isn't on and no retention period is set. Update it when [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) and [#39](https://github.com/DDarrenYe/DAYS-Capstone/issues/39) settle those. |
-| Instructor overview and essay plot | Prototype. Names and percentages are hard-coded from the mockups. The flags and reports pages are placeholders. |
-| Submissions table | Working. The table on `/instructor` reads submitted projects from Supabase on the server and shows the shared match and critique figures, the reflection-check state, search, a filter and 50-row pages in the URL. The overview above it is still example data, so its totals won't match the table until [#27](https://github.com/DDarrenYe/DAYS-Capstone/issues/27). |
+| Instructor overview | Working, [#27](https://github.com/DDarrenYe/DAYS-Capstone/issues/27). The header, review progress, the bands of "not from logged AI", the open flags by reason and the totals on `/instructor` come from the same rows as the submissions table, one assignment at a time (`?assignment=` in the URL). The flags and reports pages are still placeholders. |
+| Submissions table | Working. The table on `/instructor` reads submitted projects from Supabase on the server and shows the shared match and critique figures, the reflection-check state, search, a filter and 50-row pages in the URL. |
 | Import, critique, final essay, submit | Working in My log. |
 | Matching | Working as code and reads (`src/lib/final-match.ts`, `src/lib/submission-metrics.ts`). The final-version panel in My log shows the preview from the saved text. The submissions table shows it per student; the Visualiser doesn't yet. |
 | Reflection check, grader decisions, export | Not built. The tables, versions and review history are ready. |

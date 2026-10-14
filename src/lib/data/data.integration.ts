@@ -1547,6 +1547,10 @@ test("the student preview and the grader read the same final-text totals", async
     addedToFeedback: 0,
     dismissed: 0,
     open: 2,
+    openKinds: [
+      { count: 1, kind: "blind" },
+      { count: 1, kind: "thin" },
+    ],
   });
   const studentView = await own();
   assert.equal(studentView.flags, null);
@@ -1565,5 +1569,6 @@ test("the student preview and the grader read the same final-text totals", async
     addedToFeedback: 0,
     dismissed: 1,
     open: 1,
+    openKinds: [{ count: 1, kind: "blind" }],
   });
 });
