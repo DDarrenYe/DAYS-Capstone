@@ -137,6 +137,17 @@ export const parseCritique = (text: string) => {
   };
 };
 
+/* The three answers of a saved critique. An older free-text critique counts as the check, and an unsaved one is empty. */
+export const readCritique = (text: string | null) => {
+  const parsed = text === null ? null : parseCritique(text);
+  return {
+    change: parsed?.change ?? "",
+    check: parsed ? parsed.check : (text ?? ""),
+    sources: parsed?.sources ?? [],
+    verdict: parsed?.verdict ?? null,
+  };
+};
+
 /* Rounds up to a readable step times a power of ten. Fine steps keep the tallest bar near the top of its chart. */
 export const niceCeil = (value: number) => {
   if (value <= 0) {

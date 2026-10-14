@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import type { ProjectLog } from "@/lib/data/queries";
 import { markDraftSchema } from "@/lib/data/schemas";
-import { countWords, parseCritique } from "@/lib/process";
+import { countWords, readCritique } from "@/lib/process";
 
 export type LoggedStep = ProjectLog["iterations"][number];
 
@@ -61,13 +61,7 @@ export const answerLabel = ({
 }: Pick<LoggedStep, "import_source" | "raw_answer">) =>
   `${source === "public_link" ? "Imported" : "Pasted"} · ${countWords(answer)} words`;
 
-export const critiqueDraft = (step: LoggedStep) => {
-  const parsed = step.critique === null ? null : parseCritique(step.critique);
-  return {
-    change: parsed?.change ?? "",
-    check: parsed ? parsed.check : (step.critique ?? ""),
-    marks: marksOf(step),
-    sources: parsed?.sources ?? [],
-    verdict: parsed?.verdict ?? null,
-  };
-};
+export const critiqueDraft = (step: LoggedStep) => ({
+  ...readCritique(step.critique),
+  marks: marksOf(step),
+});
