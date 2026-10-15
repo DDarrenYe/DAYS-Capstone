@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /*
-  Margin icons. Duotone on a 20px grid: a 1.5 stroke, a soft body tinted from the same colour, and one accent
+  Pentimento icons. Duotone on a 20px grid: a 1.5 stroke, a soft body tinted from the same colour, and one accent
   (--icon-accent, cobalt where it means something) on the detail worth noticing. Containers use 2.25 radii and a
   3.25 to 16.75 live area. The flag waves, the lens has a shine, finished log steps are filled.
 */

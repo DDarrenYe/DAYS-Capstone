@@ -76,7 +76,7 @@ const Home = () => (
       className="grid gap-x-12 gap-y-8 border-t py-12 md:grid-cols-3"
     >
       <h2 className="sr-only" id="how-it-works">
-        How Margin works
+        How Pentimento works
       </h2>
       {stages.map(({ body, icon, title }, index) => (
         <div className="flex flex-col gap-2.5" key={title}>

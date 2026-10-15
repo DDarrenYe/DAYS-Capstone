@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
-  Margin. Warm paper neutrals and ink do the work. Cobalt marks only text traced to a logged AI answer, vermilion
+  Pentimento. Warm paper neutrals and ink do the work. Cobalt marks only text traced to a logged AI answer, vermilion
   only a flag, green only an AI error a student caught, amber only work waiting for review. Inter runs the
   interface; Newsreader sets anything a student wrote, so reading text never looks like UI. Geist Mono carries
   ids, times and keyboard hints.

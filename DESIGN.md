@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: Margin
+name: Pentimento
 description: The design system for AI-Interaction Analytics, a Lane 2 grading tool where students log and critique their AI use and graders review the process.
 colors:
   primary: "#18191B"
@@ -273,17 +273,17 @@ components:
     padding: 28px
 ---
 
-# Margin
+# Pentimento
 
 ## Overview
 
-Margin is the design system for AI-Interaction Analytics, a grading tool for Lane 2 assessment. Students log each AI prompt, the answer and their critique of it. Graders see the whole process at a glance and where a critique was thin.
+Pentimento is the design system for AI-Interaction Analytics, a grading tool for Lane 2 assessment. Students log each AI prompt, the answer and their critique of it. Graders see the whole process at a glance and where a critique was thin.
 
 It should feel like a serious, quiet working tool, closer to a well-made editor than a dashboard. Graders open it dozens of times in a sitting, so it stays dense, calm and fast. Paper and ink do most of the work. Colour is rare, and when it appears it means something.
 
 Two ideas run through everything:
 
-- **The margin.** The name and the logo come from the margin of a page, where a reader notes what matters. The filled dot in the logo and the icons marks the thing worth noticing.
+- **The earlier layer.** A pentimento is the earlier idea that shows through a finished painting. The logo is a hairline P under a heavy one, and the product draws the same two layers: cobalt for what traced to a logged AI answer, ink for what the student kept.
 - **Reading is not UI.** Anything a student wrote (an essay, a critique, a reflection) is set in a serif. Everything the product says is set in a sans. A grader always knows whose words they are reading.
 
 The source of truth for values is `src/app/globals.css`, and the shadcn primitives in `src/components/ui/` apply them. Static reference pages live in `design/concept/`.
@@ -319,13 +319,13 @@ The signed-in app is a fixed shell: a 236px paper sidebar on the left, and the p
 
 Every page starts with a page bar: breadcrumbs on the left, the page's own actions on the right, and an "Example data" badge on screens not yet connected to Supabase. Content below uses a 24px gutter (16px on phones).
 
-Landing and privacy sit outside the shell. Landing draws the logo's idea at full size: a hairline margin rule runs down the left of the page, and the logo's dot sits on it beside the hero. Below the hero, three numbered stages (log, critique, review) use the same `01`–`03` markers as the student's log. Privacy reads like a document: a sticky "On this page" index on wide screens, and sections divided by hairlines rather than cards.
+Landing and privacy sit outside the shell. Landing keeps a hairline rule down the left of the page, with a small dot on it beside the hero. Below the hero, three numbered stages (log, critique, review) use the same `01`–`03` markers as the student's log. Privacy reads like a document: a sticky "On this page" index on wide screens, and sections divided by hairlines rather than cards.
 
 Spacing follows Tailwind's 4px scale. Cards pad 16px. Related items group by hairline dividers inside one card rather than by separate cards. Data screens are dense on purpose. A grader should see the chart, the essay and the selected step without scrolling on a laptop.
 
 ## Elevation & Depth
 
-Margin is nearly flat. Hierarchy comes from paper against sheet, and from hairlines, not shadows.
+Pentimento is nearly flat. Hierarchy comes from paper against sheet, and from hairlines, not shadows.
 
 - Cards and fields use a 1px inset hairline (`--border`, #E7E6E1), not a drop shadow.
 - The inset page sheet has a very soft card shadow to lift it off the paper.
