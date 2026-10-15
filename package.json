@@ -22,6 +22,7 @@
     "test:app": "bun test --conditions=react-server",
     "test:integration": "turbo run test:integration:app",
     "test:integration:app": "bun --env-file=.env.local test --conditions=react-server ./src/lib/data/data.integration.ts ./src/lib/supabase/secrets.integration.ts",
+    "test:evaluation": "bun --env-file=.env.local --conditions=react-server ./src/lib/flagging/evaluation.live.ts",
     "test:live": "bun --env-file=.env.local --conditions=react-server ./src/lib/flagging/flagging.live.ts",
     "db:reset": "supabase db reset --local",
     "db:test": "supabase test db --local",

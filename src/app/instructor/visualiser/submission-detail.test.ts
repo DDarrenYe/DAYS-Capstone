@@ -354,7 +354,7 @@ const note = (overrides: Partial<SubmissionProject>) =>
 test("the status line says what happened and with which model", () => {
   assert.match(
     note({}),
-    /^Finished .+ with glm-test, rubric three-questions-v1\.$/u
+    /^Finished .+ with glm-test, rubric three-questions-v1\. It can miss thin critiques, so a step with no flag isn’t necessarily a good critique\.$/u
   );
   assert.match(
     note({ analysis_results: [], analysis_status: "pending" }),

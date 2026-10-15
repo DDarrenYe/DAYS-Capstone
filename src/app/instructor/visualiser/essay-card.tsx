@@ -65,9 +65,10 @@ const Totals = ({ match }: { match: SubmissionDetail["match"] }) => (
     )}
     <p className="text-muted-foreground">
       A match is a run of at least {match.minWords} words that also appears in a
-      logged AI answer. Words that don’t match aren’t proof the student wrote
-      them, and a match isn’t proof they didn’t. Read matches next to the
-      critique.
+      logged AI answer. A quote with a word changed in every few words, or a
+      paraphrase, doesn’t match, and a common phrase can. Words that don’t match
+      aren’t proof the student wrote them, and a match isn’t proof they didn’t.
+      Read matches next to the critique.
     </p>
   </div>
 );
