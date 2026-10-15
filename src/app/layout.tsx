@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   description:
     "Lane 2 grading dashboard: students log and critique their AI use, graders see the process at a glance",
-  title: "Margin · AI-Interaction Analytics",
+  title: "Pentimento · AI-Interaction Analytics",
 };
 
 const RootLayout = ({ children }: LayoutProps<"/">) => (

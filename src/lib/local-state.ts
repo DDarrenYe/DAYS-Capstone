@@ -74,7 +74,7 @@ export const usePersistentState = <T>(
   return [value, setValue, clear] as const;
 };
 
-/* Removes every Margin key, so the next person on a shared computer starts clean. */
+/* Removes every saved key, so the next person on a shared computer starts clean. */
 export const clearLocalState = () => {
   try {
     const storage = globalThis.localStorage;

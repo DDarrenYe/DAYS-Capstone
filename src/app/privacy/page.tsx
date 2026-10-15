@@ -31,7 +31,7 @@ const sections: {
   {
     body: [
       "Your draft is private to you. After you submit, the instructors of your course can read your steps, critiques and final essay. Other students can't read them at any point. Reflection-check results, flags and grader notes are for instructors only, and you can't see them.",
-      "The people who run Margin can also reach the database it's stored in.",
+      "The people who run Pentimento can also reach the database it's stored in.",
     ],
     icon: "eye",
     id: "access",
@@ -39,7 +39,7 @@ const sections: {
   },
   {
     body: [
-      "Margin compares your final essay with the AI answers in your log. This runs inside the app and sends nothing elsewhere. A match shows where text looks like a logged AI answer. A part with no match isn't proof that you wrote it, and a match isn't proof that you didn't. Both are for a person to judge, and neither is a grade.",
+      "Pentimento compares your final essay with the AI answers in your log. This runs inside the app and sends nothing elsewhere. A match shows where text looks like a logged AI answer. A part with no match isn't proof that you wrote it, and a match isn't proof that you didn't. Both are for a person to judge, and neither is a grade.",
     ],
     icon: "note",
     id: "matching",
@@ -73,7 +73,7 @@ const PrivacyPage = () => (
         href="/"
       >
         <Icon name="left" />
-        Back to Margin
+        Back to Pentimento
       </Link>
     </header>
     <main className="grid gap-x-16 pt-12 lg:grid-cols-[200px_minmax(0,1fr)]">
@@ -82,7 +82,7 @@ const PrivacyPage = () => (
           Privacy and who sees what
         </h1>
         <p className="text-body animate-rise stagger text-lead mt-4 max-w-150 text-pretty [--i:1]">
-          Margin keeps a record of how you used AI on an assignment. This is
+          Pentimento keeps a record of how you used AI on an assignment. This is
           what it stores, who can read it, and which text leaves the app.
           Sign-in uses accounts your instructor provides.
         </p>

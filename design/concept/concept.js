@@ -1,5 +1,5 @@
 /*
-  Margin icons. Duotone on a 20px grid: a 1.5 stroke, a soft body tinted from the same colour, and one accent
+  Pentimento icons. Duotone on a 20px grid: a 1.5 stroke, a soft body tinted from the same colour, and one accent
   (--icon-accent, cobalt where it means something) on the detail worth noticing. Containers use 2.25 radii,
   live area 3.25 to 16.75. Small touches carry the character: the flag waves, the lens has a shine, finished
   log steps are filled and the next one is open.
@@ -86,7 +86,7 @@ const ICONS = {
     path("M12.25 4.4h2.25v4.85l-1.13-.9-1.12.9z", ACCENT),
 };
 
-const logo = (size = 26) => `<svg width="${size}" height="${size}" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="#18191b"/><path d="M9 6.5v13" stroke="#f4f4f0" stroke-width="1.5" stroke-linecap="round"/><path d="M12.5 9.5h6M12.5 13h4.2M12.5 16.5h5.4" stroke="#f4f4f0" stroke-opacity=".5" stroke-width="1.5" stroke-linecap="round"/><circle cx="5.6" cy="13" r="1.5" fill="#8fa5f2"/></svg>`;
+const logo = (size = 26) => `<svg width="${size}" height="${size}" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="#18191b"/><path d="M8.4 21V6.2h5.2a4.4 4.4 0 0 1 0 8.8H8.4" fill="none" stroke="#a9b8ee" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-8 13 13) translate(-1 .6)"/><path d="M10.8 19.5V6.5h3.2a3.4 3.4 0 0 1 0 6.8h-3.2" fill="none" stroke="#f4f4f0" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 function icon(name, size = 16) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;

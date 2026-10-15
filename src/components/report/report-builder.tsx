@@ -84,7 +84,7 @@ const ReportPage = ({ on }: { on: Record<Section, boolean> }) => (
     >
       <div className="text-muted-foreground flex items-center gap-2 text-xs">
         <Logo className="size-5" />
-        <span>Margin · Process report</span>
+        <span>Pentimento · Process report</span>
         <span className="ml-auto font-mono">INFOMGMT 399 · Essay 2</span>
       </div>
       <h1 className="text-foreground tracking-snug mt-9 font-serif text-4xl leading-tight font-medium">

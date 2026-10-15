@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
-/* A margin rule with the dot that marks something worth noticing, the same dot the icons use. */
+/* A hairline P in the traced cobalt, the earlier layer, showing through the heavy final P. */
 export const Logo = ({ className }: { className?: string }) => (
   <svg
     aria-hidden="true"
@@ -11,19 +11,22 @@ export const Logo = ({ className }: { className?: string }) => (
   >
     <rect width="26" height="26" rx="7" fill="var(--primary)" />
     <path
-      d="M9 6.5v13"
-      stroke="var(--paper)"
+      d="M8.4 21V6.2h5.2a4.4 4.4 0 0 1 0 8.8H8.4"
+      fill="none"
+      stroke="var(--ai-line)"
       strokeLinecap="round"
-      strokeWidth="1.5"
+      strokeLinejoin="round"
+      strokeWidth="1.15"
+      transform="rotate(-8 13 13) translate(-1 .6)"
     />
     <path
-      d="M12.5 9.5h6M12.5 13h4.2M12.5 16.5h5.4"
+      d="M10.8 19.5V6.5h3.2a3.4 3.4 0 0 1 0 6.8h-3.2"
+      fill="none"
       stroke="var(--paper)"
       strokeLinecap="round"
-      strokeOpacity=".5"
-      strokeWidth="1.5"
+      strokeLinejoin="round"
+      strokeWidth="2.3"
     />
-    <circle className="fill-ai-line" cx="5.6" cy="13" r="1.5" />
   </svg>
 );
 
@@ -40,7 +43,7 @@ export const Brand = ({
   >
     <Logo />
     <span className="min-w-0">
-      <b className="text-ui font-heading tracking-snug block">Margin</b>
+      <b className="text-ui font-heading tracking-snug block">Pentimento</b>
       <span className="text-muted-foreground text-label block truncate">
         {subtitle}
       </span>

@@ -6,7 +6,7 @@ Plan: [docs/plan.md](docs/plan.md). Schema and data flow: [docs/architecture.md]
 
 ## Current status
 
-The app has password sign-in, role-based sessions and every student and grader screen in the Margin design. The student assignments page reads Supabase; the other screens run on shared example data in `src/lib/example-data.ts` and show an "Example data" badge. Drafts and grader decisions are kept in the browser until their tables exist. We still need to save logs to the database, import chats, match text, run reflection checks, record grader decisions and export real reports. The plan follows the 45 GitHub issues.
+The app has password sign-in, role-based sessions and every student and grader screen in the Pentimento design. The student assignments page reads Supabase; the other screens run on shared example data in `src/lib/example-data.ts` and show an "Example data" badge. Drafts and grader decisions are kept in the browser until their tables exist. We still need to save logs to the database, import chats, match text, run reflection checks, record grader decisions and export real reports. The plan follows the 45 GitHub issues.
 
 ## Stack
 
@@ -121,7 +121,7 @@ Components go in `src/components/ui/`.
 
 ## Design
 
-The design system is called Margin, and [DESIGN.md](DESIGN.md) is the source of truth for its colours, type, components and motion. Warm paper and ink neutrals do most of the work. Colour only carries meaning: cobalt for text that matches a logged AI answer, vermilion for a reflection-check flag, green for an AI error the student caught, and amber for work waiting on a grader. Anything a student wrote is set in a serif, so a grader always knows whose words they're reading.
+The design system is called Pentimento, and [DESIGN.md](DESIGN.md) is the source of truth for its colours, type, components and motion. Warm paper and ink neutrals do most of the work. Colour only carries meaning: cobalt for text that matches a logged AI answer, vermilion for a reflection-check flag, green for an AI error the student caught, and amber for work waiting on a grader. Anything a student wrote is set in a serif, so a grader always knows whose words they're reading.
 
 Students and graders see the same three questions: was the AI right or wrong, how did you check, and what did you change? The main percentage shows how much of the final essay doesn't match any logged AI answer. It doesn't prove that the student wrote those parts.
 
