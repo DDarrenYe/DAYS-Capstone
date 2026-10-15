@@ -1,4 +1,5 @@
 import { Notice } from "@/app/student/log/part";
+import { SwapText } from "@/components/swap-text";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -45,7 +46,7 @@ export const ConfirmDialog = ({
           Cancel
         </AlertDialogClose>
         <Button disabled={pending} onClick={onConfirm} variant={variant}>
-          {pending ? pendingLabel : confirm}
+          <SwapText>{pending ? pendingLabel : confirm}</SwapText>
         </Button>
       </AlertDialogFooter>
     </AlertDialogContent>

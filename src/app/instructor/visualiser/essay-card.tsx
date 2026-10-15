@@ -41,7 +41,7 @@ const Match = ({
       className={cn(
         "text-micro absolute -left-7.5 mt-1 cursor-pointer rounded px-1 font-mono leading-4",
         flagged ? "bg-flag-soft text-flag-ink" : "bg-ai-soft text-ai-ink",
-        "transition-opacity duration-160",
+        "transition-visibility duration-160",
         !traced && "invisible opacity-0"
       )}
       onClick={() => onSelect(index)}

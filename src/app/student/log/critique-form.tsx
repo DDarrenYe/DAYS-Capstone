@@ -18,6 +18,7 @@ import {
 } from "@/app/student/log/step-meta";
 import type { LoggedStep } from "@/app/student/log/step-meta";
 import { Icon } from "@/components/icon";
+import { SwapText } from "@/components/swap-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
@@ -122,8 +123,8 @@ const SaveBar = ({
       {critiqueOrder.map((question) => (
         <li
           className={cn(
-            "h-1.25 w-5 rounded-full transition-colors duration-300",
-            coverage[question] ? "bg-ai" : "bg-border-strong"
+            "bg-border-strong after:bg-ai relative h-1.25 w-5 overflow-hidden rounded-full after:absolute after:inset-0 after:rounded-full after:transition-transform after:duration-240 after:ease-out",
+            !coverage[question] && "after:-translate-x-full"
           )}
           key={question}
         >
@@ -154,7 +155,7 @@ const SaveBar = ({
     <span className="ml-auto flex items-center gap-2">
       {secondary}
       <Button disabled={disabled} size="lg" type="submit">
-        {saving ? "Saving…" : saveLabel}
+        <SwapText>{saving ? "Saving…" : saveLabel}</SwapText>
         <Kbd>⌘↵</Kbd>
       </Button>
     </span>

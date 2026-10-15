@@ -15,7 +15,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+  ToggleGroupThumb,
+} from "@/components/ui/toggle-group";
 import { usePersistentState } from "@/lib/local-state";
 
 const draftSchema = z.object({
@@ -53,11 +57,13 @@ const ToolPicker = ({
         }}
         value={[choice]}
       >
-        {[...TOOLS, OTHER].map((name) => (
-          <ToggleGroupItem key={name} value={name}>
-            {name}
-          </ToggleGroupItem>
-        ))}
+        <ToggleGroupThumb className="flex-wrap">
+          {[...TOOLS, OTHER].map((name) => (
+            <ToggleGroupItem key={name} tone="thumb" value={name}>
+              {name}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroupThumb>
       </ToggleGroup>
       {choice === OTHER ? (
         <div className="animate-rise">

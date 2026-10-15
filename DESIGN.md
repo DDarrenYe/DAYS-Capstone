@@ -309,7 +309,7 @@ Three families with fixed jobs:
 - **Newsreader** sets anything a student wrote: the final essay, critiques and the critique fields while typing. Body reading text is 15.5px with 1.64 line height.
 - **Geist Mono** carries student IDs, timestamps, step numbers (`S6`) and keyboard hints.
 
-Weights are deliberate in-between values: 450 for book text in menus, 520 for emphasis and labels, 580 for headings and figures, 600 for page titles. Avoid 700.
+Weights are deliberate in-between values: 450 for book text in menus, 520 for emphasis and labels, 580 for headings and figures, 600 for page titles. Avoid 700. The utilities are `font-book`, `font-emphasis` and `font-heading`; `font-heading` is a weight, not a family.
 
 Page titles are 21px. The display size, used on landing and privacy only, scales with `clamp(34px, 4.2vw, 52px)`. In-app headings never go above the title size.
 
@@ -318,6 +318,8 @@ Page titles are 21px. The display size, used on landing and privacy only, scales
 The signed-in app is a fixed shell: a 236px paper sidebar on the left, and the page on a white sheet inset 8px from the window edge with a 10px radius. On screens under 768px the sidebar becomes a top bar and the sheet fills the width.
 
 Every page starts with a page bar: breadcrumbs on the left, the page's own actions on the right, and an "Example data" badge on screens not yet connected to Supabase. Content below uses a 24px gutter (16px on phones).
+
+Landing and privacy sit outside the shell. Landing draws the logo's idea at full size: a hairline margin rule runs down the left of the page, and the logo's dot sits on it beside the hero. Below the hero, three numbered stages (log, critique, review) use the same `01`–`03` markers as the student's log. Privacy reads like a document: a sticky "On this page" index on wide screens, and sections divided by hairlines rather than cards.
 
 Spacing follows Tailwind's 4px scale. Cards pad 16px. Related items group by hairline dividers inside one card rather than by separate cards. Data screens are dense on purpose. A grader should see the chart, the essay and the selected step without scrolling on a laptop.
 
@@ -350,12 +352,13 @@ Every component is a shadcn primitive on Base UI in `src/components/ui/`, restyl
 - **Badges:** 20px pills. Use `ai` for Lane 2 and traced text, `flag` for flags, `success` for caught errors and submissions, `review` for waiting work, `outline` for "Example data".
 - **Inputs:** 36px by default, and a `compact` 30px density for toolbars. An `icon` inset leaves room for a leading icon. Focus shows a 1px cobalt ring with a soft 4px halo.
 - **Textareas:** set in Newsreader, because a student is writing.
-- **Toggle group:** the segmented control for verdicts and filters. The pressed item lifts onto white.
+- **Toggle group:** the segmented control for verdicts and filters. In a filter, a white thumb slides to the pressed item (wrap the items in `ToggleGroupThumb` and give them `tone="thumb"`). A verdict keeps its meaning colour and doesn't slide.
 - **Toggle:** a filter chip, dashed while off and solid once pressed.
 - **Switch, radio group, tooltip, popover, dropdown menu and dialog** wrap the Base UI primitives and keep their keyboard, focus and dismissal behaviour.
 - **Process chart** (`ProcessChart` and the static `ProcessBars`): AI words rise above the baseline in a soft cobalt, the part that reached the essay in solid cobalt, and the critique hangs below on the same scale in ink, or vermilion when flagged. A thin critique looks thin. The scale fits the longest answer, rounded up to a readable figure, so a 2,000-word ChatGPT reply never overflows. Up to 12 steps each column shows its title; beyond that columns compact to at least 14px, titles move to the tooltip and every fifth step is numbered. When even that doesn't fit, the plot scrolls sideways with the axis fixed. Sparklines in a table share one maximum so rows compare fairly.
 - **Submissions table:** TanStack Table with sortable headers. Search, the flagged filter and sort live in the URL through nuqs, so Back from a student restores the view and any view can be linked. With no sort chosen, rows stay in "look closer first" order.
 - **Stat:** a label above a 22px tabular figure. Neighbouring stats are divided by a hairline.
+- **Not-from-logged-AI histogram:** ten columns from 0 to 100% in ink, with counts above and a dashed median line behind the bars.
 
 ## Iconography
 
@@ -371,14 +374,16 @@ Icons are a custom duotone set in `src/components/icon.tsx`, not a library. Draw
 Motion follows Emil Kowalski's rules, judged by how often a grader sees it.
 
 - **Signed-in pages don't animate in.** Graders open the Visualiser around 41 times a session, so content and charts appear immediately. Only landing and privacy, which people see rarely, rise in with a 40ms stagger.
-- **Motion comes from what the user does.** Clicking a step slides the selection band (240ms, `ease-in-out`), swaps the inspector with a 2px blur (180ms) and moves the essay highlight (160ms).
+- **Motion comes from what the user does.** Clicking a step slides the selection band (240ms, `ease-in-out`), swaps the inspector with a 2px blur (180ms) and moves the essay highlight (160ms). Filter thumbs and tab indicators slide with the `morph` utility (200ms, `ease-in-out`).
+- **State changes morph instead of jumping.** A button label that changes while it works ("Save" to "Saving…") crossfades with the same 2px blur through `SwapText`, but never on first render. Deciding a flag swaps its actions the same way. A checkbox tick draws in from the left (150ms) and wipes back out (100ms). Progress fills slide with `translate` (240ms), and each answered critique question fills its pip from the left.
+- **Landing tells the story once.** The process chart sweeps in left to right with a `clip-path` reveal (720ms), the traced and flagged passages then highlight in, and the flag and caught-error notes land last. The whole sequence is over in about 1.1 seconds and never blocks sign-in.
 - **Keyboard actions never animate.** Arrow keys move the selection with no transition.
 - **Easing:** `--ease-out` is `cubic-bezier(0.23, 1, 0.32, 1)` for anything entering, and `--ease-in-out` is `cubic-bezier(0.77, 0, 0.175, 1)` for movement on screen. Hover and colour changes use the default ease-shaped curve. Never use `ease-in`.
 - **Durations:** button press 140ms (`scale(0.97)`), tooltips 125ms, menus and popovers 160ms in and 100ms out, dialogs 220ms in and 150ms out. Keep UI motion under 300ms.
 - **Origins:** popovers and menus scale from their trigger with Base UI's `--transform-origin`. Dialogs stay centred. Nothing scales from 0; entrances start at 0.96 to 0.97 with opacity.
 - **Tooltips** wait 300ms the first time, then open instantly while one is already showing.
 - **Reduced motion** keeps fades and colour changes and drops anything that moves or scales.
-- Animate only `transform`, `opacity`, colours and shadows. Never `transition: all`.
+- Animate only `transform`, `opacity`, colours, shadows and `clip-path` reveals. Never `transition: all`.
 
 ## Do's and Don'ts
 

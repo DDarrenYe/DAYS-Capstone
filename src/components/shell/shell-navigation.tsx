@@ -8,6 +8,7 @@ import { signOut } from "@/app/actions";
 import { Icon } from "@/components/icon";
 import type { IconName } from "@/components/icon";
 import { Avatar } from "@/components/shell/avatar";
+import { SwapText } from "@/components/swap-text";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -130,7 +131,7 @@ export const UserMenu = ({
             disabled={pending}
             onClick={leave}
           >
-            {pending ? "Signing out…" : "Sign out"}
+            <SwapText>{pending ? "Signing out…" : "Sign out"}</SwapText>
           </DropdownMenuItem>
           <p aria-live="polite" className="text-destructive px-2 text-xs">
             {error}

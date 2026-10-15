@@ -1,6 +1,7 @@
 import { Notice } from "@/app/student/log/part";
 import { stepTitle } from "@/app/student/log/step-meta";
 import { Icon } from "@/components/icon";
+import { SwapText } from "@/components/swap-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -167,7 +168,9 @@ export const PreviewList = ({
           disabled={chosen.size === 0 || adding}
           onClick={onAdd}
         >
-          {adding ? "Adding…" : `Add ${stepCount(chosen.size)}`}
+          <SwapText>
+            {adding ? "Adding…" : `Add ${stepCount(chosen.size)}`}
+          </SwapText>
           <Icon name="right" />
         </Button>
       </footer>

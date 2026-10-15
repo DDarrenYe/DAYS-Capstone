@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import { signIn } from "@/app/actions";
+import { SwapText } from "@/components/swap-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -55,7 +56,7 @@ export const SignInForm = () => {
         {state.error}
       </p>
       <Button className="w-full" disabled={pending} size="lg" type="submit">
-        {pending ? "Signing in…" : "Sign in"}
+        <SwapText>{pending ? "Signing in…" : "Sign in"}</SwapText>
       </Button>
       <p className="text-muted-foreground text-xs">
         Use the account your instructor gave you. For help signing in, contact

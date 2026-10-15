@@ -4,7 +4,9 @@ import { Toggle as TogglePrimitive } from "@base-ui/react/toggle";
 import { ToggleGroup as ToggleGroupPrimitive } from "@base-ui/react/toggle-group";
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";
+import type { ReactNode } from "react";
 
+import { SelectionHighlight } from "@/components/selection-highlight";
 import { cn } from "@/lib/utils";
 
 function ToggleGroup({ className, ...props }: ToggleGroupPrimitive.Props) {
@@ -51,4 +53,22 @@ function ToggleGroupItem({
   );
 }
 
-export { ToggleGroup, ToggleGroupItem };
+function ToggleGroupThumb({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <SelectionHighlight
+      className={cn("flex", className)}
+      selector="[data-pressed]"
+      thumbClassName="bg-card shadow-raised rounded-md"
+    >
+      {children}
+    </SelectionHighlight>
+  );
+}
+
+export { ToggleGroup, ToggleGroupItem, ToggleGroupThumb };

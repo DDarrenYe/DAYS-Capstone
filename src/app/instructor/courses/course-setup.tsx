@@ -5,6 +5,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
 import { Icon } from "@/components/icon";
+import { SwapText } from "@/components/swap-text";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -194,7 +195,9 @@ const NewCourseForm = ({ userId }: { userId: string }) => {
               &nbsp;
             </span>
             <Button disabled={isSubmitting} size="lg" type="submit">
-              {isSubmitting ? "Creating…" : "Create course"}
+              <SwapText>
+                {isSubmitting ? "Creating…" : "Create course"}
+              </SwapText>
             </Button>
           </div>
         )}
@@ -348,7 +351,7 @@ const NewAssignmentForm = ({
             size="lg"
             type="submit"
           >
-            {isSubmitting ? "Adding…" : "Add assignment"}
+            <SwapText>{isSubmitting ? "Adding…" : "Add assignment"}</SwapText>
           </Button>
         )}
       </form.Subscribe>
@@ -416,7 +419,9 @@ const EnrolForm = ({
             size="lg"
             type="submit"
           >
-            {isSubmitting ? "Enrolling…" : "Enrol students"}
+            <SwapText>
+              {isSubmitting ? "Enrolling…" : "Enrol students"}
+            </SwapText>
           </Button>
         )}
       </form.Subscribe>

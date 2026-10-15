@@ -27,7 +27,6 @@ import { useId } from "react";
 import { CHECK_STATE } from "@/app/instructor/check-state";
 import { Icon } from "@/components/icon";
 import { CompositionBar, DepthMeter } from "@/components/process/metrics";
-import { SelectionHighlight } from "@/components/selection-highlight";
 import { Avatar } from "@/components/shell/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,7 +39,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+  ToggleGroupThumb,
+} from "@/components/ui/toggle-group";
 import { critiqueOrder } from "@/lib/process";
 import { attention, isUnfinished } from "@/lib/submission-rows";
 import type { SubmissionRow } from "@/lib/submission-rows";
@@ -50,7 +53,6 @@ const PAGE_SIZE = 50;
 
 const SORTABLE = [
   "student",
-  "assignment",
   "steps",
   "unmatched",
   "critique",
@@ -59,7 +61,6 @@ const SORTABLE = [
 ] as const;
 
 const SORT_LABEL: Record<(typeof SORTABLE)[number], string> = {
-  assignment: "Assignment",
   critique: "Critique questions",
   review: "Review",
   steps: "Steps",
@@ -120,15 +121,6 @@ const columns = helper.columns([
     ),
     header: "Student",
     id: "student",
-    sortFn: "text",
-  }),
-  helper.accessor("assignment", {
-    cell: ({ row }) => (
-      <span className="text-body block max-w-40 text-pretty">
-        {row.original.assignment}
-      </span>
-    ),
-    header: "Assignment",
     sortFn: "text",
   }),
   helper.accessor("stepCount", {
@@ -293,11 +285,7 @@ export const SubmissionsTable = ({ rows: data }: { rows: SubmissionRow[] }) => {
           }
           value={view.show ? [view.show] : []}
         >
-          <SelectionHighlight
-            className="flex"
-            selector="[data-pressed]"
-            thumbClassName="bg-card shadow-raised rounded-md"
-          >
+          <ToggleGroupThumb>
             <ToggleGroupItem tone="thumb" value="flagged">
               <Icon name="flag" />
               Flagged
@@ -311,7 +299,7 @@ export const SubmissionsTable = ({ rows: data }: { rows: SubmissionRow[] }) => {
                 {unfinished}
               </span>
             </ToggleGroupItem>
-          </SelectionHighlight>
+          </ToggleGroupThumb>
         </ToggleGroup>
         <span
           aria-live="polite"

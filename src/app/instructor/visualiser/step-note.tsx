@@ -1,5 +1,6 @@
 import type { StepNoteState } from "@/app/instructor/visualiser/use-step-notes";
 import { Icon } from "@/components/icon";
+import { SwapText } from "@/components/swap-text";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_NOTE } from "@/lib/data/schemas";
@@ -51,7 +52,7 @@ export const StepNote = ({
           size="sm"
           type="submit"
         >
-          {note.saving ? "Saving…" : "Save"}
+          <SwapText>{note.saving ? "Saving…" : "Save"}</SwapText>
         </Button>
       ) : null}
     </div>
