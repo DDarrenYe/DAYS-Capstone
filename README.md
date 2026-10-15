@@ -19,18 +19,11 @@ Requires [bun](https://bun.sh) 1.3 or newer. Supabase runs locally; no hosted Su
 The Docker-free runtime supports Apple silicon Macs on macOS 14+ and Linux x64/ARM64 with glibc 2.35+ and `tar`. The first start needs internet to download service binaries. The CLI is pinned because the native stack is experimental. See [Supabase's runtime guide](https://supabase.com/docs/guides/local-development/docker-and-native-runtimes).
 
 ```bash
-bun install
-cp .env.example .env.local
+bun run setup
 bun dev
 ```
 
-`bun dev` starts local Supabase and runs Next.js, which generates its own types. On the first run, get this checkout's connection details in another terminal:
-
-```bash
-bunx --no-install supabase status --env --output-format text --override-name API_URL=NEXT_PUBLIC_SUPABASE_URL,ANON_KEY=NEXT_PUBLIC_SUPABASE_ANON_KEY,SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY,DB_URL=DATABASE_URL
-```
-
-Copy those four values into `.env.local`. Next.js reloads environment files when they change.
+`bun run setup` installs packages from the lockfile and, if `.env.local` doesn't exist yet, starts this checkout's Supabase and writes its four connection values there. An existing `.env.local` is never touched, so it's safe to run again, and every worktree gets its own. Add the `LLM_*` values from `.env.example` yourself if you want to run the reflection check. `bun dev` starts local Supabase and runs Next.js, which generates its own types. Next.js reloads environment files when they change.
 
 Open the URL `bun dev` prints. [Portless](https://portless.sh) serves each checkout at its own HTTPS address, so worktrees never fight over a port: the main checkout is `https://days-capstone.localhost` and a worktree on branch `feat/chat-import` is `https://chat-import.days-capstone.localhost`. Portless needs Node.js 24 or newer. Before the first `bun dev`, run `bunx portless proxy start` once. It binds port 443 and trusts a local certificate, so it asks for your password and gives up after 30 seconds; inside `bun dev` that prompt scrolls away under Supabase's output. Run `bunx portless doctor` if a URL doesn't load (`bunx portless hosts sync` fixes Safari), or `PORTLESS=0 bun dev` to skip the proxy and use http://localhost:3000.
 
@@ -69,6 +62,7 @@ See [Resend's Supabase SMTP guide](https://resend.com/docs/send-with-supabase-sm
 
 | Command | What it does |
 | --- | --- |
+| `bun run setup` | Install packages and write `.env.local` from this checkout's Supabase |
 | `bun dev` | Generate types and start Supabase + Next.js |
 | `bun run db:start` | Start local Supabase without Docker |
 | `bun run db:stop` | Stop local Supabase, preserving data |
