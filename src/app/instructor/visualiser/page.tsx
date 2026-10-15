@@ -2,6 +2,8 @@ import { Suspense } from "react";
 
 import { Submission } from "@/app/instructor/visualiser/submission";
 
+export const maxDuration = 300;
+
 const VisualiserPage = ({
   searchParams,
 }: PageProps<"/instructor/visualiser">) => (

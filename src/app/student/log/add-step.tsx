@@ -132,8 +132,9 @@ export const AddStep = ({
           <p className="text-muted-foreground mt-2 max-w-xl text-xs text-pretty">
             Added steps are saved to your log. Only you can read them until you
             submit, then your instructors can. A share link is fetched from
-            ChatGPT by our server. Once the reflection check is on, submitted
-            step text will be sent to a third-party AI provider.{" "}
+            ChatGPT by our server. When you submit, the reflection check sends
+            each step’s prompt, answer and critique to a third-party AI
+            provider.{" "}
             <Link className="text-ai-ink hover:underline" href="/privacy">
               Read the privacy notice
             </Link>

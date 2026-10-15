@@ -15,6 +15,7 @@ import {
   writeImport,
   writeNote,
   writeProject,
+  writeReanalysis,
   writeReview,
   writeSteps,
   writeSubmission,
@@ -35,6 +36,7 @@ import type {
   RemoveEnrolmentInput,
   RemoveStepInput,
   OpenInput,
+  ReanalyseInput,
   ReviewInput,
   SaveFinalInput,
   StepsResult,
@@ -123,6 +125,16 @@ export const submitProject = async (
     return forbidden;
   }
   return writeSubmission(await createClient(), input);
+};
+
+export const reanalyseProject = async (
+  input: ReanalyseInput
+): Promise<WriteResult> => {
+  const account = await getAccount();
+  if (account?.role !== "instructor") {
+    return forbidden;
+  }
+  return writeReanalysis(await createClient(), input);
 };
 
 export const reviewFlag = async (input: ReviewInput): Promise<WriteResult> => {

@@ -112,7 +112,7 @@ const readSubmissions = async (client: Client) =>
   );
 
 const METRICS_COLUMNS =
-  "analysis_status, analysis_version, iterations(id, step_number, raw_answer, critique, student_marked_ai_error), final_versions(id, version_number, extracted_text), analysis_results(final_version_id, analysis_version, flags(kind, review_state))";
+  "analysis_status, iterations(id, step_number, raw_answer, critique, student_marked_ai_error), final_versions(id, version_number, extracted_text), analysis_results(final_version_id, analysis_version, created_at, flags(kind, review_state))";
 
 const readProjectMetrics = async (client: Client, projectId: string) =>
   submissionMetrics(
@@ -172,7 +172,7 @@ const readCohortMetrics = async (client: Client) => {
 export type CohortRows = Awaited<ReturnType<typeof readCohortMetrics>>;
 
 const SUBMISSION_COLUMNS =
-  "id, submitted_at, analysis_status, analysis_version, assignment:assignments(id, title), student:enrolments(email, profile:profiles(display_name)), iterations(id, step_number, prompt, raw_answer, critique, marks, student_marked_ai_error, ai_error_evidence, created_at), final_versions(id, version_number, extracted_text, original_filename), analysis_results(final_version_id, analysis_version, iteration_id, flags(id, kind, evidence, explanation, review_state)), grader_notes(iteration_id, body)";
+  "id, submitted_at, analysis_status, analysis_version, analysis_error, analysis_started_at, analysis_finished_at, assignment:assignments(id, title), student:enrolments(email, profile:profiles(display_name)), iterations(id, step_number, prompt, raw_answer, critique, marks, student_marked_ai_error, ai_error_evidence, created_at), final_versions(id, version_number, extracted_text, original_filename), analysis_results(final_version_id, analysis_version, iteration_id, model, rubric_version, created_at, flags(id, kind, evidence, explanation, review_state)), grader_notes(iteration_id, body)";
 
 const readSubmission = async (
   client: Client,

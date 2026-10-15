@@ -10,6 +10,7 @@ import {
   submissionMetrics,
 } from "@/lib/submission-metrics";
 import { checkState } from "@/lib/submission-rows";
+import type { CheckState } from "@/lib/submission-rows";
 
 const TIME_ZONE = "Pacific/Auckland";
 
@@ -75,16 +76,53 @@ export const essayParagraphs = (
       return runs;
     });
 
+const stamp = (value: string | null) =>
+  value ? timeFormat.format(new Date(value)) : null;
+
+const analysisNote = (
+  check: CheckState,
+  analysis: {
+    error: string | null;
+    finished: string | null;
+    kept: boolean;
+    model: string | null;
+    rubricVersion: string | null;
+    started: string | null;
+  }
+) => {
+  const kept = analysis.kept
+    ? " The results below are from the last check that finished."
+    : "";
+  switch (check) {
+    case "pending": {
+      return "It starts when a student submits. Run it now if it hasn't started.";
+    }
+    case "running": {
+      return `Started ${analysis.started}.${kept}`;
+    }
+    case "failed": {
+      return `${analysis.error ?? "The check failed."}${kept}`;
+    }
+    case "unavailable": {
+      return "The check finished but saved no results for this submission.";
+    }
+    default: {
+      return `Finished ${analysis.finished} with ${analysis.model}, rubric ${analysis.rubricVersion}.`;
+    }
+  }
+};
+
 export const submissionDetail = (project: SubmissionProject) => {
   const metrics = submissionMetrics(project);
   const final = project.final_versions.find(
     ({ id }) => id === metrics.finalVersionId
   );
   const iterations = new Map(project.iterations.map((item) => [item.id, item]));
-  const flagged = Map.groupBy(
-    currentAnalyses(project, project.analysis_results, metrics.finalVersionId),
-    ({ iteration_id: id }) => id
+  const results = currentAnalyses(
+    project.analysis_results,
+    metrics.finalVersionId
   );
+  const flagged = Map.groupBy(results, ({ iteration_id: id }) => id);
   const notes = new Map(
     project.grader_notes.map(({ body, iteration_id: id }) => [id, body])
   );
@@ -132,9 +170,22 @@ export const submissionDetail = (project: SubmissionProject) => {
     ];
   });
   const { email, profile } = project.student;
+  const check = checkState({
+    analysisStatus: project.analysis_status,
+    metrics,
+  });
+  const analysis = {
+    error: project.analysis_error,
+    finished: stamp(project.analysis_finished_at),
+    kept: metrics.flags !== null && project.analysis_status !== "completed",
+    model: results[0]?.model ?? null,
+    rubricVersion: results[0]?.rubric_version ?? null,
+    started: stamp(project.analysis_started_at),
+  };
   return {
+    analysis: { ...analysis, note: analysisNote(check, analysis) },
     assignment: project.assignment,
-    check: checkState({ analysisStatus: project.analysis_status, metrics }),
+    check,
     critiqueAverage: critiqueAverage(metrics),
     days: new Set(steps.map(({ day }) => day)).size,
     email,

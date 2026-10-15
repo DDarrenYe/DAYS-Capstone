@@ -4,6 +4,7 @@ import { parseAsInteger, useQueryState } from "nuqs";
 import { useEffect, useEffectEvent, useState } from "react";
 
 import { CHECK_STATE } from "@/app/instructor/check-state";
+import { CheckStatus } from "@/app/instructor/visualiser/check-status";
 import { EssayCard } from "@/app/instructor/visualiser/essay-card";
 import { StepCard } from "@/app/instructor/visualiser/step-card";
 import { StepNote } from "@/app/instructor/visualiser/step-note";
@@ -64,7 +65,7 @@ const Summary = ({ detail }: { detail: SubmissionDetail }) => {
           className={detail.openFlags > 0 ? "text-flag" : undefined}
           label="Open flags"
         >
-          {isUnfinished({ state: detail.check }) ? (
+          {isUnfinished({ state: detail.check }) && !detail.analysis.kept ? (
             <span className="text-body text-muted-foreground font-book tracking-normal">
               {CHECK_STATE[detail.check].label}
             </span>
@@ -136,6 +137,8 @@ export const Visualiser = ({ detail }: { detail: SubmissionDetail }) => {
 
       <div className="flex-1 overflow-y-auto">
         <Summary detail={detail} />
+
+        <CheckStatus detail={detail} />
 
         <Card className="mx-6 max-md:mx-4">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3.5">

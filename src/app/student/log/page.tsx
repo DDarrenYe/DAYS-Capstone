@@ -9,6 +9,8 @@ const Composer = async () => {
   return <StepComposer userId={id} />;
 };
 
+export const maxDuration = 300;
+
 const LogPage = () => (
   <Suspense fallback={<LogSkeleton />}>
     <Composer />

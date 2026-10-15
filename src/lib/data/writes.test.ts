@@ -7,6 +7,7 @@ import { z } from "zod";
 import { MAX_NOTE } from "@/lib/data/schemas";
 import { ImportError } from "@/lib/import/errors";
 import type { loadShare } from "@/lib/import/share";
+import { quietly } from "@/lib/test-console";
 
 import {
   forbidden,
@@ -22,6 +23,7 @@ import {
   writeImport,
   writeNote,
   writeProject,
+  writeReanalysis,
   writeReview,
   writeSteps,
   writeSubmission,
@@ -662,35 +664,110 @@ test("a document upload needs a file and never reaches the database", async () =
   });
 });
 
+const recordingStart = () => {
+  const started: [string, boolean][] = [];
+  return {
+    start: (id: string, restart: boolean) => {
+      started.push([id, restart]);
+      return Promise.resolve();
+    },
+    started,
+  };
+};
+
 test("submitting calls the database function, which owns the checks and the lock", async () => {
   const { client, requests } = clientWith(() =>
     Response.json("2026-10-14T00:00:00+00:00")
   );
-  assert.deepEqual(await writeSubmission(client, { projectId }), {});
+  const { start, started } = recordingStart();
+  assert.deepEqual(await writeSubmission(client, { projectId }, start), {});
   assert.equal(requests.length, 1);
   assert.equal(requests[0]?.method, "POST");
   assert.equal(requests[0]?.url.pathname, "/rest/v1/rpc/submit_project");
   assert.deepEqual(requests[0]?.body, { project: projectId });
+  assert.deepEqual(started, [[projectId, false]]);
 });
 
 const failing = (code: string, message: string) =>
   clientWith(() => Response.json({ code, message }, { status: 400 })).client;
 
 test("an incomplete log reports the database's reason and nothing else leaks", async () => {
+  const { start, started } = recordingStart();
   assert.deepEqual(
     await writeSubmission(
       failing("P0001", "Save your final version before you submit."),
-      { projectId }
+      { projectId },
+      start
     ),
     { error: "Save your final version before you submit." }
   );
   assert.deepEqual(
-    await writeSubmission(failing("42501", "Only the enrolled student"), {
-      projectId,
-    }),
+    await writeSubmission(
+      failing("42501", "Only the enrolled student"),
+      { projectId },
+      start
+    ),
     forbidden
   );
+  assert.deepEqual(started, []);
 });
+
+test("a check that cannot start never fails the submission", () =>
+  quietly(async (logged) => {
+    const { client } = clientWith(() =>
+      Response.json("2026-10-14T00:00:00+00:00")
+    );
+    assert.deepEqual(
+      await writeSubmission(client, { projectId }, () =>
+        Promise.reject(new Error("No service role key."))
+      ),
+      {}
+    );
+    assert.equal(logged.length, 1);
+  }));
+
+test("an instructor can only re-run the check on a submission they can read", async () => {
+  const { client, requests } = clientWith(() =>
+    Response.json([{ id: projectId }])
+  );
+  const { start, started } = recordingStart();
+  assert.deepEqual(await writeReanalysis(client, { projectId }, start), {});
+  assert.equal(requests[0]?.url.pathname, "/rest/v1/projects");
+  assert.equal(requests[0]?.url.searchParams.get("id"), `eq.${projectId}`);
+  assert.equal(requests[0]?.url.searchParams.get("status"), "eq.submitted");
+  assert.deepEqual(started, [[projectId, true]]);
+
+  const unseen = recordingStart();
+  assert.deepEqual(
+    await writeReanalysis(
+      clientWith(noRow).client,
+      { projectId },
+      unseen.start
+    ),
+    forbidden
+  );
+  assert.deepEqual(
+    await writeReanalysis(
+      clientWith(noRow).client,
+      { projectId: "not-a-guid" },
+      unseen.start
+    ),
+    { error: "Check the details and try again." }
+  );
+  assert.deepEqual(unseen.started, []);
+});
+
+test("a re-run that cannot start says so", () =>
+  quietly(async () => {
+    assert.deepEqual(
+      await writeReanalysis(
+        clientWith(() => Response.json([{ id: projectId }])).client,
+        { projectId },
+        () => Promise.reject(new Error("No service role key."))
+      ),
+      { error: "Unable to start the check. Try again shortly." }
+    );
+  }));
 
 test("a review is attributed to the verified reviewer, not the caller's input", async () => {
   const { client, requests } = clientWith();
