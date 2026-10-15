@@ -14,6 +14,7 @@ export const queryKeys = {
   cohortMetrics: (userId: string) =>
     [...queryKeys.submissions(userId), "metrics"] as const,
   courses: (userId: string) => ["users", userId, "courses"] as const,
+  flagQueue: (userId: string) => ["users", userId, "flags"] as const,
   metrics: (userId: string, projectId: string) =>
     [...queryKeys.project(userId, projectId), "metrics"] as const,
   project: (userId: string, projectId: string) =>
@@ -25,6 +26,8 @@ export const queryKeys = {
   submission: (userId: string, projectId: string) =>
     [...queryKeys.submissions(userId), projectId] as const,
   submissions: (userId: string) => ["users", userId, "submissions"] as const,
+  unresolvedFlags: (userId: string) =>
+    ["users", userId, "unresolved-flags"] as const,
 };
 
 const unwrap = <T>(
@@ -130,6 +133,16 @@ const readProjectMetrics = async (client: Client, projectId: string) =>
 /* Each project carries its steps and essay text, so the cohort is read in batches; one request would also stop at the API's row limit. */
 const COHORT_BATCH = 200;
 
+const inBatches = async <T>(
+  read: (from: number) => Promise<T[]>,
+  from = 0
+): Promise<T[]> => {
+  const batch = await read(from);
+  return batch.length < COHORT_BATCH
+    ? batch
+    : [...batch, ...(await inBatches(read, from + COHORT_BATCH))];
+};
+
 const readCohortBatch = async (client: Client, from: number) =>
   unwrap(
     await client
@@ -145,18 +158,8 @@ const readCohortBatch = async (client: Client, from: number) =>
     "the cohort metrics"
   );
 
-const readCohortProjects = async (
-  client: Client,
-  from = 0
-): Promise<Awaited<ReturnType<typeof readCohortBatch>>> => {
-  const batch = await readCohortBatch(client, from);
-  return batch.length < COHORT_BATCH
-    ? batch
-    : [...batch, ...(await readCohortProjects(client, from + COHORT_BATCH))];
-};
-
 const readCohortMetrics = async (client: Client) => {
-  const projects = await readCohortProjects(client);
+  const projects = await inBatches((from) => readCohortBatch(client, from));
   return projects.map(
     ({ assignment, id, student, submitted_at: submittedAt, ...project }) => ({
       analysisStatus: project.analysis_status,
@@ -171,8 +174,14 @@ const readCohortMetrics = async (client: Client) => {
 
 export type CohortRows = Awaited<ReturnType<typeof readCohortMetrics>>;
 
+const CHECK_RESULT_COLUMNS =
+  "final_version_id, analysis_version, iteration_id, model, rubric_version, created_at, ai_correctness_addressed, ai_correctness_evidence, verification_addressed, verification_evidence, changes_addressed, changes_evidence, explanation, uncertainty";
+
+const FLAG_COLUMNS =
+  "id, kind, evidence, explanation, review_state, review_note, reviewed_at, flag_reviews(review_state, reviewed_at, note)";
+
 const SUBMISSION_COLUMNS =
-  "id, submitted_at, analysis_status, analysis_version, analysis_error, analysis_started_at, analysis_finished_at, assignment:assignments(id, title), student:enrolments(email, profile:profiles(display_name)), iterations(id, step_number, prompt, raw_answer, critique, marks, student_marked_ai_error, ai_error_evidence, created_at), final_versions(id, version_number, extracted_text, original_filename), analysis_results(final_version_id, analysis_version, iteration_id, model, rubric_version, created_at, flags(id, kind, evidence, explanation, review_state)), grader_notes(iteration_id, body)";
+  `id, submitted_at, analysis_status, analysis_version, analysis_error, analysis_started_at, analysis_finished_at, assignment:assignments(id, title), student:enrolments(email, profile:profiles(display_name)), iterations(id, step_number, prompt, raw_answer, critique, marks, student_marked_ai_error, ai_error_evidence, created_at), final_versions(id, version_number, extracted_text, original_filename), analysis_results(${CHECK_RESULT_COLUMNS}, flags(${FLAG_COLUMNS})), grader_notes(iteration_id, body)` as const;
 
 const readSubmission = async (
   client: Client,
@@ -197,12 +206,51 @@ export type SubmissionProject = NonNullable<
   Awaited<ReturnType<typeof readSubmission>>
 >;
 
+const readFlagBatch = async (client: Client, from: number) =>
+  unwrap(
+    await client
+      .from("projects")
+      .select(
+        `id, submitted_at, assignment:assignments(id, title, course:courses(id, code, title)), student:enrolments(email, profile:profiles(display_name)), iterations(id, step_number, prompt, critique), final_versions(id, version_number), analysis_results(${CHECK_RESULT_COLUMNS}, flags(${FLAG_COLUMNS}))`
+      )
+      .eq("status", "submitted")
+      .eq("final_versions.is_current", true)
+      .order("submitted_at", { ascending: false })
+      .order("id")
+      .range(from, from + COHORT_BATCH - 1),
+    "the flags"
+  );
+
+const readFlagQueue = (client: Client) =>
+  inBatches((from) => readFlagBatch(client, from));
+
+export type FlagQueueRows = Awaited<ReturnType<typeof readFlagQueue>>;
+
+const readUnresolvedBatch = async (client: Client, from: number) =>
+  unwrap(
+    await client
+      .from("projects")
+      .select(
+        "final_versions(id), analysis_results(final_version_id, analysis_version, created_at, flags(kind, review_state))"
+      )
+      .eq("status", "submitted")
+      .eq("final_versions.is_current", true)
+      .order("id")
+      .range(from, from + COHORT_BATCH - 1),
+    "the open flags"
+  );
+
+const readUnresolvedFlags = (client: Client) =>
+  inBatches((from) => readUnresolvedBatch(client, from));
+
+export type UnresolvedRows = Awaited<ReturnType<typeof readUnresolvedFlags>>;
+
 const readReviews = async (client: Client, projectId: string) =>
   unwrap(
     await client
       .from("analysis_results")
       .select(
-        "id, iteration_id, analysis_version, model, rubric_version, ai_correctness_addressed, ai_correctness_evidence, verification_addressed, verification_evidence, changes_addressed, changes_evidence, explanation, uncertainty, created_at, flags(id, kind, evidence, explanation, review_state, reviewed_by, reviewed_at, flag_reviews(id, review_state, reviewer_id, reviewed_at))"
+        "id, iteration_id, analysis_version, model, rubric_version, ai_correctness_addressed, ai_correctness_evidence, verification_addressed, verification_evidence, changes_addressed, changes_evidence, explanation, uncertainty, created_at, flags(id, kind, evidence, explanation, review_state, review_note, reviewed_by, reviewed_at, flag_reviews(id, review_state, reviewer_id, reviewed_at, note))"
       )
       .eq("project_id", projectId)
       .order("created_at", { ascending: false }),
@@ -271,6 +319,16 @@ export const reviewsQuery = (
   queryKey: queryKeys.reviews(userId, projectId),
 });
 
+export const flagQueueQuery = (client: Client, userId: string) => ({
+  queryFn: () => asUser(client, userId, readFlagQueue),
+  queryKey: queryKeys.flagQueue(userId),
+});
+
+export const unresolvedFlagsQuery = (client: Client, userId: string) => ({
+  queryFn: () => asUser(client, userId, readUnresolvedFlags),
+  queryKey: queryKeys.unresolvedFlags(userId),
+});
+
 const invalidate = (queryClient: QueryClient, ...keys: QueryKey[]) =>
   Promise.all(
     keys.map((queryKey) => queryClient.invalidateQueries({ queryKey }))
@@ -312,17 +370,6 @@ export const invalidateAfterSubmit = (
     queryClient,
     queryKeys.project(userId, projectId),
     queryKeys.assignments(userId),
-    queryKeys.submissions(userId)
-  );
-
-export const invalidateAfterReview = (
-  queryClient: QueryClient,
-  userId: string,
-  projectId: string
-) =>
-  invalidate(
-    queryClient,
-    queryKeys.project(userId, projectId),
     queryKeys.submissions(userId)
   );
 

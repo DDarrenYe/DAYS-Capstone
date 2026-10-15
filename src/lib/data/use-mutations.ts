@@ -23,7 +23,6 @@ import {
 import {
   cacheSavedFinal,
   invalidateAfterOpen,
-  invalidateAfterReview,
   invalidateAfterSave,
   invalidateAfterSetup,
   invalidateAfterSubmit,
@@ -187,13 +186,10 @@ export const useReanalyse = () =>
     mutationFn: (input: ReanalyseInput) => succeeded(reanalyseProject(input)),
   });
 
-export const useReviewFlag = (userId: string, projectId: string) => {
-  const queryClient = useQueryClient();
-  return useMutation({
+export const useReviewFlag = () =>
+  useMutation({
     mutationFn: (input: ReviewInput) => succeeded(reviewFlag(input)),
-    onSuccess: () => invalidateAfterReview(queryClient, userId, projectId),
   });
-};
 
 export const useSaveNote = () =>
   useMutation({ mutationFn: (input: NoteInput) => succeeded(saveNote(input)) });

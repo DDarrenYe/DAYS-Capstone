@@ -1,30 +1,29 @@
-import { FlagList } from "@/app/instructor/flags/flag-list";
-import { PageBar } from "@/components/shell/page-bar";
-import { cohortFlags, assignmentName, student } from "@/lib/example-data";
+import { Suspense } from "react";
 
-const students = new Set(cohortFlags.map((flag) => flag.name)).size;
+import { Flags } from "@/app/instructor/flags/flags";
+import { PageBar } from "@/components/shell/page-bar";
 
 const FlagsPage = () => (
   <>
-    <PageBar
-      crumbs={[
-        { href: "/instructor", label: assignmentName },
-        { label: "Flags" },
-      ]}
-      example
-    />
-    <div className="flex-1 overflow-y-auto">
-      <section className="px-6 pt-5 max-md:px-4">
-        <h1 className="text-title font-semibold">
-          {cohortFlags.length} flags across {students} students
-        </h1>
-        <p className="text-muted-foreground mt-1.5 max-w-160 text-pretty">
-          The reflection check suggests where a critique may be thin. Keep a
-          flag to add it to your feedback, or dismiss it. Flags never change a
-          grade.
-        </p>
-      </section>
-      <FlagList detailFor={student.name} flags={cohortFlags} />
+    <PageBar crumbs={[{ label: "Flags" }]} />
+    <div className="flex flex-1 flex-col overflow-y-auto">
+      <Suspense
+        fallback={
+          <>
+            <output className="sr-only">Loading flags…</output>
+            <div
+              aria-hidden="true"
+              className="flex flex-col gap-3.5 px-6 pt-5 pb-6 max-md:px-4"
+            >
+              <div className="bg-muted shadow-hairline h-14 w-72 animate-pulse rounded-xl motion-reduce:animate-none" />
+              <div className="bg-muted shadow-hairline h-40 animate-pulse rounded-xl motion-reduce:animate-none" />
+              <div className="bg-muted shadow-hairline h-40 animate-pulse rounded-xl motion-reduce:animate-none" />
+            </div>
+          </>
+        }
+      >
+        <Flags />
+      </Suspense>
     </div>
   </>
 );

@@ -426,12 +426,17 @@ export const flags = pgTable(
       withTimezone: true,
       mode: "string",
     }),
+    reviewNote: text("review_note"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .defaultNow()
       .notNull(),
   },
   (t) => [
     check("flags_kind_check", sql`btrim(${t.kind}) <> ''`),
+    check(
+      "flags_review_note_check",
+      sql`${t.reviewNote} is null or (btrim(${t.reviewNote}) <> '' and char_length(${t.reviewNote}) <= 2000 and ${t.reviewState} <> 'open')`
+    ),
     check("flags_evidence_check", sql`btrim(${t.evidence}) <> ''`),
     check("flags_explanation_check", sql`btrim(${t.explanation}) <> ''`),
     unique("flags_analysis_result_id_kind_key").on(t.analysisResultId, t.kind),
@@ -461,8 +466,13 @@ export const flagReviews = pgTable(
     reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: "string" })
       .defaultNow()
       .notNull(),
+    note: text("note"),
   },
   (t) => [
+    check(
+      "flag_reviews_note_check",
+      sql`${t.note} is null or btrim(${t.note}) <> ''`
+    ),
     index("flag_reviews_flag").on(t.flagId),
     index("flag_reviews_reviewer").on(t.reviewerId),
   ]

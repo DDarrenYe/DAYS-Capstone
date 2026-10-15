@@ -30,10 +30,12 @@ const LEGEND = [
 
 const Summary = ({ detail }: { detail: SubmissionDetail }) => {
   const { match } = detail;
+  const noResults =
+    isUnfinished({ state: detail.check }) && !detail.analysis.kept;
   return (
     <section className="flex flex-wrap items-start gap-x-3.5 gap-y-4 px-6 pt-4.5 pb-4 max-md:px-4">
       <Avatar name={detail.name} size="lg" />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-64 flex-1">
         <h1 className="text-title font-semibold">{detail.name}</h1>
         <p className="text-muted-foreground mt-0.75 flex flex-wrap items-center gap-1.5">
           <span className="text-label font-mono">{detail.email}</span>·
@@ -65,13 +67,16 @@ const Summary = ({ detail }: { detail: SubmissionDetail }) => {
           className={detail.openFlags > 0 ? "text-flag" : undefined}
           label="Open flags"
         >
-          {isUnfinished({ state: detail.check }) && !detail.analysis.kept ? (
+          {noResults ? (
             <span className="text-body text-muted-foreground font-book tracking-normal">
               {CHECK_STATE[detail.check].label}
             </span>
           ) : (
             detail.openFlags
           )}
+        </Stat>
+        <Stat label="Added to feedback">
+          {noResults ? "—" : detail.feedbackFlags}
         </Stat>
       </div>
     </section>

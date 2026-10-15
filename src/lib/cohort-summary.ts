@@ -66,6 +66,7 @@ export const cohortSummary = (rows: readonly SubmissionRow[]) => {
       { length: BIN_COUNT },
       (_, bin) => percents.filter((percent) => binOf(percent) === bin).length
     ),
+    feedbackFlags: sum(rows, (row) => row.feedbackFlags),
     medianSteps: median(rows.map((row) => row.stepCount)),
     medianUnmatched: median(percents),
     reasons: Array.from(kinds, ([kind, count]) => ({ count, kind })).toSorted(

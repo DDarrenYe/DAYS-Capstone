@@ -20,6 +20,7 @@ export interface SubmissionRow {
   assignmentId: string;
   critiqueAverage: number;
   email: string;
+  feedbackFlags: number;
   id: string;
   name: string;
   openFlags: number;
@@ -47,7 +48,7 @@ export const checkState = ({
   if (metrics.flags.open > 0) {
     return "flagged";
   }
-  return metrics.flags.active + metrics.flags.dismissed > 0
+  return metrics.flags.addedToFeedback + metrics.flags.dismissed > 0
     ? "reviewed"
     : "none";
 };
@@ -89,6 +90,7 @@ export const submissionRows = (cohort: CohortRows): SubmissionRow[] =>
         assignmentId: entry.assignment.id,
         critiqueAverage: critiqueAverage(metrics),
         email,
+        feedbackFlags: metrics.flags?.addedToFeedback ?? 0,
         id: entry.id,
         name: profile?.display_name ?? email,
         openFlags: metrics.flags?.open ?? 0,

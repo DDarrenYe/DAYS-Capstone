@@ -8,8 +8,8 @@ import {
   assignmentsQuery,
   cacheSavedFinal,
   cohortMetricsQuery,
+  flagQueueQuery,
   invalidateAfterOpen,
-  invalidateAfterReview,
   invalidateAfterSave,
   invalidateAfterSubmit,
   projectLogQuery,
@@ -17,6 +17,7 @@ import {
   queryKeys,
   reviewsQuery,
   submissionsQuery,
+  unresolvedFlagsQuery,
 } from "./queries";
 
 const userId = "10000000-0000-0000-0000-000000000001";
@@ -178,22 +179,6 @@ test("submitting also invalidates submissions", async () => {
   );
 });
 
-test("reviewing invalidates the project and submissions but not assignments", async () => {
-  const queryClient = seededCache();
-  await invalidateAfterReview(queryClient, userId, projectId);
-  assert.deepEqual(
-    invalidated(queryClient),
-    keysOf(
-      userId,
-      "submissions",
-      "submissions/metrics",
-      `projects/${projectId}/log`,
-      `projects/${projectId}/metrics`,
-      `projects/${projectId}/reviews`
-    )
-  );
-});
-
 test("reads stop before the database when the session belongs to someone else", async () => {
   type TestClient = ReturnType<typeof clientFor>;
   const attempts = [
@@ -209,6 +194,10 @@ test("reads stop before the database when the session belongs to someone else", 
       queryClient.query(cohortMetricsQuery(client, userId)),
     (queryClient: QueryClient, client: TestClient) =>
       queryClient.query(reviewsQuery(client, userId, projectId)),
+    (queryClient: QueryClient, client: TestClient) =>
+      queryClient.query(flagQueueQuery(client, userId)),
+    (queryClient: QueryClient, client: TestClient) =>
+      queryClient.query(unresolvedFlagsQuery(client, userId)),
   ];
   await Promise.all(
     [otherUserId, undefined].flatMap((sub) =>

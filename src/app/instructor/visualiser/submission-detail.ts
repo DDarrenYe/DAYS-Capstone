@@ -1,8 +1,8 @@
 import { marksOf, stepTitle } from "@/app/student/log/step-meta";
-import { flagKindLabel } from "@/lib/cohort-summary";
 import type { SubmissionProject } from "@/lib/data/queries";
 import { MIN_MATCH_WORDS } from "@/lib/final-match";
 import type { MatchSpan } from "@/lib/final-match";
+import { checkResult, flagView } from "@/lib/flag-review";
 import { countWords, critiqueCoverage, readCritique } from "@/lib/process";
 import {
   critiqueAverage,
@@ -133,18 +133,8 @@ export const submissionDetail = (project: SubmissionProject) => {
     }
     const createdAt = new Date(iteration.created_at);
     const critique = iteration.critique ?? "";
-    const flags = (flagged.get(metric.id) ?? []).flatMap((result) =>
-      result.flags.map(
-        ({ evidence, explanation, id, kind, review_state: state }) => ({
-          evidence,
-          explanation,
-          id,
-          kind,
-          label: flagKindLabel(kind),
-          state,
-        })
-      )
-    );
+    const [result] = flagged.get(metric.id) ?? [];
+    const flags = (result?.flags ?? []).map(flagView);
     const open = flags.filter(({ state }) => state === "open");
     return [
       {
@@ -152,6 +142,7 @@ export const submissionDetail = (project: SubmissionProject) => {
         answered: critiqueCoverage(readCritique(iteration.critique)),
         asked: iteration.prompt,
         carried: metric.retainedWords,
+        check: result ? checkResult(result) : null,
         critique,
         critiqueWords: countWords(critique),
         day: dayLabel(createdAt),
@@ -194,6 +185,7 @@ export const submissionDetail = (project: SubmissionProject) => {
       metrics.spans,
       new Map(steps.map(({ id }, index) => [id, index]))
     ),
+    feedbackFlags: metrics.flags?.addedToFeedback ?? 0,
     file: final?.original_filename ?? null,
     id: project.id,
     markedErrors: metrics.markedErrors,

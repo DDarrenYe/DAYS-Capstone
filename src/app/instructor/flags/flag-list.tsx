@@ -3,174 +3,180 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { CheckResult } from "@/app/instructor/check-result";
+import { FlagDecision } from "@/app/instructor/flag-decision";
+import type { FlagQueue, QueueFlag } from "@/app/instructor/flags/flag-queue";
 import { Icon } from "@/components/icon";
 import { Avatar } from "@/components/shell/avatar";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   ToggleGroup,
   ToggleGroupItem,
   ToggleGroupThumb,
 } from "@/components/ui/toggle-group";
-import type { CohortFlag } from "@/lib/example-data";
-import { stepKey, useFlagDecisions } from "@/lib/review-state";
+import { FLAG_STATE_LABEL } from "@/lib/flag-review";
+import type { FlagState } from "@/lib/flag-review";
 import { cn } from "@/lib/utils";
 
-type View = "open" | "kept" | "dismissed";
+type View = FlagState | "all";
 
-const flagKey = (flag: CohortFlag) => stepKey(flag.name, flag.step);
+const VIEWS: readonly { label: string; value: View }[] = [
+  { label: "Open", value: "open" },
+  { label: "Added to feedback", value: "added_to_feedback" },
+  { label: "Dismissed", value: "dismissed" },
+  { label: "All", value: "all" },
+];
 
-export const FlagList = ({
-  flags,
-  detailFor,
+const NOTHING: Record<View, string> = {
+  added_to_feedback: "Nothing has been added to feedback yet.",
+  all: "There are no flags.",
+  dismissed: "Nothing has been dismissed.",
+  open: "No open flags. Every flag in your courses has a decision.",
+};
+
+const FlagItem = ({
+  entry,
+  onDecided,
 }: {
-  flags: readonly CohortFlag[];
-  detailFor: string;
+  entry: QueueFlag;
+  onDecided: () => void;
 }) => {
-  const { decide: record, decisions } = useFlagDecisions();
-  const [show, setShow] = useState<string>("open");
+  const { check, critique, flag, project, step } = entry;
+  return (
+    <li>
+      <Card>
+        <div className="grid gap-x-4 gap-y-3 px-4 py-3.5 md:grid-cols-[220px_minmax(0,1fr)_auto]">
+          <div className="flex items-start gap-2.5">
+            <Avatar name={project.name} />
+            <div className="min-w-0">
+              <b className="font-emphasis block">{project.name}</b>
+              <span className="text-muted-foreground block text-xs">
+                <span className="font-mono">S{step.number}</span> · {step.title}
+              </span>
+              <span className="text-faint block text-xs">
+                {project.course} · {project.assignment}
+              </span>
+            </div>
+          </div>
+          <div
+            className={cn(
+              "min-w-0 transition-opacity duration-200 ease-out",
+              flag.state === "dismissed" && "opacity-60"
+            )}
+          >
+            <p
+              className={cn(
+                "font-heading flex items-center gap-1.75",
+                flag.state === "open"
+                  ? "text-flag-ink"
+                  : "text-muted-foreground"
+              )}
+            >
+              <Icon name="flag" />
+              {flag.label}
+              <span className="text-label font-emphasis ml-auto">
+                {FLAG_STATE_LABEL[flag.state]}
+              </span>
+            </p>
+            <p className="text-body mt-0.5 whitespace-pre-line">
+              {flag.explanation}
+            </p>
+            <blockquote className="text-reading border-border-strong text-lead mt-2 border-l-2 pl-3 font-serif leading-normal whitespace-pre-line">
+              {flag.evidence}
+            </blockquote>
+            <details className="group/check mt-2.5">
+              <summary className="text-label text-muted-foreground font-emphasis flex cursor-pointer list-none items-center gap-1">
+                Reflection check and full critique
+                <Icon
+                  className="size-3.5 transition-transform group-open/check:rotate-180"
+                  name="down"
+                />
+              </summary>
+              <div className="mt-2 flex flex-col gap-3">
+                <CheckResult result={check} />
+                <div>
+                  <h3 className="text-label text-muted-foreground font-emphasis mb-1">
+                    Critique
+                  </h3>
+                  <p className="text-reading font-serif whitespace-pre-line">
+                    {critique === "" ? "No critique was written." : critique}
+                  </p>
+                </div>
+              </div>
+            </details>
+          </div>
+          <Link
+            aria-label={`Open ${project.name} step ${step.number} in the Visualiser`}
+            className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
+            href={`/instructor/visualiser?project=${project.id}&step=${step.position}`}
+          >
+            <Icon name="right" />
+          </Link>
+        </div>
+        <div className="border-t px-4 py-3">
+          <FlagDecision
+            flag={flag}
+            key={flag.reviewedAt ?? "open"}
+            onDecided={onDecided}
+            subject={`${flag.label} flag for ${project.name} on step ${step.number}`}
+          />
+        </div>
+      </Card>
+    </li>
+  );
+};
+
+export const FlagList = ({ queue }: { queue: FlagQueue }) => {
+  const [show, setShow] = useState<View>("open");
   const [decidedHere, setDecidedHere] = useState<ReadonlySet<string>>(
     new Set()
   );
-  const decisionOf = (flag: CohortFlag): View =>
-    decisions[flagKey(flag)] ?? "open";
-  const decide = (flag: CohortFlag, decision: View) => {
-    record(flagKey(flag), decision === "open" ? undefined : decision);
-    setDecidedHere((current) => new Set(current).add(flagKey(flag)));
-  };
-  const visible = flags.filter(
-    (flag) =>
-      show === "all" ||
-      decisionOf(flag) === show ||
-      decidedHere.has(flagKey(flag))
+  const count = (view: View) =>
+    view === "all" ? queue.flags.length : queue.counts[view];
+  const visible = queue.flags.filter(
+    ({ flag }) =>
+      show === "all" || flag.state === show || decidedHere.has(flag.id)
   );
-  const count = (decision: View) =>
-    flags.filter((flag) => decisionOf(flag) === decision).length;
 
   return (
     <div className="px-6 pt-4 pb-6 max-md:px-4">
       <ToggleGroup
         aria-label="Show flags"
-        onValueChange={(value) => {
-          const [next] = value;
-          if (next) {
-            setShow(next);
+        onValueChange={([next]) => {
+          const view = VIEWS.find(({ value }) => value === next);
+          if (view) {
+            setShow(view.value);
             setDecidedHere(new Set());
           }
         }}
         value={[show]}
       >
         <ToggleGroupThumb>
-          {(
-            [
-              ["open", "Open", count("open")],
-              ["kept", "Kept", count("kept")],
-              ["dismissed", "Dismissed", count("dismissed")],
-              ["all", "All", flags.length],
-            ] as const
-          ).map(([value, label, total]) => (
+          {VIEWS.map(({ label, value }) => (
             <ToggleGroupItem key={value} tone="thumb" value={value}>
               {label}
-              <span className="text-faint font-mono tabular-nums">{total}</span>
+              <span className="text-faint font-mono tabular-nums">
+                {count(value)}
+              </span>
             </ToggleGroupItem>
           ))}
         </ToggleGroupThumb>
       </ToggleGroup>
       <ul className="mt-3.5 grid gap-2.5">
-        {visible.map((flag) => {
-          const decision = decisionOf(flag);
-          return (
-            <li key={flagKey(flag)}>
-              <Card>
-                <div
-                  className={cn(
-                    "grid gap-x-4 gap-y-2 px-4 py-3.5 transition-opacity duration-200 ease-out md:grid-cols-[220px_minmax(0,1fr)_auto]",
-                    decision === "dismissed" && "opacity-60"
-                  )}
-                >
-                  <div className="flex items-start gap-2.5">
-                    <Avatar name={flag.name} />
-                    <div>
-                      <b className="font-emphasis block">{flag.name}</b>
-                      <span className="text-muted-foreground text-xs">
-                        <span className="font-mono">S{flag.step}</span> ·{" "}
-                        {flag.stepTitle}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="min-w-0">
-                    <p
-                      className={cn(
-                        "font-heading flex items-center gap-1.75 transition-colors duration-200",
-                        decision === "dismissed"
-                          ? "text-muted-foreground"
-                          : "text-flag-ink"
-                      )}
-                    >
-                      <Icon name="flag" />
-                      {flag.title}
-                    </p>
-                    <p className="text-body mt-0.5">{flag.body}</p>
-                    <blockquote className="text-reading border-border-strong text-lead mt-2 border-l-2 pl-3 font-serif leading-normal">
-                      {flag.critique}
-                    </blockquote>
-                  </div>
-                  <div className="flex items-start gap-1.5 md:justify-end">
-                    <span
-                      className={cn(
-                        "flex gap-1.5",
-                        decidedHere.has(flagKey(flag)) && "animate-swap"
-                      )}
-                      key={decision}
-                    >
-                      {decision === "open" ? (
-                        <>
-                          <Button
-                            onClick={() => decide(flag, "dismissed")}
-                            size="sm"
-                            variant="outline"
-                          >
-                            Dismiss
-                          </Button>
-                          <Button
-                            onClick={() => decide(flag, "kept")}
-                            size="sm"
-                          >
-                            Keep flag
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          onClick={() => decide(flag, "open")}
-                          size="sm"
-                          variant="ghost"
-                        >
-                          {decision === "kept" ? "Kept" : "Dismissed"} · Undo
-                        </Button>
-                      )}
-                    </span>
-                    {flag.name === detailFor ? (
-                      <Link
-                        aria-label={`Open ${flag.name} in the Visualiser`}
-                        className={buttonVariants({
-                          size: "icon-sm",
-                          variant: "ghost",
-                        })}
-                        href={`/instructor/visualiser?step=${flag.step}`}
-                      >
-                        <Icon name="right" />
-                      </Link>
-                    ) : null}
-                  </div>
-                </div>
-              </Card>
-            </li>
-          );
-        })}
+        {visible.map((entry) => (
+          <FlagItem
+            entry={entry}
+            key={entry.flag.id}
+            onDecided={() =>
+              setDecidedHere((current) => new Set(current).add(entry.flag.id))
+            }
+          />
+        ))}
       </ul>
       {visible.length === 0 ? (
         <p className="text-muted-foreground py-10 text-center">
-          Nothing here. Every flag in this view has a decision.
+          {NOTHING[show]}
         </p>
       ) : null}
     </div>

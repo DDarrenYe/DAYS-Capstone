@@ -1,5 +1,5 @@
 /*
-  Example content for the screens that are not connected to Supabase yet (#20, #21, #27–#30, #33, #36).
+  Example content for the screens that are not connected to Supabase yet (#20, #21, #27–#30, #36).
   Every figure a screen shows is derived from these records, so the cohort, visualiser and report agree.
 */
 import { summarise } from "@/lib/process";

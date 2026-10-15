@@ -14,6 +14,8 @@ import { APICallError } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { z } from "zod";
 
+import { flagQueue } from "@/app/instructor/flags/flag-queue";
+import { unresolvedFlags } from "@/lib/flag-review";
 import {
   LIMITS,
   STALE_AFTER_SECONDS,
@@ -30,14 +32,15 @@ import {
   assignmentsQuery,
   cohortMetricsQuery,
   coursesQuery,
-  invalidateAfterReview,
   invalidateAfterSave,
   invalidateAfterSubmit,
   projectLogQuery,
+  flagQueueQuery,
   projectMetricsQuery,
   reviewsQuery,
   submissionQuery,
   submissionsQuery,
+  unresolvedFlagsQuery,
 } from "./queries";
 import {
   forbidden,
@@ -1143,50 +1146,121 @@ test("a student cannot submit by writing the project row, and a save racing a su
   });
 });
 
-test("reviewing a flag refreshes reviews and keeps the decision history", async () => {
+test("a flag decision is saved with its note, a repeat is ignored and a correction keeps the history", async () => {
   const { flagId, p2, s2, teacherA, teacherB } = await fixture;
   const rejected = await Promise.all([
-    writeReview(s2.client, s2.id, { flagId, state: "dismissed" }),
-    writeReview(teacherB.client, teacherB.id, { flagId, state: "dismissed" }),
+    writeReview(s2.client, { flagId, state: "dismissed" }),
+    writeReview(teacherB.client, {
+      flagId,
+      note: "Not mine",
+      state: "dismissed",
+    }),
   ]);
   assert.deepEqual(rejected, [forbidden, forbidden]);
-  const queryClient = newQueryClient();
-  const reviews = reviewsQuery(teacherA.client, teacherA.id, p2);
-  const stop = watch(queryClient, reviews);
   const flagOf = async () => {
-    const results = await queryClient.query(reviews);
-    return results.flatMap(({ flags }) => flags)[0];
+    const results = await reviewsQuery(
+      teacherA.client,
+      teacherA.id,
+      p2
+    ).queryFn();
+    const [flag] = results.flatMap(({ flags }) => flags);
+    return {
+      flag,
+      history: (flag?.flag_reviews ?? [])
+        .toSorted(
+          (first, second) =>
+            Date.parse(first.reviewed_at) - Date.parse(second.reviewed_at)
+        )
+        .map(({ note, review_state: state }) => [state, note]),
+    };
   };
   const initial = await flagOf();
-  assert.equal(initial?.review_state, "open");
-  const dismiss = await writeReview(teacherA.client, teacherA.id, {
-    flagId,
-    state: "dismissed",
-  });
-  assert.deepEqual(dismiss, {});
-  const stale = await flagOf();
-  assert.equal(stale?.review_state, "open");
-  await invalidateAfterReview(queryClient, teacherA.id, p2);
+  assert.equal(initial.flag?.review_state, "open");
+  assert.equal(initial.flag?.review_note, null);
+  assert.deepEqual(initial.history, []);
+
+  const clicks = await Promise.all([
+    writeReview(teacherA.client, {
+      flagId,
+      note: "  Fine for a first draft.  ",
+      state: "dismissed",
+    }),
+    writeReview(teacherA.client, {
+      flagId,
+      note: "  Fine for a first draft.  ",
+      state: "dismissed",
+    }),
+  ]);
+  assert.deepEqual(clicks, [{}, {}]);
   const dismissed = await flagOf();
-  assert.equal(dismissed?.review_state, "dismissed");
-  assert.equal(dismissed?.reviewed_by, teacherA.id);
+  assert.equal(dismissed.flag?.review_state, "dismissed");
+  assert.equal(dismissed.flag?.review_note, "Fine for a first draft.");
+  assert.equal(dismissed.flag?.reviewed_by, teacherA.id);
+  assert.deepEqual(dismissed.history, [
+    ["dismissed", "Fine for a first draft."],
+  ]);
+
   assert.deepEqual(
-    dismissed?.flag_reviews.map(({ review_state }) => review_state),
-    ["dismissed"]
+    await writeReview(teacherA.client, {
+      flagId,
+      note: "Ask about the source.",
+      state: "added_to_feedback",
+    }),
+    {}
   );
-  const reopen = await writeReview(teacherA.client, teacherA.id, {
-    flagId,
-    state: "open",
-  });
-  assert.deepEqual(reopen, {});
-  await invalidateAfterReview(queryClient, teacherA.id, p2);
+  assert.deepEqual(
+    await writeReview(teacherA.client, {
+      flagId,
+      note: "Ask about the source and the date.",
+      state: "added_to_feedback",
+    }),
+    {}
+  );
+  const corrected = await flagOf();
+  assert.equal(corrected.flag?.review_state, "added_to_feedback");
+  assert.equal(
+    corrected.flag?.review_note,
+    "Ask about the source and the date."
+  );
+  assert.deepEqual(corrected.history, [
+    ["dismissed", "Fine for a first draft."],
+    ["added_to_feedback", "Ask about the source."],
+    ["added_to_feedback", "Ask about the source and the date."],
+  ]);
+
+  assert.deepEqual(
+    await writeReview(teacherA.client, { flagId, state: "open" }),
+    {}
+  );
   const reopened = await flagOf();
-  assert.equal(reopened?.review_state, "open");
+  assert.equal(reopened.flag?.review_state, "open");
+  assert.equal(reopened.flag?.review_note, null);
+  assert.equal(reopened.flag?.reviewed_by, teacherA.id);
+  assert.equal(reopened.history.length, 4);
   assert.deepEqual(
-    reopened?.flag_reviews.map(({ review_state }) => review_state).toSorted(),
-    ["dismissed", "open"]
+    await writeReview(teacherA.client, { flagId, state: "open" }),
+    {}
   );
-  stop();
+  const repeated = await flagOf();
+  assert.equal(repeated.history.length, 4);
+});
+
+test("the flag queue and the sidebar count cover only the instructor's own courses", async () => {
+  const { flagId, s2, teacherA, teacherB } = await fixture;
+  const idsOf = async (user: typeof teacherA) =>
+    flagQueue(await flagQueueQuery(user.client, user.id).queryFn()).flags.map(
+      ({ flag }) => flag.id
+    );
+  const own = await idsOf(teacherA);
+  const elsewhere = await idsOf(teacherB);
+  assert.ok(own.includes(flagId));
+  assert.ok(!elsewhere.includes(flagId));
+  assert.deepEqual(await idsOf(s2), []);
+  const open = async (user: typeof teacherA) =>
+    unresolvedFlags(await unresolvedFlagsQuery(user.client, user.id).queryFn());
+  assert.ok((await open(teacherA)) >= 1);
+  assert.equal(await open(teacherB), 0);
+  assert.equal(await open(s2), 0);
 });
 
 test("a grader's step note is private to the course instructor and survives a reload", async () => {
@@ -1669,7 +1743,6 @@ test("the student preview and the grader read the same final-text totals", async
   );
   const withFlags = await read(teacherA.client, teacherA.id, project.id);
   assert.deepEqual(withFlags.flags, {
-    active: 2,
     addedToFeedback: 0,
     dismissed: 0,
     open: 2,
@@ -1691,7 +1764,7 @@ test("the student preview and the grader read the same final-text totals", async
   });
 
   assert.deepEqual(
-    await writeReview(teacherA.client, teacherA.id, {
+    await writeReview(teacherA.client, {
       flagId: flags[0]?.id ?? "",
       state: "dismissed",
     }),
@@ -1699,7 +1772,6 @@ test("the student preview and the grader read the same final-text totals", async
   );
   const reviewed = await read(teacherA.client, teacherA.id, project.id);
   assert.deepEqual(reviewed.flags, {
-    active: 1,
     addedToFeedback: 0,
     dismissed: 1,
     open: 1,
@@ -1941,8 +2013,9 @@ test("a submission is analysed once, shows its state, and a re-run keeps earlier
 
   const [flag] = done.analysis_results.flatMap(({ flags }) => flags);
   assert.deepEqual(
-    await writeReview(teacherA.client, teacherA.id, {
+    await writeReview(teacherA.client, {
       flagId: flag?.id ?? "",
+      note: "Fine for a first draft.",
       state: "dismissed",
     }),
     {}
@@ -1994,6 +2067,10 @@ test("a submission is analysed once, shows its state, and a re-run keeps earlier
     "analysis-v2",
   ]);
   assert.ok(decided.every(({ item }) => item.flag_reviews.length >= 1));
+  assert.deepEqual(
+    decided.map(({ item }) => item.review_note),
+    ["Fine for a first draft.", "Fine for a first draft."]
+  );
   assert.deepEqual(
     new Set(decided.map(({ item }) => item.reviewed_by)),
     new Set([teacherA.id])
