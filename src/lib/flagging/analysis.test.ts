@@ -14,6 +14,7 @@ import {
   claimAnalysis,
   executeAnalysis,
 } from "./analysis";
+import { RUBRIC_VERSION } from "./rubric";
 import type { Reflection } from "./rubric";
 
 const projectId = "20000000-0000-0000-0000-000000000001";
@@ -187,7 +188,7 @@ test("every step is checked in order and the results are saved together", async 
     flags: [],
     iteration_id: "step-1",
     model: "mock-model-id",
-    rubric_version: "three-questions-v1",
+    rubric_version: RUBRIC_VERSION,
     uncertainty: "Low.",
     verification_addressed: true,
     verification_evidence: "I checked the article",

@@ -50,8 +50,10 @@ export const Flags = async () => {
         </h1>
         <p className="text-muted-foreground mt-1.5 max-w-160 text-pretty">
           {feedback} added to feedback and {dismissed} dismissed. The reflection
-          check suggests where a critique may be thin. Add a flag to feedback to
-          keep it in the report, or dismiss it. Flags never change a grade.
+          check suggests where a critique may be thin. It misses some, and now
+          and then flags a critique that is fine, so read each flag next to the
+          critique. Add a flag to feedback to keep it in the report, or dismiss
+          it. Flags never change a grade.
         </p>
       </section>
       <FlagList queue={queue} />

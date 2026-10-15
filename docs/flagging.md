@@ -6,17 +6,17 @@ The check looks for evidence. It doesn't grade, and it can't tell who wrote a cr
 
 ## What goes to the model
 
-For each step we send three things: the student's prompt, the AI's answer and the student's critique. We don't send names, emails, grader notes, review decisions or the final essay. The rubric is in `rubric.ts` (`SYSTEM_PROMPT`, version `three-questions-v1`). Change the wording and you bump the version, so old results still say which rubric made them.
+For each step we send three things: the student's prompt, the AI's answer and the student's critique. We don't send names, emails, grader notes, review decisions or the final essay. The rubric is in `rubric.ts` (`SYSTEM_PROMPT`, version `three-questions-v2`). Change the wording and you bump the version, so old results still say which rubric made them. Then run the evaluation again (see "Evaluation").
 
 The three questions are the same ones the student answers:
 
 | Key | Question | Counts as addressed when |
 | --- | --- | --- |
 | `aiCorrectness` | Was the AI right or wrong? | The critique gives a verdict about the AI's answer. |
-| `verification` | How did you check? | The critique says what the student read, compared or ran. |
-| `changes` | What did you change? | The critique says what they kept, fixed or dropped. |
+| `verification` | How did you check? | The critique says what the student read, compared, calculated or ran. |
+| `changes` | What did you change? | The critique names what they kept, fixed or dropped. |
 
-Length doesn't decide this. A short critique that names a specific error, how it was checked and the fix addresses all three. "I found no error" is a good verdict, but it only addresses `verification` if the student also says how they checked. "Looks good" doesn't.
+Length doesn't decide this. A short critique that names a specific error, how it was checked and the fix addresses all three. "I found no error" is a good verdict, but it only addresses `verification` if the student also says how they checked. "Looks good", "it made sense", "I remember it from the lecture" and "we agreed in the group chat" don't. "Nothing", "none" and "fixed it" on their own don't address `changes`.
 
 ## Flags
 
@@ -153,17 +153,17 @@ It uses the Vercel AI SDK's OpenAI-compatible provider, so any provider with tha
 
 ## Tests
 
-`bun test` covers the schema, short specific critiques, no-error-with-a-check, thin agreement, malformed output, made-up quotes and pasted instructions, all with a mocked model in `check.test.ts`. Nothing in `bun test` calls a real model.
+`bun test` covers the schema, short specific critiques, no-error-with-a-check, thin agreement, malformed output, made-up quotes and pasted instructions, all with a mocked model in `check.test.ts`. It also covers the scoring code and the shape of the evaluation dataset (`evaluation.test.ts`) and the final-text matcher on labelled examples (`final-match.evaluation.test.ts`). Nothing in `bun test` calls a real model.
 
 ## Live samples
 
-These are separate from the unit tests. `bun run test:live` sends five labelled steps to the model in `.env.local` and prints whether the flags matched what we expected. It uses real tokens (free on `glm-4.7-flash`), so it isn't part of CI. The script reads `.env.local`. To use another file for one run, call `bun --env-file=<path> --conditions=react-server ./src/lib/flagging/flagging.live.ts`. #35 builds the 30-example evaluation.
+These are separate from the unit tests. `bun run test:live` sends five labelled steps to the model in `.env.local` and prints whether the flags matched what we expected. It uses real tokens (free on `glm-4.7-flash`), so it isn't part of CI. The script reads `.env.local`. To use another file for one run, call `bun --env-file=<path> --conditions=react-server ./src/lib/flagging/flagging.live.ts`. The 36-step evaluation is separate (see "Evaluation").
 
 The samples run one at a time, because the free model rejects five requests at once.
 
 ### Results
 
-Run on 15 Oct 2026 with `glm-4.7-flash` on Z.ai (free). Three full runs, plus two direct calls each for the first and fourth samples.
+Run on 15 Oct 2026 with `glm-4.7-flash` on Z.ai (free), with rubric `three-questions-v1`. Three full runs, plus two direct calls each for the first and fourth samples.
 
 | Sample | Expected flags | What came back |
 | --- | --- | --- |
@@ -178,4 +178,117 @@ What we learned:
 - The whole path works against a real API. Every reply that came back parsed and passed the quote check, and none was rejected.
 - Z.ai often answers HTTP 429 with code 1305 ("service may be temporarily overloaded"). It hit about 40% of calls, at random, even with the SDK's default of two retries. #32 records it as "The model provider was busy" and lets an instructor run the check again. [#34](https://github.com/DDarrenYe/DAYS-Capstone/issues/34) raises that to three retries a call. We haven't measured how many of these it recovers against the live API, only against a mock.
 - Calls took 7 to 24 seconds each.
-- `glm-4.7-flash` isn't consistent enough on blind acceptance. The same step got different flags on two calls at temperature 0. Try `glm-5.3-flash` (paid, about $0.15 in and $0.50 out per 1M tokens) or an OpenRouter model before relying on it. #35 should compare them on the 30 labelled critiques.
+- `glm-4.7-flash` isn't consistent enough on blind acceptance. The same step got different flags on two calls at temperature 0. The evaluation below measures how often. Another model, such as `glm-5.3-flash` (paid, about $0.15 in and $0.50 out per 1M tokens) or an OpenRouter one, hasn't been run on it yet.
+
+## Evaluation
+
+[#35](https://github.com/DDarrenYe/DAYS-Capstone/issues/35) asks how far the reflection check can be trusted, and how far the final-text match can. The two are measured separately. The first needs a live model. The second is plain code and runs in `bun test`.
+
+### Reflection check on labelled critiques
+
+The dataset is `src/lib/flagging/evaluation.dataset.ts`: 36 steps, each with a prompt, an AI answer and a critique written the way the app saves it (`composeCritique`). The critiques were written to cover the rubric's cases, not collected from students. Each step is labelled by hand with whether each question is addressed and which flags apply. The labels were fixed before the first run and haven't been changed since.
+
+| Category | Steps | What it covers |
+| --- | --- | --- |
+| `specific` | 12 | Short critiques that name the error, the check and the fix, including casual wording and formal wording. Nothing should be flagged. |
+| `verified` | 6 | The AI was right and the student says how they checked. Not blind acceptance. |
+| `thin` | 7 | "Looks good", "Fine", trusting the answer, a bare "it was wrong". |
+| `ambiguous` | 8 | Borderline cases, each with a `note` saying why the label is arguable. |
+| `polished` | 3 | Formal, impersonal text that may read as AI-written. |
+
+Labelling rules:
+
+- `aiCorrectness` is addressed when the verdict is set, or the text says right, partly or wrong.
+- `verification` is addressed when the student names something they read, compared, calculated or ran. Memory, "it made sense" and a chat with friends don't count.
+- `changes` is addressed when the critique names what was kept, fixed or dropped ("Kept the sentence unchanged", "Changed to Canberra"). "Nothing", "None", "Kept." and "Fixed it." don't. This is the most arguable rule, because "Nothing, I used it as it was" is also a true answer. Read the `changes` numbers with that in mind.
+- `blind_acceptance` is labelled when the critique accepts the answer and addresses neither verification nor changes. `low_effort_reflection` is labelled when the critique could be about any answer. `reads_like_ai` is labelled for impersonal, formal text with no first-person account of what the student did.
+
+Run it with `bun run test:evaluation`. It reads `.env.local`, uses the model from there, calls the model one step at a time and tries each step up to four times. It prints the tables below plus every step where the model and the label differ. Use `bun --env-file=<path> --conditions=react-server ./src/lib/flagging/evaluation.live.ts` for another env file. It spends real tokens, so it isn't part of CI.
+
+### Results
+
+Run on 15 Oct 2026 with `glm-4.7-flash` on Z.ai (free), one run per rubric. Precision is the share of raised flags that were labelled. Recall is the share of labelled flags that were raised.
+
+Agreement with the labels on each question:
+
+| Question | `three-questions-v1` (33 steps) | `three-questions-v2` (36 steps) |
+| --- | --- | --- |
+| `aiCorrectness` | 32 of 33 (0.97) | 35 of 36 (0.97) |
+| `verification` | 20 of 33 (0.61) | 32 of 36 (0.89) |
+| `changes` | 24 of 33 (0.73) | 34 of 36 (0.94) |
+
+Flags:
+
+| Flag | Rubric | Labelled | Raised right | Raised wrong | Missed | Precision | Recall |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `low_effort_reflection` | v1 | 7 | 2 | 0 | 5 | 1.00 | 0.29 |
+| `low_effort_reflection` | v2 | 7 | 5 | 2 | 2 | 0.71 | 0.71 |
+| `blind_acceptance` | v1 | 9 | 2 | 0 | 7 | 1.00 | 0.22 |
+| `blind_acceptance` | v2 | 9 | 5 | 0 | 4 | 1.00 | 0.56 |
+| `reads_like_ai` | v1 | 3 | 0 | 0 | 3 | n/a | 0.00 |
+| `reads_like_ai` | v2 | 3 | 1 | 1 | 2 | 0.50 | 0.33 |
+
+The v1 run was on the first 33 steps. The three formal, specific critiques (`specific-formal-*`) were added afterwards, as the only negatives for `reads_like_ai` that weren't plainly worded, and v2 was the first run to include them. A second v1 run on all 36 was cancelled by a server restart. v2 flagged none of those three.
+
+The old target was 0.8 precision for blind acceptance. v2 gets 1.00 on 5 raised flags, with no false positives. That is five cases, not a measured rate.
+
+False positives with v2:
+
+- `thin-high-school` ("Same as what I learned in high school.", labelled `blind_acceptance` only): also raised `low_effort_reflection`. Arguable, because the sentence is generic.
+- `ambiguous-group-chat` ("We talked about it in our group chat and agreed."): raised `low_effort_reflection` and `reads_like_ai`, and missed `blind_acceptance`. The `reads_like_ai` flag is the clearest wrong one, because the text is short and casual.
+
+Missed with v2:
+
+- `blind_acceptance`: `thin-trusted-it`, `thin-seems-okay`, `ambiguous-group-chat`, `polished-versailles`.
+- `low_effort_reflection`: `ambiguous-long-generic`, `polished-overview`. Both are long critiques with generic wording.
+- `reads_like_ai`: `polished-overview`, `polished-photosynthesis`.
+
+What changed between v1 and v2 (`rubric.ts`): `verification` is addressed only when the critique names something the student did, and a verdict, "looks good", memory or agreement with others don't count. `changes` has to name what was kept, fixed or dropped. `blind_acceptance` is decided from the model's own addressed values. A bare verdict is low effort. `reads_like_ai` looks for impersonal text with no first-person account. Some of the v2 wording echoes dataset cases ("fixed it", "made some changes", "nothing"), which is another reason to check v2 on new steps.
+
+Cost and time: v1 used 26,154 input and 47,774 output tokens over 34 replies. One step needed a second reply because the first failed the quote check, and 9 attempts failed before any reply and were retried. v2 used 35,354 input and 56,837 output tokens over 36 replies, one per step, and 10 attempts failed before a reply and were retried. Each run took 14 to 19 minutes, which is mostly Z.ai's slowness and 429s. It costs nothing on `glm-4.7-flash`. At `glm-5.3-flash`'s prices the same run would be about $0.03, but that model hasn't been run.
+
+### What these numbers can't tell you
+
+- 36 steps is small. One step moves a flag's precision or recall by 10 to 20 points, and `reads_like_ai` has three labelled positives.
+- Each rubric was run once. The model isn't consistent at temperature 0 (see "Live samples"), so rerunning will move the numbers a little.
+- The same steps showed what v1 got wrong and then checked v2. The v2 numbers are therefore better than a fresh set would give. Treat v2 as better than v1, not as 0.89 or 1.00 on new critiques. Write new steps before the next rubric change and keep them out of the revision.
+- One person wrote and labelled the steps. There is no second labeller, so agreement between people isn't measured. The `ambiguous` category is where the labels are arguable.
+- The steps are short, with one AI answer each. Long critiques, other subjects and other languages haven't been tried.
+- Formal writing by a student is the main false-positive risk for `reads_like_ai`. Only three steps cover it.
+
+### What this means for the interface
+
+The check is careful when it flags and misses a fair share. So a step with no flag isn't a good critique, and a flag is a prompt to read the critique, not a finding. The wording says so:
+
+- The Visualiser's check status says it can miss thin critiques (`submission-detail.ts`).
+- The Flags page says the check misses some and sometimes flags a fine critique.
+- `reads_like_ai` stays "Critique may read as AI-written". It's the weakest flag, so it must never be worded as a finding.
+
+### Final-text matching
+
+`final-match.evaluation.test.ts` runs `matchFinal` (`words-6.v1`, a match is an unbroken run of 6 or more words) on 12 labelled cases. The label is how many words of the final were reused from a logged answer, counting a copy with at most about one word in five changed, and not counting a paraphrase. This needs no model and runs in `bun test`. The test also fails if the cases where the matcher and the label differ change.
+
+| Kind | Case | Words in final | Reused (label) | Matched |
+| --- | --- | --- | --- | --- |
+| exact | A logged sentence inside new writing | 22 | 10 | 10 |
+| exact | Same sentence, different case, quotes, hyphen and line break | 10 | 10 | 10 |
+| exact | The whole answer pasted alone | 10 | 10 | 10 |
+| edited | Last word changed | 10 | 9 | 9 |
+| edited | One word changed in the middle of a ten-word sentence | 10 | 9 | **0** |
+| edited | One word inserted after the fourth word | 11 | 10 | **6** |
+| edited | Every fifth word of a twenty-word sentence swapped | 20 | 16 | **0** |
+| edited | A five-word fragment kept | 10 | 5 | **0** |
+| overlap | A sentence two logged answers share | 10 | 10 | 10 (counted once) |
+| overlap | Sentences from two different answers | 20 | 20 | 20 |
+| not copied | A paraphrase with none of the wording | 9 | 0 | 0 |
+| not copied | A six-word stock phrase the student wrote on their own | 10 | 0 | **6** |
+
+It agrees on 7 of 12. Exact copies, formatting changes and overlaps are right: shared text is counted once and the totals add up. The five differences are the limits:
+
+- A change inside a short run drops the whole run. One word changed in a ten-word sentence leaves nothing, because no six words in a row are left. Light editing hides a copy.
+- Runs shorter than six words never match, however much was reused.
+- An inserted word costs the words next to it on the side with fewer than six.
+- A paraphrase doesn't match at all, by design. The matcher finds reused wording, not reused ideas.
+- A common six-word phrase matches even when the student wrote it on their own.
+
+So the unmatched share is an upper bound on text the student wrote and the match share is a lower bound on text taken from the AI, with some noise from stock phrases. The wording says that: a match is an unbroken run, an edited or reworded passage doesn't match, and a common phrase can (`essay-card.tsx`, `final-sidebar.tsx`). The 12 cases are made up, so they show what the matcher does with each pattern, not how often each pattern happens in real essays.

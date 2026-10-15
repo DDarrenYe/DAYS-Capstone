@@ -98,9 +98,10 @@ export const FinalSidebar = ({
         <Icon name="eye" />
         What a match means
       </h2>
-      Text that doesn’t match your logged AI answers isn’t proof that you wrote
-      it, and a match isn’t proof that you didn’t. Your grader reads the matches
-      next to your critiques.
+      A match is an unbroken run of words from a logged answer, so reworded text
+      doesn’t match and a common phrase can. Text that doesn’t match your logged
+      AI answers isn’t proof that you wrote it, and a match isn’t proof that you
+      didn’t. Your grader reads the matches next to your critiques.
     </section>
   </aside>
 );
