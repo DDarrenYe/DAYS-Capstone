@@ -33,22 +33,24 @@ update public.projects set status = 'submitted', submitted_at = now()
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e1', true);
-select throws_ok($$select public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600)$$, '42501', null, 'An instructor cannot start a run through the database API');
+select throws_ok($$select public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600, 20, 30000, 3000, 1000000, 3, 5)->>'version'$$, '42501', null, 'An instructor cannot start a run through the database API');
 select throws_ok($$select public.complete_analysis('00000000-0000-0000-0000-0000000000b1', 'analysis-v1', '[]')$$, '42501', null, 'An instructor cannot write results through the database API');
 select throws_ok($$select public.fail_analysis('00000000-0000-0000-0000-0000000000b1', 'analysis-v1', 'Nope')$$, '42501', null, 'An instructor cannot fail a run through the database API');
+select throws_ok($$select count(*) from public.analysis_attempts$$, '42501', null, 'An instructor cannot read the attempt ledger');
 reset role;
 set local role anon;
-select throws_ok($$select public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600)$$, '42501', null, 'Signed-out visitors cannot start a run');
+select throws_ok($$select public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600, 20, 30000, 3000, 1000000, 3, 5)->>'version'$$, '42501', null, 'Signed-out visitors cannot start a run');
+select throws_ok($$select count(*) from public.analysis_attempts$$, '42501', null, 'Signed-out visitors cannot read the attempt ledger');
 reset role;
 
 set local role service_role;
-select is(public.start_analysis('00000000-0000-0000-0000-0000000000b2', true, 600), null, 'A draft is never analysed');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b2', true, 600, 20, 30000, 3000, 1000000, 3, 5)->>'version', null, 'A draft is never analysed');
 select is((select analysis_status::text from public.projects where id = '00000000-0000-0000-0000-0000000000b2'), 'pending', 'A refused run leaves the draft pending');
 
-select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', false, 600), 'analysis-v1', 'The first run of a submission gets the first version');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', false, 600, 20, 30000, 3000, 1000000, 3, 5)->>'version', 'analysis-v1', 'The first run of a submission gets the first version');
 select is((select analysis_status::text || ' ' || analysis_version from public.projects where id = '00000000-0000-0000-0000-0000000000b1'), 'running analysis-v1', 'The project records the running version');
-select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', false, 600), null, 'A duplicate submit does not start a second run');
-select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600), null, 'A re-analysis request while a run is live does not start a second run');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', false, 600, 20, 30000, 3000, 1000000, 3, 5)->>'version', null, 'A duplicate submit does not start a second run');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600, 20, 30000, 3000, 1000000, 3, 5)->>'version', null, 'A re-analysis request while a run is live does not start a second run');
 
 select throws_ok($$select public.complete_analysis('00000000-0000-0000-0000-0000000000b1', 'analysis-v9', '[]')$$, 'P0001', 'This analysis run is no longer the current one.', 'A run that is not the current one cannot save results');
 select throws_ok($$select public.complete_analysis('00000000-0000-0000-0000-0000000000b1', 'analysis-v1', '[{"iteration_id":"00000000-0000-0000-0000-0000000000c1"}]')$$, 'P0001', 'The analysis must cover every step exactly once.', 'A run that skips a step cannot save results');
@@ -67,20 +69,20 @@ select is((select analysis_status::text from public.projects where id = '0000000
 select is((select count(*)::integer from public.analysis_results where project_id = '00000000-0000-0000-0000-0000000000b1' and analysis_version = 'analysis-v1' and final_version_id = '00000000-0000-0000-0000-0000000000d1'), 2, 'One result per step is stored against the submitted final version');
 select is((select count(*)::integer from public.flags f join public.analysis_results a on a.id = f.analysis_result_id where a.project_id = '00000000-0000-0000-0000-0000000000b1' and f.review_state = 'open'), 2, 'New flags start open');
 select throws_ok($$select public.complete_analysis('00000000-0000-0000-0000-0000000000b1', 'analysis-v1', '[]')$$, 'P0001', 'This analysis run is no longer the current one.', 'A finished run cannot save results twice');
-select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', false, 600), null, 'A duplicate submit does not re-run a finished check');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', false, 600, 20, 30000, 3000, 1000000, 3, 5)->>'version', null, 'A duplicate submit does not re-run a finished check');
 
 reset role;
 update public.flags set review_state = 'dismissed', reviewed_by = '00000000-0000-0000-0000-0000000000e1', reviewed_at = '2026-10-12 10:00+00'
   where kind = 'blind_acceptance' and analysis_result_id in (select id from public.analysis_results where project_id = '00000000-0000-0000-0000-0000000000b1');
 set local role service_role;
 
-select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600), 'analysis-v2', 'Re-analysis starts a new version');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600, 20, 30000, 3000, 1000000, 3, 5)->>'version', 'analysis-v2', 'Re-analysis starts a new version');
 select is((select count(*)::integer from public.analysis_results where project_id = '00000000-0000-0000-0000-0000000000b1' and analysis_version = 'analysis-v1'), 2, 'The earlier results stay while the new run is going');
 select lives_ok($$select public.fail_analysis('00000000-0000-0000-0000-0000000000b1', 'analysis-v2', 'The reflection check timed out.')$$, 'A run can be marked failed');
 select is((select analysis_status::text || ' ' || analysis_error from public.projects where id = '00000000-0000-0000-0000-0000000000b1'), 'failed The reflection check timed out.', 'The failure and its reason are recorded');
 select is((select count(*)::integer from public.analysis_results where project_id = '00000000-0000-0000-0000-0000000000b1' and analysis_version = 'analysis-v1'), 2, 'A failed re-analysis keeps the earlier results');
 
-select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600), 'analysis-v2', 'A failed run can be tried again under the next unused version');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600, 20, 30000, 3000, 1000000, 3, 5)->>'version', 'analysis-v2', 'A failed run can be tried again under the next unused version');
 select lives_ok($$select public.complete_analysis('00000000-0000-0000-0000-0000000000b1', 'analysis-v2', '[
   {"iteration_id":"00000000-0000-0000-0000-0000000000c1","model":"m2","rubric_version":"r2",
    "ai_correctness_addressed":true,"ai_correctness_evidence":"Checked","verification_addressed":false,"verification_evidence":"",
@@ -93,16 +95,39 @@ select is((select string_agg(f.kind || ':' || f.review_state::text, ', ' order b
 select is((select reviewed_by from public.flags f join public.analysis_results a on a.id = f.analysis_result_id where a.project_id = '00000000-0000-0000-0000-0000000000b1' and a.analysis_version = 'analysis-v2' and f.kind = 'blind_acceptance'), '00000000-0000-0000-0000-0000000000e1'::uuid, 'The carried decision keeps its reviewer');
 select is((select count(*)::integer from public.flags f join public.analysis_results a on a.id = f.analysis_result_id where a.project_id = '00000000-0000-0000-0000-0000000000b1' and a.analysis_version = 'analysis-v1' and f.review_state = 'dismissed'), 1, 'The earlier decision stays on the earlier result');
 
-select is(public.start_analysis('00000000-0000-0000-0000-0000000000b3', false, 600), 'analysis-v1', 'A second submission is claimed on its own');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b3', false, 600, 20, 30000, 3000, 1000000, 3, 5)->>'version', 'analysis-v1', 'A second submission is claimed on its own');
 reset role;
 update public.projects set analysis_started_at = now() - interval '20 minutes' where id = '00000000-0000-0000-0000-0000000000b3';
 set local role service_role;
-select is(public.start_analysis('00000000-0000-0000-0000-0000000000b3', false, 3600), null, 'A run inside its lease is left alone');
-select is(public.start_analysis('00000000-0000-0000-0000-0000000000b3', false, 600), 'analysis-v1', 'A run past its lease is replaced');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b3', false, 3600, 20, 30000, 3000, 1000000, 3, 5)->>'version', null, 'A run inside its lease is left alone');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b3', false, 600, 20, 30000, 3000, 1000000, 3, 5)->>'version', 'analysis-v1', 'A run past its lease is replaced');
 select lives_ok($$select public.fail_analysis('00000000-0000-0000-0000-0000000000b3', 'analysis-v1', '   ')$$, 'A blank reason still records a failure');
 select is((select analysis_error from public.projects where id = '00000000-0000-0000-0000-0000000000b3'), 'The reflection check failed.', 'A blank reason falls back to a plain message');
 select lives_ok($$select public.fail_analysis('00000000-0000-0000-0000-0000000000b3', 'analysis-v1', 'Late')$$, 'A late failure report is ignored');
 select is((select analysis_error from public.projects where id = '00000000-0000-0000-0000-0000000000b3'), 'The reflection check failed.', 'A late failure report does not overwrite the recorded one');
+
+select is((select count(*)::integer from public.analysis_attempts where project_id = '00000000-0000-0000-0000-0000000000b3' and finished_at is not null and used_tokens = reserved_tokens), 2, 'A replaced run and a failed run without a usage report are both charged their full reservation');
+
+select is((select count(*)::integer from public.analysis_attempts where project_id = '00000000-0000-0000-0000-0000000000b1' and finished_at is null), 0, 'Finished runs leave no attempt open');
+select is((select string_agg(distinct reserved_tokens::text, ',') from public.analysis_attempts where project_id = '00000000-0000-0000-0000-0000000000b1'), '6014', 'A run reserves the tokens its steps could need');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600, 20, 30000, 3000, 1000000, 3, 5)->>'version', 'analysis-v3', 'A re-run takes the next version');
+select lives_ok($$select public.fail_analysis('00000000-0000-0000-0000-0000000000b1', 'analysis-v3', 'Nope', 123)$$, 'A run can report what it used');
+select is((select used_tokens from public.analysis_attempts where project_id = '00000000-0000-0000-0000-0000000000b1' and used_tokens <> reserved_tokens), 123, 'A failed run is charged what it used, not what it reserved');
+
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600, 20, 30000, 3000, 1000000, 3, 4)->>'refused', 'This submission was checked 4 times in the last 24 hours, which is the limit. Try again tomorrow.', 'A submission cannot be checked more often than the attempt cap');
+select is((select analysis_error from public.projects where id = '00000000-0000-0000-0000-0000000000b1'), 'Nope', 'A refused re-run leaves the recorded state alone');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600, 1, 30000, 3000, 1000000, 3, 5)->>'refused', 'This log has 2 steps, over the limit of 1 for the check. A grader needs to read it.', 'A log with too many steps is refused');
+select is((select analysis_status::text || ': ' || analysis_error from public.projects where id = '00000000-0000-0000-0000-0000000000b1'), 'failed: This log has 2 steps, over the limit of 1 for the check. A grader needs to read it.', 'The refusal is recorded on the submission');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600, 20, 20, 3000, 1000000, 3, 5)->>'refused', 'A step is longer than the limit of 20 characters for the check. A grader needs to read it.', 'A step over the size limit is refused');
+select is((select count(*)::integer from public.analysis_attempts where project_id = '00000000-0000-0000-0000-0000000000b1'), 4, 'Refusals do not use an attempt');
+
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b3', true, 600, 20, 30000, 3000, 1000000, 0, 5)->>'refused', 'Too many checks are running. Try again in a few minutes.', 'No free slot means no run');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b1', true, 600, 20, 30000, 3000, 1000000, (select count(*)::integer from public.analysis_attempts a where a.finished_at is null and a.started_at > now() - make_interval(secs => 600)) + 1, 5)->>'version', 'analysis-v3', 'The last free slot is claimed');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b3', true, 600, 20, 30000, 3000, 1000000, (select count(*)::integer from public.analysis_attempts a where a.finished_at is null and a.started_at > now() - make_interval(secs => 600)), 5)->>'refused', 'Too many checks are running. Try again in a few minutes.', 'A full house turns the next run away');
+select is((select analysis_status::text || ': ' || analysis_error from public.projects where id = '00000000-0000-0000-0000-0000000000b3'), 'failed: Too many checks are running. Try again in a few minutes.', 'A turned-away submission shows why');
+
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b3', true, 600, 20, 30000, 3000, (select (sum(coalesce(a.used_tokens, a.reserved_tokens)) + 3006)::integer from public.analysis_attempts a where a.started_at > now() - interval '24 hours'), 10, 5)->>'refused', 'The daily limit for checks is used up. Try again tomorrow.', 'A run that would pass the daily budget is refused');
+select is(public.start_analysis('00000000-0000-0000-0000-0000000000b3', true, 600, 20, 30000, 3000, (select (sum(coalesce(a.used_tokens, a.reserved_tokens)) + 3007)::integer from public.analysis_attempts a where a.started_at > now() - interval '24 hours'), 10, 5)->>'version', 'analysis-v1', 'A run that fits the daily budget is claimed');
 
 reset role;
 select * from finish();

@@ -40,7 +40,7 @@ export const CheckStatus = ({ detail }: { detail: SubmissionDetail }) => {
   const start = () =>
     reanalyse.mutate(
       { projectId: detail.id },
-      { onSuccess: () => router.refresh() }
+      { onSettled: () => router.refresh() }
     );
 
   return (

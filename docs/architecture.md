@@ -25,6 +25,7 @@ erDiagram
   projects ||--o{ iterations : "project_id"
   projects ||--o{ final_versions : "project_id"
   projects ||--o{ analysis_results : "project_id"
+  projects ||--o{ analysis_attempts : "project_id"
   iterations ||--o{ analysis_results : "iteration_id, project_id"
   final_versions ||--o{ analysis_results : "final_version_id, project_id"
   analysis_results ||--o{ flags : "analysis_result_id"
@@ -117,6 +118,14 @@ erDiagram
     text changes_evidence
     text explanation
     text uncertainty
+  }
+  analysis_attempts {
+    uuid id PK
+    uuid project_id FK
+    integer reserved_tokens "reserved when the run starts"
+    integer used_tokens "null while the run is in flight"
+    timestamptz started_at
+    timestamptz finished_at
   }
   flags {
     uuid id PK
@@ -239,7 +248,7 @@ flowchart LR
 | 5 | Final essay | Database-ready, [#22](https://github.com/DDarrenYe/DAYS-Capstone/issues/22) | Every save is a new `final_versions` row. `.docx` extraction and the size and type checks will run on the server. |
 | 6 | Atomic submission | Working, [#23](https://github.com/DDarrenYe/DAYS-Capstone/issues/23) | The Submit button on the final-version panel calls `public.submit_project`. It locks the project row, then checks that the student is enrolled, the project is a Lane 2 draft, there's at least one step, every step has a critique and the saved final version isn't blank. If so, it sets `status`, `submitted_at` and the final version's `submitted_at` in one transaction. Submitting twice returns the first time. Students can no longer write `status` or `submitted_at` themselves, and a save that runs at the same time waits for the submit and is refused if it comes second. Once it succeeds, the server starts the reflection check (row 8) without waiting for it, and a failure there never undoes the submission. |
 | 7 | Text matching | Working, [#26](https://github.com/DDarrenYe/DAYS-Capstone/issues/26) | A deterministic matcher compares the saved final text with the logged AI answers and makes no outside call. Students and instructors read the same numbers through RLS. It doesn't write `match_results`. See "Final-text matching" in `supabase/README.md`. |
-| 8 | Reflection check | Working, [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32); limits and retries planned, [#34](https://github.com/DDarrenYe/DAYS-Capstone/issues/34) | After a submit, the server claims a run with `start_analysis` (one claimant per project) and checks the steps one at a time in `after()`. It calls the LLM API through the AI SDK, validates each answer and saves one `analysis_results` row per step plus any `flags` in one call (`complete_analysis`), or records a plain failure reason (`fail_analysis`). `projects.analysis_status` goes `pending`, `running`, then `completed` or `failed`. A finished run with no flags is different from pending or failed. An instructor can run it again from the Visualiser. A re-run adds a new set, keeps the old results and their reviews, and carries a decision over to a flag with the same step and kind. See "Running it on a submission" in `docs/flagging.md`. |
+| 8 | Reflection check | Working, [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32); limits and retries, [#34](https://github.com/DDarrenYe/DAYS-Capstone/issues/34) | After a submit, the server claims a run with `start_analysis` (one claimant per project) and checks the steps one at a time in `after()`. It calls the LLM API through the AI SDK, validates each answer and saves one `analysis_results` row per step plus any `flags` in one call (`complete_analysis`), or records a plain failure reason (`fail_analysis`). `projects.analysis_status` goes `pending`, `running`, then `completed` or `failed`. A finished run with no flags is different from pending or failed. An instructor can run it again from the Visualiser. A re-run adds a new set, keeps the old results and their reviews, and carries a decision over to a flag with the same step and kind. Each run is bounded: steps, step size, runs at once, a daily token budget reserved in `analysis_attempts` and settled with the tokens used, five runs per submission a day, and three retries a model call. A run a limit stops shows its reason as a failed check. See "Running it on a submission" and "Limits" in `docs/flagging.md`. |
 | 9 | Grader decisions | Database-ready, [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33) | An instructor of that course changes a flag's decision, reviewer and time, and a trigger appends it to `flag_reviews`. They can only add, edit and delete their own `grader_notes`. The Visualiser keeps one note per step, enforced by a unique index on author and step. Saving an empty note deletes it. |
 | 10 | Export | Planned, [#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36) | The server builds the PDF and CSV from the same submitted snapshot, matches and decisions the instructor sees. Notes only go in when the grader picks that. |
 
@@ -257,6 +266,7 @@ The database enforces this for any client using the anon key and a user session.
 | `final_versions` (text columns) | Read own, write while draft | Read submitted projects | Read and write |
 | `matching_version`, `match_results` | No access | No access | Read and write |
 | `analysis_results` | No access | Read | Read and write |
+| `analysis_attempts` | No access | No access | Read and write |
 | `flags` | No access | Read, change review columns only | Read and write |
 | `flag_reviews` | No access | Read | Read and write |
 | `grader_notes` | No access | Read, add, edit and delete own notes | Read and write |

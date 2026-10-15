@@ -376,6 +376,38 @@ export const analysisResults = pgTable(
   ]
 ).enableRLS();
 
+export const analysisAttempts = pgTable(
+  "analysis_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    reservedTokens: integer("reserved_tokens").notNull(),
+    usedTokens: integer("used_tokens"),
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "string" })
+      .defaultNow()
+      .notNull(),
+    finishedAt: timestamp("finished_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (t) => [
+    check(
+      "analysis_attempts_reserved_tokens_check",
+      sql`${t.reservedTokens} >= 0`
+    ),
+    check("analysis_attempts_used_tokens_check", sql`${t.usedTokens} >= 0`),
+    check(
+      "analysis_attempts_finished",
+      sql`(${t.usedTokens} is not null) = (${t.finishedAt} is not null)`
+    ),
+    index("analysis_attempts_started").on(t.startedAt),
+    index("analysis_attempts_project").on(t.projectId, t.startedAt),
+  ]
+).enableRLS();
+
 export const flags = pgTable(
   "flags",
   {
