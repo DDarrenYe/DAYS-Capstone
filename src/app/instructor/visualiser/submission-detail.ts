@@ -76,7 +76,7 @@ export const essayParagraphs = (
       return runs;
     });
 
-const stamp = (value: string | null) =>
+export const stamp = (value: string | null) =>
   value ? timeFormat.format(new Date(value)) : null;
 
 const analysisNote = (
@@ -143,6 +143,7 @@ export const submissionDetail = (project: SubmissionProject) => {
         asked: iteration.prompt,
         carried: metric.retainedWords,
         check: result ? checkResult(result) : null,
+        createdAt: iteration.created_at,
         critique,
         critiqueWords: countWords(critique),
         day: dayLabel(createdAt),

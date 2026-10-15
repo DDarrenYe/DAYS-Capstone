@@ -3,62 +3,50 @@
 import { useId, useState } from "react";
 import type { ReactNode } from "react";
 
+import { stepsRows } from "@/app/instructor/reports/export/csv";
+import type { SubmissionDetail } from "@/app/instructor/visualiser/submission-detail";
 import { Icon } from "@/components/icon";
 import { ProcessBars } from "@/components/process/process-bars";
 import { Logo } from "@/components/shell/brand";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import {
-  cohort,
-  essay,
-  assignmentName,
-  steps,
-  student,
-  summary,
-} from "@/lib/example-data";
-import { formatPercent } from "@/lib/process";
+  DEFAULT_SECTIONS,
+  EXPORT_SECTIONS,
+  FORMATS,
+  exportHref,
+} from "@/lib/export-options";
+import type { ExportSection, ExportSections } from "@/lib/export-options";
+import { matchTotalsText } from "@/lib/match-copy";
+import { critiqueOrder } from "@/lib/process";
+import { hasCheckResults } from "@/lib/submission-rows";
 import { cn } from "@/lib/utils";
 
-const SECTIONS = [
+const FORMAT_OPTIONS = [
+  { hint: "Readable pages for moderation", label: "PDF report", value: "pdf" },
   {
-    hint: "Traced share, errors caught, depth",
-    key: "summary",
-    label: "Summary and figures",
-  },
-  {
-    hint: "AI words against critique, by step",
-    key: "chart",
-    label: "Process chart",
-  },
-  {
-    hint: "Prompt, answer, critique and marks",
-    key: "steps",
-    label: "Every step in full",
-  },
-  {
-    hint: "Including dismissed flags",
-    key: "flags",
-    label: "Flags and your notes",
-  },
-  {
-    hint: "With AI-traced text highlighted",
-    key: "essay",
-    label: "Final essay",
+    hint: "One row per step, for a spreadsheet",
+    label: "CSV of every step",
+    value: "csv",
   },
 ] as const;
 
-type Section = (typeof SECTIONS)[number]["key"];
+type Format = (typeof FORMAT_OPTIONS)[number]["value"];
 
-const pageCount = (on: Record<Section, boolean>) =>
-  1 + Number(on.steps) + Number(on.flags) + Number(on.essay);
+const CSV_SECTIONS: ReadonlySet<ExportSection> = new Set(["prompts", "notes"]);
+
+const PREVIEW_ROWS = 4;
+
+const PREVIEW_STEPS = 8;
 
 const Figure = ({
-  label,
   children,
+  label,
 }: {
-  label: string;
   children: ReactNode;
+  label: string;
 }) => (
   <div className="border-l py-3 pl-4 first:border-l-0 first:pl-0">
     <span className="text-muted-foreground block">{label}</span>
@@ -69,199 +57,227 @@ const Figure = ({
 );
 
 const SectionTitle = ({ children }: { children: ReactNode }) => (
-  <h2 className="text-muted-foreground mt-7 mb-3 text-xs font-semibold tracking-wider uppercase">
+  <h3 className="text-muted-foreground mt-7 mb-3 text-xs font-semibold tracking-wider uppercase">
     {children}
-  </h2>
+  </h3>
 );
 
-/* A real A4 page at 96 dpi. The preview shows it at 60%; printing uses it at full size. */
-const ReportPage = ({ on }: { on: Record<Section, boolean> }) => (
-  <div className="mx-auto h-168.5 w-119 shrink-0">
-    <article
-      aria-label={`Preview of page 1 of ${pageCount(on)}`}
-      className="shadow-page text-body relative h-280.75 w-198.5 origin-top-left scale-60 overflow-hidden rounded-xs bg-white px-16 pt-14 text-sm"
-      data-report-page
-    >
-      <div className="text-muted-foreground flex items-center gap-2 text-xs">
-        <Logo className="size-5" />
-        <span>Pentimento · Process report</span>
-        <span className="ml-auto font-mono">INFOMGMT 399 · Essay 2</span>
-      </div>
-      <h1 className="text-foreground tracking-snug mt-9 font-serif text-4xl leading-tight font-medium">
-        {student.name}
-      </h1>
-      <p className="text-muted-foreground mt-1.5">
-        {student.id} · Submitted {student.submitted} 2026
-      </p>
-      {on.summary ? (
-        <>
-          <p className="text-reading mt-5 font-serif text-base leading-relaxed">
-            Caught an invented source, a wrong date and a misquoted statistic.
-            Two late steps were accepted with little or no critique, and one of
-            them reached the conclusion word for word.
+const ReportPage = ({
+  detail,
+  sections,
+}: {
+  detail: SubmissionDetail;
+  sections: ExportSections;
+}) => {
+  const results = hasCheckResults(detail);
+  const later = EXPORT_SECTIONS.filter(
+    ({ key }) => sections[key] && !["chart", "summary"].includes(key)
+  ).map(({ label }) => label);
+  return (
+    <div className="mx-auto h-168.5 w-119 shrink-0">
+      <article
+        aria-label="Preview of page 1"
+        className="shadow-page text-body relative h-280.75 w-198.5 origin-top-left scale-60 overflow-hidden rounded-xs bg-white px-16 pt-14 text-sm"
+      >
+        <div className="text-muted-foreground flex items-center gap-2 text-xs">
+          <Logo className="size-5" />
+          <span>Pentimento · Process report</span>
+          <span className="ml-auto font-mono">
+            {detail.assignment.course.code} · {detail.assignment.title}
+          </span>
+        </div>
+        <h1 className="text-foreground tracking-snug mt-9 font-serif text-4xl leading-tight font-medium">
+          {detail.name}
+        </h1>
+        <p className="text-muted-foreground mt-1.5">
+          {detail.email} · Submitted {detail.submitted}
+        </p>
+        {sections.summary ? (
+          <>
+            <div className="mt-6 grid grid-cols-5 border-y">
+              <Figure label="Not from logged AI">
+                {detail.match.unmatchedPercent === null
+                  ? "—"
+                  : `${detail.match.unmatchedPercent}%`}
+              </Figure>
+              <Figure label="AI errors marked">{detail.markedErrors}</Figure>
+              <Figure label="Critique questions">
+                {detail.critiqueAverage.toFixed(1)} / {critiqueOrder.length}
+              </Figure>
+              <Figure label="Open flags">
+                <span
+                  className={detail.openFlags > 0 ? "text-flag" : undefined}
+                >
+                  {results ? detail.openFlags : "—"}
+                </span>
+              </Figure>
+              <Figure label="Added to feedback">
+                {results ? detail.feedbackFlags : "—"}
+              </Figure>
+            </div>
+            {detail.match.totalWords === 0 ? null : (
+              <p className="text-reading mt-4 font-serif text-base leading-relaxed">
+                {matchTotalsText(detail.match)}
+              </p>
+            )}
+          </>
+        ) : null}
+        {sections.chart ? (
+          <>
+            <SectionTitle>Process</SectionTitle>
+            <ProcessBars
+              base={84}
+              height={124}
+              labels
+              steps={detail.steps}
+              width={666}
+            />
+          </>
+        ) : null}
+        <SectionTitle>Steps</SectionTitle>
+        <table className="w-full table-fixed border-collapse">
+          <colgroup>
+            <col className="w-8" />
+            <col />
+            <col className="w-20" />
+            <col className="w-40" />
+          </colgroup>
+          <tbody>
+            {detail.steps.slice(0, PREVIEW_STEPS).map((step, index) => (
+              <tr className="border-b *:truncate *:py-2" key={step.id}>
+                <td className="text-faint font-mono">{index + 1}</td>
+                <td className="text-foreground pr-2">{step.title}</td>
+                <td className="text-muted-foreground">
+                  {step.words.toLocaleString("en")} words
+                </td>
+                <td
+                  className={cn(
+                    "font-heading",
+                    step.flag ? "text-flag" : "text-muted-foreground"
+                  )}
+                >
+                  {step.flag ?? (step.markedError ? "AI error marked" : "—")}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {detail.steps.length > PREVIEW_STEPS ? (
+          <p className="text-faint mt-2 font-mono text-xs">
+            + {detail.steps.length - PREVIEW_STEPS} more steps
           </p>
-          <div className="mt-6 grid grid-cols-4 border-y">
-            <Figure label="Not traced to AI">
-              {formatPercent(summary.untraced)}
-            </Figure>
-            <Figure label="Errors caught">{summary.caught}</Figure>
-            <Figure label="Critique depth">
-              {summary.depth.toFixed(1)} / 3
-            </Figure>
-            <Figure label="Flags">
-              <span className="text-flag">{summary.flags}</span>
-            </Figure>
-          </div>
-        </>
-      ) : null}
-      {on.chart ? (
-        <>
-          <SectionTitle>Process</SectionTitle>
-          <ProcessBars
-            base={84}
-            height={124}
-            labels
-            steps={steps}
-            width={666}
-          />
-        </>
-      ) : null}
-      <SectionTitle>Steps</SectionTitle>
-      <table className="w-full table-fixed border-collapse">
-        <colgroup>
-          <col className="w-6" />
-          <col className="w-44" />
-          <col />
-          <col className="w-48" />
-        </colgroup>
-        <tbody>
-          {steps.map((step, index) => (
-            <tr className="border-b *:truncate *:py-2" key={step.title}>
-              <td className="text-faint font-mono">{index + 1}</td>
-              <td className="text-foreground">{step.title}</td>
-              <td className="text-reading text-lead pr-2 font-serif">
-                {step.critique}
-              </td>
-              <td
-                className={cn(
-                  "font-heading",
-                  step.flag ? "text-flag" : "text-success"
-                )}
-              >
-                {step.flag?.title ?? step.caught}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="text-faint text-label absolute inset-x-16 bottom-9 flex justify-between font-mono">
-        <span>Generated Sun 12 Oct 2026</span>
-        <span>1 / {pageCount(on)}</span>
-      </div>
-    </article>
-  </div>
-);
-
-const Thumbnail = ({ index, on }: { index: number; on: boolean }) => (
-  <li className="relative">
-    <div
-      className={cn(
-        "flex h-34 w-24 flex-col gap-1 rounded-xs bg-white px-2.25 py-2.5 shadow-xs",
-        on && "ring-foreground ring-2"
-      )}
-    >
-      <i className="bg-border-strong mb-0.75 block h-1.5 w-7/10 rounded-sm" />
-      {essay.slice(0, 4 + (index % 3)).map((paragraph, line) => (
-        <i
-          className={cn(
-            "bg-border block h-0.75 rounded-sm",
-            line === index + 1 && "bg-ai-soft",
-            line === 4 - index && "bg-flag-soft"
-          )}
-          key={paragraph[0]?.text}
-        />
-      ))}
+        ) : null}
+        {later.length > 0 ? (
+          <p className="text-muted-foreground mt-6 text-xs">
+            Continues with: {later.join(", ")}.
+          </p>
+        ) : null}
+        <p className="text-faint text-label absolute inset-x-16 bottom-9 font-mono">
+          First page of the PDF
+        </p>
+      </article>
     </div>
-    <span className="text-muted-foreground text-micro mt-1 block text-center font-mono">
-      {index + 1}
-    </span>
-  </li>
-);
+  );
+};
 
-export const ReportBuilder = ({ cancel }: { cancel?: ReactNode }) => {
-  const [on, setOn] = useState<Record<Section, boolean>>({
-    chart: true,
-    essay: false,
-    flags: true,
-    steps: true,
-    summary: true,
-  });
-  const [who, setWho] = useState("one");
-  const whoLabel = useId();
-  const pages = pageCount(on);
+const CsvPreview = ({
+  detail,
+  sections,
+}: {
+  detail: SubmissionDetail;
+  sections: ExportSections;
+}) => {
+  const [header, ...rows] = stepsRows(detail, sections);
+  return (
+    <div className="mx-auto w-full max-w-3xl">
+      <p className="text-muted-foreground mb-3">
+        {rows.length} {rows.length === 1 ? "row" : "rows"}, one per step, with{" "}
+        {header?.length} columns. Text that a spreadsheet could run as a formula
+        starts with an apostrophe.
+      </p>
+      <div className="bg-card shadow-hairline overflow-x-auto rounded-lg">
+        <table className="text-meta w-max border-collapse font-mono">
+          <thead>
+            <tr>
+              {header?.map((cell) => (
+                <th
+                  className="text-muted-foreground border-b px-2.5 py-2 text-left font-medium"
+                  key={cell}
+                >
+                  {cell}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.slice(0, PREVIEW_ROWS).map((row) => (
+              <tr key={row[5]}>
+                {row.map((cell, column) => (
+                  <td
+                    className="max-w-48 truncate border-b px-2.5 py-1.5"
+                    // oxlint-disable-next-line react/no-array-index-key -- columns are positional and never reorder
+                    key={column}
+                  >
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > PREVIEW_ROWS ? (
+        <p className="text-faint mt-2 font-mono text-xs">
+          + {rows.length - PREVIEW_ROWS} more rows
+        </p>
+      ) : null}
+    </div>
+  );
+};
+
+export const ReportBuilder = ({
+  cancel,
+  detail,
+  inDialog = false,
+}: {
+  cancel?: ReactNode;
+  detail: SubmissionDetail;
+  inDialog?: boolean;
+}) => {
+  const [sections, setSections] = useState<ExportSections>(DEFAULT_SECTIONS);
+  const [format, setFormat] = useState<Format>("pdf");
+  const formatLabel = useId();
+  const Title = inDialog ? DialogTitle : "h2";
   return (
     <div className="grid min-h-0 flex-1 md:grid-cols-[340px_minmax(0,1fr)]">
-      <div className="flex flex-col p-5.5 md:border-r">
-        <h2 className="tracking-snug text-base font-semibold">
+      <div className="flex flex-col overflow-y-auto p-5.5 md:border-r">
+        <Title className="tracking-snug text-base font-semibold">
           Export process report
-        </h2>
+        </Title>
         <p className="text-muted-foreground mt-0.75">
-          {student.name} · {assignmentName} · {steps.length} steps
+          {detail.name} · {detail.assignment.title} · {detail.steps.length}{" "}
+          {detail.steps.length === 1 ? "step" : "steps"}
         </p>
-        <fieldset className="mt-5.5">
-          <legend className="text-label text-muted-foreground font-emphasis mb-2">
-            Include
-          </legend>
-          {SECTIONS.map((section) => (
-            // oxlint-disable-next-line jsx-a11y/label-has-associated-control -- Base UI Switch renders the control inside the label
-            <label
-              className="flex cursor-pointer items-center gap-2.5 border-t py-2.25 first-of-type:border-t-0"
-              key={section.key}
-            >
-              <span className="flex-1">
-                <b className="block font-medium">{section.label}</b>
-                <span className="text-muted-foreground block text-xs">
-                  {section.hint}
-                </span>
-              </span>
-              <Switch
-                checked={on[section.key]}
-                onCheckedChange={(checked) =>
-                  setOn((current) => ({ ...current, [section.key]: checked }))
-                }
-              />
-            </label>
-          ))}
-        </fieldset>
         <div className="mt-5.5">
           <span
             className="text-label text-muted-foreground font-emphasis mb-2 block"
-            id={whoLabel}
+            id={formatLabel}
           >
-            Who
+            Format
           </span>
           <RadioGroup
-            aria-labelledby={whoLabel}
-            onValueChange={(value) => setWho(String(value))}
-            value={who}
+            aria-labelledby={formatLabel}
+            onValueChange={(value) =>
+              setFormat(FORMATS.find((item) => item === value) ?? "pdf")
+            }
+            value={format}
           >
-            {[
-              {
-                hint: `One PDF · ${pages} ${pages === 1 ? "page" : "pages"}`,
-                label: student.name,
-                value: "one",
-              },
-              {
-                hint: "A zip of PDFs plus a cohort summary",
-                label: `All ${cohort.length} submissions`,
-                value: "all",
-              },
-            ].map((option) => (
+            {FORMAT_OPTIONS.map((option) => (
               // oxlint-disable-next-line jsx-a11y/label-has-associated-control -- Base UI Radio renders the control inside the label
               <label
                 className={cn(
                   "shadow-hairline flex cursor-pointer items-start gap-2.5 rounded-lg px-3 py-2.5",
-                  who === option.value && "shadow-chosen"
+                  format === option.value && "shadow-chosen"
                 )}
                 key={option.value}
               >
@@ -276,27 +292,61 @@ export const ReportBuilder = ({ cancel }: { cancel?: ReactNode }) => {
             ))}
           </RadioGroup>
         </div>
+        <fieldset className="mt-5.5">
+          <legend className="text-label text-muted-foreground font-emphasis mb-2">
+            Include
+          </legend>
+          {EXPORT_SECTIONS.map((section) => {
+            const unused = format === "csv" && !CSV_SECTIONS.has(section.key);
+            return (
+              // oxlint-disable-next-line jsx-a11y/label-has-associated-control -- Base UI Switch renders the control inside the label
+              <label
+                className={cn(
+                  "flex cursor-pointer items-center gap-2.5 border-t py-2.25 first-of-type:border-t-0",
+                  unused && "cursor-not-allowed opacity-50"
+                )}
+                key={section.key}
+              >
+                <span className="flex-1">
+                  <b className="block font-medium">{section.label}</b>
+                  <span className="text-muted-foreground block text-xs">
+                    {section.hint}
+                  </span>
+                </span>
+                <Switch
+                  checked={sections[section.key]}
+                  disabled={unused}
+                  onCheckedChange={(checked) =>
+                    setSections((current) => ({
+                      ...current,
+                      [section.key]: checked,
+                    }))
+                  }
+                />
+              </label>
+            );
+          })}
+        </fieldset>
         <div className="mt-auto flex justify-end gap-2 pt-4">
           {cancel}
-          <Button onClick={() => globalThis.print()}>
+          <a
+            className={buttonVariants()}
+            download
+            href={exportHref(detail.id, format, sections)}
+          >
             <Icon name="export" />
-            Print or save as PDF
-          </Button>
+            Download {format === "pdf" ? "PDF" : "CSV"}
+          </a>
         </div>
       </div>
-      <div className="bg-well flex min-w-0 gap-5 overflow-auto px-6 py-7 max-md:hidden">
-        <div className="flex-1">
-          <ReportPage on={on} />
+      <div className="bg-well flex min-w-0 items-start overflow-auto px-6 py-7 max-md:hidden">
+        <div className="min-w-0 flex-1">
+          {format === "pdf" ? (
+            <ReportPage detail={detail} sections={sections} />
+          ) : (
+            <CsvPreview detail={detail} sections={sections} />
+          )}
         </div>
-        <ol aria-label="Pages" className="flex flex-col gap-3 pt-8">
-          {Array.from({ length: pages }, (_, index) => (
-            <Thumbnail
-              index={index}
-              key={`page-${index + 1}`}
-              on={index === 0}
-            />
-          ))}
-        </ol>
       </div>
     </div>
   );

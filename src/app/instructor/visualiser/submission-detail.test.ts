@@ -87,7 +87,11 @@ const project = (
   analysis_started_at: "2026-10-14T01:01:00Z",
   analysis_status: "completed",
   analysis_version: "v1",
-  assignment: { id: "assignment-1", title: "Essay 2" },
+  assignment: {
+    course: { code: "INFOMGMT 399", id: "course-1", title: "Capstone" },
+    id: "assignment-1",
+    title: "Essay 2",
+  },
   final_versions: [
     {
       extracted_text: `${ANSWER} My own closing thought here.\n\nSecond paragraph.`,

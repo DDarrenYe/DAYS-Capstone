@@ -2,6 +2,7 @@ import type { SubmissionDetail } from "@/app/instructor/visualiser/submission-de
 import { Icon } from "@/components/icon";
 import { Card, CardAction, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { matchCaveat, matchTotalsText } from "@/lib/match-copy";
 import { formatWords } from "@/lib/process";
 import { cn } from "@/lib/utils";
 
@@ -56,20 +57,9 @@ const Match = ({
 const Totals = ({ match }: { match: SubmissionDetail["match"] }) => (
   <div className="text-body text-meta flex flex-col gap-1.5 border-t px-4.5 py-3">
     {match.totalWords === 0 ? null : (
-      <p className="tabular-nums">
-        {match.matchedWords.toLocaleString("en")} of{" "}
-        {formatWords(match.totalWords)} match a logged AI answer.{" "}
-        {match.unmatchedWords.toLocaleString("en")} don’t (
-        {match.unmatchedPercent}%).
-      </p>
+      <p className="tabular-nums">{matchTotalsText(match)}</p>
     )}
-    <p className="text-muted-foreground">
-      A match is a run of at least {match.minWords} words that also appears in a
-      logged AI answer. A quote with a word changed in every few words, or a
-      paraphrase, doesn’t match, and a common phrase can. Words that don’t match
-      aren’t proof the student wrote them, and a match isn’t proof they didn’t.
-      Read matches next to the critique.
-    </p>
+    <p className="text-muted-foreground">{matchCaveat(match.minWords)}</p>
   </div>
 );
 
