@@ -12,8 +12,14 @@ import { QueryClient, QueryObserver } from "@tanstack/query-core";
 import type { QueryKey } from "@tanstack/query-core";
 import { APICallError } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
+import { z } from "zod";
 
-import { claimAnalysis, executeAnalysis } from "@/lib/flagging/analysis";
+import {
+  LIMITS,
+  STALE_AFTER_SECONDS,
+  claimAnalysis,
+  executeAnalysis,
+} from "@/lib/flagging/analysis";
 import type { AnalysisRun } from "@/lib/flagging/analysis";
 import type { loadShare } from "@/lib/import/share";
 import { createAnalysisClient } from "@/lib/supabase/analysis";
@@ -80,7 +86,7 @@ const must = async <T>(pending: PromiseLike<PostgrestSingleResponse<T>>) => {
 };
 
 const submit = (client: SupabaseClient<Database>, input: SubmitInput) =>
-  writeSubmission(client, input, () => Promise.resolve());
+  writeSubmission(client, input, () => Promise.resolve(null));
 
 const run = async (pending: PromiseLike<{ error: PostgrestError | null }>) => {
   const { error } = await pending;
@@ -1785,7 +1791,10 @@ const claimed = async (projectId: string, restart: boolean) => {
   const attempts = await Promise.all(
     Array.from({ length: 4 }, () => claimAnalysis(admin, projectId, restart))
   );
-  return attempts.filter((attempt): attempt is AnalysisRun => attempt !== null);
+  return attempts.filter(
+    (attempt): attempt is AnalysisRun =>
+      attempt !== null && "version" in attempt
+  );
 };
 
 test("a submission is analysed once, shows its state, and a re-run keeps earlier results and decisions", async () => {
@@ -1989,4 +1998,200 @@ test("a submission is analysed once, shows its state, and a re-run keeps earlier
     new Set(decided.map(({ item }) => item.reviewed_by)),
     new Set([teacherA.id])
   );
+});
+
+const started = z
+  .object({ refused: z.string().optional(), version: z.string().optional() })
+  .nullable();
+
+const startWith = async (
+  projectId: string,
+  restart: boolean,
+  limits: Partial<typeof LIMITS> = {}
+) => {
+  const { data, error } = await admin.rpc("start_analysis", {
+    project: projectId,
+    restart,
+    ...LIMITS,
+    ...limits,
+  });
+  if (error) {
+    throw error;
+  }
+  return started.parse(data);
+};
+
+const openAttempts = async () => {
+  const { count, error } = await admin
+    .from("analysis_attempts")
+    .select("id", { count: "exact", head: true })
+    .is("finished_at", null)
+    .gt(
+      "started_at",
+      new Date(Date.now() - STALE_AFTER_SECONDS * 1000).toISOString()
+    );
+  if (error) {
+    throw error;
+  }
+  return count ?? 0;
+};
+
+const submittedProjects = async (count: number) => {
+  const { teacherA } = await fixture;
+  const writer = await createAccount(
+    `limits-${randomUUID().slice(0, 6)}`,
+    "student"
+  );
+  const course = await must(
+    admin
+      .from("courses")
+      .insert({
+        code: `L-${randomUUID().slice(0, 6)}`,
+        instructor_id: teacherA.id,
+        title: "Limits",
+      })
+      .select("id")
+      .single()
+  );
+  created.courses.add(course.id);
+  await run(
+    admin.from("enrolments").insert({
+      course_id: course.id,
+      email: writer.email,
+      student_id: writer.id,
+    })
+  );
+  const assignments = await must(
+    admin
+      .from("assignments")
+      .insert(
+        Array.from({ length: count }, (_, index) => ({
+          course_id: course.id,
+          lane: "lane_2" as const,
+          title: `${tag} Limit ${index}`,
+        }))
+      )
+      .select("id")
+  );
+  const projects = await must(
+    admin
+      .from("projects")
+      .insert(
+        assignments.map(({ id }) => ({
+          assignment_id: id,
+          course_id: course.id,
+          student_id: writer.id,
+        }))
+      )
+      .select("id")
+  );
+  for (const { id } of assignments) {
+    created.assignments.add(id);
+  }
+  for (const { id } of projects) {
+    created.projects.add(id);
+  }
+  const ids = projects.map(({ id }) => id);
+  await run(
+    admin.from("iterations").insert(
+      ids.map((id) => ({
+        ai_tool: "Tool",
+        critique: specificCritique,
+        project_id: id,
+        prompt: "When?",
+        raw_answer: "In 1990.",
+        step_number: 1,
+      }))
+    )
+  );
+  await run(
+    admin.from("final_versions").insert(
+      ids.map((id) => ({
+        extracted_text: "My final essay.",
+        project_id: id,
+        submitted_at: new Date().toISOString(),
+        version_number: 1,
+      }))
+    )
+  );
+  await run(
+    admin
+      .from("projects")
+      .update({ status: "submitted", submitted_at: new Date().toISOString() })
+      .in("id", ids)
+  );
+  return ids;
+};
+
+const stateOf = async (id: string) => {
+  const found = await must(
+    admin
+      .from("projects")
+      .select("analysis_status, analysis_error")
+      .eq("id", id)
+      .single()
+  );
+  return `${found.analysis_status}: ${found.analysis_error ?? ""}`;
+};
+
+test("simultaneous claims, the daily budget and the attempt cap stay within their limits", async () => {
+  const ids = await submittedProjects(5);
+  const limits = { max_running: (await openAttempts()) + 2 };
+  const answers = await Promise.all(
+    ids.map((id) => startWith(id, false, limits))
+  );
+  const claims = ids.flatMap((id, index) => {
+    const version = answers[index]?.version;
+    return version ? [{ projectId: id, version }] : [];
+  });
+  assert.equal(claims.length, 2);
+  const busy = "Too many checks are running. Try again in a few minutes.";
+  const turnedAway = ids.filter(
+    (id) => !claims.some(({ projectId }) => projectId === id)
+  );
+  assert.equal(turnedAway.length, 3);
+  assert.equal(answers.filter((answer) => answer?.refused === busy).length, 3);
+  assert.equal(await stateOf(turnedAway[0] ?? ""), `failed: ${busy}`);
+  assert.match(await stateOf(claims[0]?.projectId ?? ""), /^running:/u);
+
+  const [done] = claims;
+  assert.ok(done);
+  await executeAnalysis(admin, done, modelForSteps);
+  assert.match(await stateOf(done.projectId), /^completed:/u);
+  const settled = await must(
+    admin
+      .from("analysis_attempts")
+      .select("reserved_tokens, used_tokens, finished_at")
+      .eq("project_id", done.projectId)
+      .single()
+  );
+  assert.equal(settled.used_tokens, 30);
+  assert.ok(settled.reserved_tokens > 30);
+  assert.ok(settled.finished_at);
+
+  const retried = await startWith(turnedAway[0] ?? "", true, limits);
+  assert.equal(retried?.version, "analysis-v1");
+
+  const broke = "The daily limit for checks is used up. Try again tomorrow.";
+  const overBudget = await startWith(turnedAway[1] ?? "", true, {
+    daily_tokens: 1,
+    max_running: 100,
+  });
+  assert.equal(overBudget?.refused, broke);
+  assert.equal(await stateOf(turnedAway[1] ?? ""), `failed: ${broke}`);
+
+  const capped = await startWith(done.projectId, true, { max_attempts: 1 });
+  assert.match(capped?.refused ?? "", /checked 1 times/u);
+  assert.match(await stateOf(done.projectId), /^completed:/u);
+
+  const shortLog = await startWith(turnedAway[2] ?? "", true, {
+    max_running: 100,
+    max_steps: 0,
+  });
+  assert.match(shortLog?.refused ?? "", /over the limit of 0/u);
+  const longStep = await startWith(turnedAway[2] ?? "", true, {
+    max_running: 100,
+    max_step_chars: 5,
+  });
+  assert.match(longStep?.refused ?? "", /longer than the limit of 5/u);
 });

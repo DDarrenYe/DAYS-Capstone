@@ -6,7 +6,7 @@ import { MockLanguageModelV4 } from "ai/test";
 
 import { composeCritique } from "@/lib/process";
 
-import { checkReflection } from "./check";
+import { InvalidReplyError, checkReflection } from "./check";
 import { RUBRIC_VERSION, SYSTEM_PROMPT } from "./rubric";
 import type { Reflection } from "./rubric";
 
@@ -30,6 +30,10 @@ const modelReplying = (text: string) =>
         warnings: [],
       }),
   });
+
+const unusable = (error: Error) =>
+  error instanceof InvalidReplyError &&
+  NoObjectGeneratedError.isInstance(error.cause);
 
 const step = (critique: string, aiAnswer = "The survey found 71 percent.") => ({
   aiAnswer,
@@ -147,8 +151,26 @@ test("evidence matches the critique ignoring case and spacing", async () => {
 test("output that is not JSON is rejected", async () => {
   await assert.rejects(
     checkReflection(modelReplying("The critique looks fine."), step(specific)),
-    (error) => NoObjectGeneratedError.isInstance(error)
+    unusable
   );
+});
+
+test("the tokens a reply used are reported even when the reply is rejected", async () => {
+  const used: (number | undefined)[] = [];
+  await checkReflection(
+    modelReplying(JSON.stringify(reflection())),
+    step(specific),
+    (tokens) => used.push(tokens)
+  );
+  await assert.rejects(
+    checkReflection(
+      modelReplying("The critique looks fine."),
+      step(specific),
+      (tokens) => used.push(tokens)
+    ),
+    unusable
+  );
+  assert.deepEqual(used, [30, 30]);
 });
 
 test("output that breaks the schema is rejected", async () => {
@@ -161,7 +183,7 @@ test("output that breaks the schema is rejected", async () => {
     [unknownKind, blankUncertainty].map((text) =>
       assert.rejects(
         checkReflection(modelReplying(text), step(specific)),
-        (error) => NoObjectGeneratedError.isInstance(error)
+        unusable
       )
     )
   );

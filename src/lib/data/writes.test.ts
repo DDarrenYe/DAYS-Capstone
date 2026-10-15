@@ -664,12 +664,12 @@ test("a document upload needs a file and never reaches the database", async () =
   });
 });
 
-const recordingStart = () => {
+const recordingStart = (reason: string | null = null) => {
   const started: [string, boolean][] = [];
   return {
     start: (id: string, restart: boolean) => {
       started.push([id, restart]);
-      return Promise.resolve();
+      return Promise.resolve(reason);
     },
     started,
   };
@@ -755,6 +755,27 @@ test("an instructor can only re-run the check on a submission they can read", as
     { error: "Check the details and try again." }
   );
   assert.deepEqual(unseen.started, []);
+});
+
+test("a check the limits refuse never fails the submission, and a re-run says why", async () => {
+  const limit = "The daily limit for checks is used up. Try again tomorrow.";
+  const submit = clientWith(() => Response.json("2026-10-14T00:00:00+00:00"));
+  assert.deepEqual(
+    await writeSubmission(
+      submit.client,
+      { projectId },
+      recordingStart(limit).start
+    ),
+    {}
+  );
+  assert.deepEqual(
+    await writeReanalysis(
+      clientWith(() => Response.json([{ id: projectId }])).client,
+      { projectId },
+      recordingStart(limit).start
+    ),
+    { error: limit }
+  );
 });
 
 test("a re-run that cannot start says so", () =>

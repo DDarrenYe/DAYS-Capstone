@@ -9,8 +9,8 @@ import { z } from "zod";
 import { quietly } from "@/lib/test-console";
 
 import {
+  LIMITS,
   RUN_BUDGET_MS,
-  STALE_AFTER_SECONDS,
   claimAnalysis,
   executeAnalysis,
 } from "./analysis";
@@ -119,15 +119,15 @@ const withSteps = {
 const rpcs = (calls: Call[]) =>
   calls.filter(({ path }) => path.includes("/rpc/"));
 
-test("claiming a run sends the lease and returns the version the database chose", async () => {
+test("claiming a run sends the limits and returns the version the database chose", async () => {
   const { calls, client } = database({
-    "/rest/v1/rpc/start_analysis": () => Response.json(version),
+    "/rest/v1/rpc/start_analysis": () => Response.json({ version }),
   });
   assert.deepEqual(await claimAnalysis(client, projectId, true), run);
   assert.deepEqual(calls[0]?.body, {
     project: projectId,
     restart: true,
-    stale_after: STALE_AFTER_SECONDS,
+    ...LIMITS,
   });
 });
 
@@ -136,6 +136,14 @@ test("a run that is already going or already done is not claimed again", async (
     "/rest/v1/rpc/start_analysis": () => Response.json(null),
   });
   assert.equal(await claimAnalysis(client, projectId, false), null);
+});
+
+test("a run the limits refuse comes back with the reason", async () => {
+  const refused = "The daily limit for checks is used up. Try again tomorrow.";
+  const { client } = database({
+    "/rest/v1/rpc/start_analysis": () => Response.json({ refused }),
+  });
+  assert.deepEqual(await claimAnalysis(client, projectId, false), { refused });
 });
 
 test("a database error while claiming is reported to the caller", async () => {
@@ -164,6 +172,7 @@ test("every step is checked in order and the results are saved together", async 
   const [saving] = rpcs(calls);
   assert.equal(saving?.body?.project, projectId);
   assert.equal(saving?.body?.run, version);
+  assert.equal(saving?.body?.tokens, 60);
   const results = z.array(body).parse(saving?.body?.results);
   assert.deepEqual(
     results.map(({ iteration_id: id }) => id),
@@ -219,8 +228,9 @@ test("a malformed reply fails the run with nothing saved", () =>
     );
     assert.deepEqual(rpcs(calls)[0]?.body, {
       project: projectId,
-      reason: "The reflection check failed. Try again.",
+      reason: "The model's reply could not be used. Try again.",
       run: version,
+      tokens: 60,
     });
   }));
 
@@ -242,31 +252,81 @@ test("a quote that is not in the critique fails the run", () =>
     );
   }));
 
-const refusing = (retryable: boolean) =>
-  new MockLanguageModelV4({
-    doGenerate: () =>
-      Promise.reject(
-        new APICallError({
-          isRetryable: retryable,
-          message: "Service may be temporarily overloaded",
-          requestBodyValues: { secret: "student text" },
-          responseHeaders: { "retry-after-ms": "1" },
-          statusCode: retryable ? 429 : 400,
-          url: "https://api.example.com/chat/completions",
-        })
-      ),
+const overloaded = (retryable: boolean) =>
+  new APICallError({
+    isRetryable: retryable,
+    message: "Service may be temporarily overloaded",
+    requestBodyValues: { secret: "student text" },
+    responseHeaders: { "retry-after-ms": "1" },
+    statusCode: retryable ? 429 : 400,
+    url: "https://api.example.com/chat/completions",
   });
 
-test("a busy provider is recorded as busy, without the student's text", () =>
+const refusing = (retryable: boolean) =>
+  new MockLanguageModelV4({
+    doGenerate: () => Promise.reject(overloaded(retryable)),
+  });
+
+const recovering = (failures: number, ...texts: string[]) => {
+  const queue = [...texts];
+  let left = failures;
+  return new MockLanguageModelV4({
+    doGenerate: () => {
+      if (left > 0) {
+        left -= 1;
+        return Promise.reject(overloaded(true));
+      }
+      return Promise.resolve(generated(queue.shift() ?? "no reply left"));
+    },
+  });
+};
+
+test("a busy provider is retried a bounded number of times, then recorded as busy", () =>
   quietly(async (logged) => {
     const { calls, client } = database(withSteps);
-    await executeAnalysis(client, run, () => refusing(true));
-    assert.equal(
-      rpcs(calls)[0]?.body?.reason,
-      "The model provider was busy. Try again shortly."
-    );
+    const model = refusing(true);
+    await executeAnalysis(client, run, () => model);
+    assert.equal(model.doGenerateCalls.length, 4);
+    assert.deepEqual(rpcs(calls)[0]?.body, {
+      project: projectId,
+      reason: "The model provider was busy. Try again shortly.",
+      run: version,
+      tokens: 0,
+    });
     assert.equal(logged.length, 1);
     assert.ok(!logged.join(",").includes("student text"));
+  }));
+
+test("a provider that recovers within the retry bound does not fail the run", async () => {
+  const { calls, client } = database(withSteps);
+  const model = recovering(
+    3,
+    JSON.stringify(reflection()),
+    JSON.stringify(flaggedThin)
+  );
+  await executeAnalysis(client, run, () => model);
+  assert.equal(model.doGenerateCalls.length, 5);
+  assert.deepEqual(
+    rpcs(calls).map(({ path }) => path),
+    ["/rest/v1/rpc/complete_analysis"]
+  );
+  assert.equal(rpcs(calls)[0]?.body?.tokens, 60);
+});
+
+test("a call that times out leaves its usage unknown, so the reservation stands", () =>
+  quietly(async () => {
+    const { calls, client } = database(withSteps);
+    const model = new MockLanguageModelV4({
+      doGenerate: () =>
+        Promise.reject(new DOMException("Too slow", "TimeoutError")),
+    });
+    await executeAnalysis(client, run, () => model);
+    assert.equal(model.doGenerateCalls.length, 1);
+    assert.deepEqual(rpcs(calls)[0]?.body, {
+      project: projectId,
+      reason: "The reflection check timed out.",
+      run: version,
+    });
   }));
 
 test("a provider that rejects the request is recorded as rejecting it", () =>
@@ -302,6 +362,7 @@ test("a run that uses up its time budget stops before the next step", () =>
         rpcs(calls)[0]?.body?.reason,
         "The reflection check timed out."
       );
+      assert.equal(rpcs(calls)[0]?.body?.tokens, 30);
     } finally {
       Date.now = realNow;
     }
