@@ -39,7 +39,7 @@ const sections: { icon: IconName; title: string; body: string[] }[] = [
   },
   {
     body: [
-      "The reflection check is not switched on yet, and today no text is sent to an AI service. Once it is, text from your submitted steps will be sent after you submit to a third-party AI provider (Anthropic), which processes it on its own servers and under its own retention rules, which we don't control. Whether any of your final essay is sent too isn't decided. We'll update this page before the check is switched on.",
+      "The reflection check is not switched on yet, and today no text is sent to an AI service. Once it is, text from your submitted steps will be sent after you submit to a third-party AI provider (we expect to use Z.ai, which makes the GLM models), which processes it on its own servers and under its own retention rules, which we don't control. Whether any of your final essay is sent too isn't decided. We'll update this page before the check is switched on.",
       "The check reads each critique against three questions: was the AI right, how did you check, and what did you change. It can ask an instructor to look closer. Its flags are evidence for a person to judge. They don't prove who wrote anything, they never set a grade, and an instructor can dismiss any of them.",
     ],
     icon: "flag",

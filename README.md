@@ -10,7 +10,7 @@ The app has password sign-in, role-based sessions and every student and grader s
 
 ## Stack
 
-We use Next.js 16 (App Router, TypeScript), Tailwind CSS 4, shadcn/ui with Base UI, Drizzle ORM with Supabase Postgres/Auth, the Anthropic API, and Vercel. Bun handles packages. Vite+ (`vp`) runs linting and formatting with the Ultracite presets in `vite.config.ts`.
+We use Next.js 16 (App Router, TypeScript), Tailwind CSS 4, shadcn/ui with Base UI, Drizzle ORM with Supabase Postgres/Auth, the Vercel AI SDK with an OpenAI-compatible LLM API (GLM from Z.ai), and Vercel. Bun handles packages. Vite+ (`vp`) runs linting and formatting with the Ultracite presets in `vite.config.ts`.
 
 ## Setup
 
@@ -42,7 +42,7 @@ Stop the stack with `bun run db:stop`; stopping preserves local data. Database r
 
 Windows and Intel Macs need Docker or Podman and can start with `bunx --no-install supabase start --runtime docker` (or `--runtime podman`) instead. A stack keeps its original runtime; don't switch an existing stack without backing up its data.
 
-When we decide to deploy, create a hosted Supabase project, apply the committed migrations, configure hosted auth and environment variables, and deploy Next.js. Local test data doesn't move automatically. The planned Anthropic API is external even when the app runs locally; fully offline AI checks need mocked responses or a local model.
+When we decide to deploy, create a hosted Supabase project, apply the committed migrations, configure hosted auth and environment variables, and deploy Next.js. Local test data doesn't move automatically. The planned LLM API is external even when the app runs locally; fully offline AI checks need mocked responses or a local model. The reflection check will take its base URL, key and model from server-only environment variables, so we can change provider without changing code. Use a normal Z.ai API key from the pay-as-you-go API, which has free Flash models. A GLM Coding Plan key won't work: Z.ai only allows that plan in its officially supported coding tools.
 
 ## Sign-in demo
 

@@ -39,7 +39,7 @@ The reflection check looks for evidence against the three questions and possible
 | UI | Tailwind 4, our existing shadcn/Base UI components and prototype tokens. Use accessible HTML/SVG; add a chart library only if we need it. |
 | Data fetching | The existing TanStack Query provider and query-client helper, with access checked for each user. |
 | Database and sign-in | Drizzle ORM with Supabase Postgres, magic links and Row Level Security (RLS). |
-| Reflection check | A server-only Anthropic client with validated responses and a versioned rubric. Check which model is supported when we build it. |
+| Reflection check | A server-only client using the Vercel AI SDK's OpenAI-compatible provider, with zod-validated responses and a versioned rubric. The base URL, key and model are server environment variables, and we plan to use GLM from Z.ai. Check which model is supported, and that it accepts structured output, when we build it. Use a normal Z.ai API key (the pay-as-you-go API, which has free Flash models), not a GLM Coding Plan key, because that plan only covers Z.ai's supported coding tools. |
 | Export | Server-side PDF and spreadsheet-safe CSV. Check the PDF renderer locally and on the hosted app before release. |
 | Hosting | Vercel previews and production, with separate settings and sign-in callback URLs. |
 | Checks | `bun run check`, `bun run typecheck` and `bun run build`. Add SQL, integration and Playwright checks as we build the related tasks. |

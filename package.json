@@ -21,6 +21,7 @@
     "test:app": "bun test --conditions=react-server",
     "test:integration": "turbo run test:integration:app",
     "test:integration:app": "bun --env-file=.env.local test --conditions=react-server ./src/lib/data/data.integration.ts ./src/lib/supabase/secrets.integration.ts",
+    "test:live": "bun --env-file=.env.local --conditions=react-server ./src/lib/flagging/flagging.live.ts",
     "db:reset": "supabase db reset --local",
     "db:test": "supabase test db --local",
     "db:generate": "drizzle-kit generate",
@@ -30,12 +31,14 @@
     "db:check:app": "drizzle-kit check"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "3.0.68",
     "@base-ui/react": "1.8.0",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.117.3",
     "@tanstack/react-form": "1.33.5",
     "@tanstack/react-query": "5.104.1",
     "@tanstack/react-table": "9.2.8",
+    "ai": "7.0.140",
     "class-variance-authority": "0.7.1",
     "cn": "0.4.0",
     "drizzle-orm": "0.45.4",

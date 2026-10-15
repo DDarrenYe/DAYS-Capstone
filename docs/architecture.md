@@ -200,7 +200,7 @@ flowchart LR
   subgraph ext["Outside the app"]
     direction TB
     e1["Chat provider share page"]:::outside
-    e2["Anthropic API"]:::outside
+    e2["LLM API (GLM on Z.ai)"]:::outside
   end
 
   subgraph inst["Instructor"]
@@ -239,7 +239,7 @@ flowchart LR
 | 5 | Final essay | Database-ready, [#22](https://github.com/DDarrenYe/DAYS-Capstone/issues/22) | Every save is a new `final_versions` row. `.docx` extraction and the size and type checks will run on the server. |
 | 6 | Atomic submission | Working, [#23](https://github.com/DDarrenYe/DAYS-Capstone/issues/23) | The Submit button on the final-version panel calls `public.submit_project`. It locks the project row, then checks that the student is enrolled, the project is a Lane 2 draft, there's at least one step, every step has a critique and the saved final version isn't blank. If so, it sets `status`, `submitted_at` and the final version's `submitted_at` in one transaction. Submitting twice returns the first time. Students can no longer write `status` or `submitted_at` themselves, and a save that runs at the same time waits for the submit and is refused if it comes second. We haven't built starting analysis. |
 | 7 | Text matching | Working, [#26](https://github.com/DDarrenYe/DAYS-Capstone/issues/26) | A deterministic matcher compares the saved final text with the logged AI answers and makes no outside call. Students and instructors read the same numbers through RLS. It doesn't write `match_results`. See "Final-text matching" in `supabase/README.md`. |
-| 8 | Reflection check | Tables ready, job planned, [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32) [#34](https://github.com/DDarrenYe/DAYS-Capstone/issues/34) | A server job sets `analysis_status`, calls Anthropic, validates the answer, and writes one `analysis_results` row per step plus any `flags`. A finished run with no flags is different from pending or failed. A new run keeps the old results and their reviews. |
+| 8 | Reflection check | Tables ready, job planned, [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32) [#34](https://github.com/DDarrenYe/DAYS-Capstone/issues/34) | A server job sets `analysis_status`, calls the LLM API through the AI SDK, validates the answer, and writes one `analysis_results` row per step plus any `flags`. A finished run with no flags is different from pending or failed. A new run keeps the old results and their reviews. |
 | 9 | Grader decisions | Database-ready, [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33) | An instructor of that course changes a flag's decision, reviewer and time, and a trigger appends it to `flag_reviews`. They can only add, edit and delete their own `grader_notes`. The Visualiser keeps one note per step, enforced by a unique index on author and step. Saving an empty note deletes it. |
 | 10 | Export | Planned, [#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36) | The server builds the PDF and CSV from the same submitted snapshot, matches and decisions the instructor sees. Notes only go in when the grader picks that. |
 
@@ -265,16 +265,16 @@ Anonymous clients can't touch any table. Instructors can't change student text. 
 
 ## Text that leaves the app
 
-Right now nothing does. We have no link fetcher, no `.docx` upload and no Anthropic client. Sign-in sends the email and password to Supabase, which runs locally in dev.
+Right now nothing does. We have no link fetcher, no `.docx` upload and no LLM client. Sign-in sends the email and password to Supabase, which runs locally in dev.
 
 The plan adds two outside calls. Both run on the server, never in the browser.
 
 | Call | What goes out | What comes back | Issue |
 | --- | --- | --- | --- |
 | Share-link import (step 3) | The URL the student pasted, sent to an allowlisted host | The public chat page | [#20](https://github.com/DDarrenYe/DAYS-Capstone/issues/20) |
-| Reflection check (step 8, after submission) | Text from the submitted steps, sent to Anthropic | A validated, structured result | [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31), [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32) |
+| Reflection check (step 8, after submission) | Text from the submitted steps, sent to the LLM provider (GLM on Z.ai) | A validated, structured result | [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31), [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32) |
 
-Matching and export stay inside the app. We haven't fixed what the reflection check sends. We should settle it in [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) and update the privacy page, which [#25](https://github.com/DDarrenYe/DAYS-Capstone/issues/25) added. What we'd propose is submitted steps only (prompt, AI answer and critique), sent from a server job, with no names, emails, grader notes or review decisions. Whether any essay text goes too is still open. We can't control Anthropic's own retention, and the privacy page can't say that no text leaves the app.
+Matching and export stay inside the app. We haven't fixed what the reflection check sends. We should settle it in [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) and update the privacy page, which [#25](https://github.com/DDarrenYe/DAYS-Capstone/issues/25) added. What we'd propose is submitted steps only (prompt, AI answer and critique), sent from a server job, with no names, emails, grader notes or review decisions. Whether any essay text goes too is still open. We can't control Z.ai's own retention, and the privacy page can't say that no text leaves the app.
 
 ## Prototype versus working
 
