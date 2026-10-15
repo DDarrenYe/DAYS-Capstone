@@ -142,7 +142,7 @@ export const reviewFlag = async (input: ReviewInput): Promise<WriteResult> => {
   if (account?.role !== "instructor") {
     return forbidden;
   }
-  return writeReview(await createClient(), account.id, input);
+  return writeReview(await createClient(), input);
 };
 
 export const saveNote = async (input: NoteInput): Promise<WriteResult> => {

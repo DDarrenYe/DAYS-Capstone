@@ -34,8 +34,11 @@ export interface MetricsProject {
   iterations: readonly MetricsStep[];
 }
 
+/*
+  Counts for the newest saved result set. Unresolved is `open`: a grader still has to look. Feedback is
+  `addedToFeedback`: decided, and kept for the report. The two are never added together.
+*/
 export interface FlagCounts {
-  active: number;
   addedToFeedback: number;
   dismissed: number;
   open: number;
@@ -80,7 +83,6 @@ const flagCounts = (
     }
   }
   return {
-    active: open + addedToFeedback,
     addedToFeedback,
     dismissed: count("dismissed"),
     open,

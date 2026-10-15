@@ -104,7 +104,7 @@ A failed run records one of these, never the model's reply or the student's text
 - An instructor of the course can run the check again from the Visualiser. `reanalyseProject` first reads the project with their own session, so only a submitted project in their course qualifies. A run that is already going isn't started twice. A run that has stopped responding is replaced.
 - A re-run gets a new version and saves a new set of results next to the old ones. Nothing is overwritten.
 - Until the new set is saved, readers keep using the newest saved set. While a re-run is going, or after it fails, the instructor still sees the last results and their decisions, together with the state of the latest run.
-- A flag in the new set that has the same step and kind as an earlier flag starts with that flag's decision, reviewer and time. Reopening is a decision too: a flag whose latest earlier version was reopened starts open.
+- A flag in the new set that has the same step and kind as an earlier flag starts with that flag's decision, reviewer, time and note. Reopening is a decision too: a flag whose latest earlier version was reopened starts open.
 - A flag that the new run doesn't raise isn't copied. It stays on the earlier result with its decision and review history, but it isn't part of the current set any more.
 
 ## Pasted text is data

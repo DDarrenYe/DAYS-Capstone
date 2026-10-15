@@ -177,7 +177,12 @@ test("invalid input is rejected before the database is contacted", async () => {
     ...invalidCritiques.map((invalid) => writeCritique(client, invalid)),
     writeProject(client, studentId, { assignmentId: "nope" }),
     writeSubmission(client, { projectId: "nope" }),
-    writeReview(client, reviewerId, { flagId: "nope", state: "dismissed" }),
+    writeReview(client, { flagId: "nope", state: "dismissed" }),
+    writeReview(client, {
+      flagId,
+      note: "x".repeat(MAX_NOTE + 1),
+      state: "dismissed",
+    }),
     writeNote(client, reviewerId, { body: "x", projectId: "nope", stepId }),
     writeNote(client, reviewerId, { body: "x", projectId, stepId: "nope" }),
     writeNote(client, reviewerId, {
@@ -185,11 +190,7 @@ test("invalid input is rejected before the database is contacted", async () => {
       projectId,
       stepId,
     }),
-    writeReview(
-      client,
-      reviewerId,
-      wire(JSON.stringify({ flagId, state: "approved" }))
-    ),
+    writeReview(client, wire(JSON.stringify({ flagId, state: "approved" }))),
   ]);
   for (const result of results) {
     assert.deepEqual(result, { error: "Check the details and try again." });
@@ -769,25 +770,79 @@ test("a re-run that cannot start says so", () =>
     );
   }));
 
-test("a review is attributed to the verified reviewer, not the caller's input", async () => {
-  const { client, requests } = clientWith();
+test("a review goes to the database with the decision and note only, never a reviewer", async () => {
+  const { client, requests } = clientWith(() => Response.json(flagId));
   const result = await writeReview(
     client,
-    reviewerId,
     wire(
       JSON.stringify({
         flagId,
+        note: "Ask about the source.",
         reviewed_by: "someone-else",
         state: "added_to_feedback",
       })
     )
   );
   assert.deepEqual(result, {});
-  assert.equal(requests[0]?.url.pathname, "/rest/v1/flags");
-  assert.equal(requests[0]?.url.searchParams.get("id"), `eq.${flagId}`);
-  assert.equal(requests[0]?.body?.reviewed_by, reviewerId);
-  assert.equal(requests[0]?.body?.review_state, "added_to_feedback");
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0]?.method, "POST");
+  assert.equal(requests[0]?.url.pathname, "/rest/v1/rpc/review_flag");
+  assert.deepEqual(requests[0]?.body, {
+    decision: "added_to_feedback",
+    flag: flagId,
+    note: "Ask about the source.",
+  });
 });
+
+test("a decision without a note sends none", async () => {
+  const { client, requests } = clientWith(() => Response.json(flagId));
+  assert.deepEqual(
+    await writeReview(client, { flagId, state: "dismissed" }),
+    {}
+  );
+  assert.deepEqual(requests[0]?.body, {
+    decision: "dismissed",
+    flag: flagId,
+  });
+});
+
+test("a flag the reviewer cannot see is refused, not reported as saved", async () => {
+  const { client } = clientWith(() => Response.json(null));
+  assert.deepEqual(
+    await writeReview(client, { flagId, state: "dismissed" }),
+    forbidden
+  );
+});
+
+const refusing = (code: string, message: string) =>
+  clientWith(() =>
+    Response.json({ code, details: null, hint: null, message }, { status: 400 })
+  ).client;
+
+test("a review the database refuses is reported plainly", () =>
+  quietly(async () => {
+    assert.deepEqual(
+      await writeReview(refusing("42501", "denied"), {
+        flagId,
+        state: "dismissed",
+      }),
+      forbidden
+    );
+    assert.deepEqual(
+      await writeReview(
+        refusing("P0001", "Keep the note to 2,000 characters or fewer."),
+        { flagId, state: "dismissed" }
+      ),
+      { error: "Keep the note to 2,000 characters or fewer." }
+    );
+    assert.deepEqual(
+      await writeReview(refusing("XX000", "boom"), {
+        flagId,
+        state: "dismissed",
+      }),
+      { error: "Unable to save. Try again shortly." }
+    );
+  }));
 
 test("a note is saved for the verified author and the step it names", async () => {
   const { client, requests } = clientWith();

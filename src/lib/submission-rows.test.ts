@@ -110,6 +110,19 @@ test("flags are open until every one has a decision", () => {
   );
 });
 
+test("flags added to feedback are counted apart from open ones", () => {
+  const [row] = submissionRows([
+    entry("a", {
+      flags: ["open", "added_to_feedback", "added_to_feedback", "dismissed"],
+    }),
+  ]);
+  assert.equal(row?.openFlags, 1);
+  assert.equal(row?.feedbackFlags, 2);
+  assert.equal(row?.state, "flagged");
+  const [unchecked] = submissionRows([entry("b", { status: "pending" })]);
+  assert.equal(unchecked?.feedbackFlags, 0);
+});
+
 test("unresolved flags come first, then checks without a result, then the rest in read order", () => {
   const rows = submissionRows([
     entry("clear", { flags: [] }),

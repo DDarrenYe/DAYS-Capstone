@@ -127,6 +127,7 @@ erDiagram
     flag_review_state review_state "open | dismissed | added_to_feedback"
     uuid reviewed_by FK
     timestamptz reviewed_at
+    text review_note "optional, never on an open flag"
   }
   flag_reviews {
     uuid id PK
@@ -134,6 +135,7 @@ erDiagram
     flag_review_state review_state
     uuid reviewer_id FK
     timestamptz reviewed_at
+    text note
   }
   grader_notes {
     uuid id PK
@@ -151,7 +153,7 @@ Things the diagram can't show:
 - **One project per student and assignment.** Opening an assignment again has to reuse the same row.
 - **Steps keep their ID.** Reordering only changes `step_number`. The unique constraint is deferrable, so two steps can swap inside one transaction.
 - **Final text is never edited.** A trigger rejects changes to the text. An edit saves a new version and moves `is_current`.
-- **Review history is automatic.** Changing a flag's decision appends a `flag_reviews` row, and that includes reopening a flag.
+- **Review history is automatic.** Changing a flag's decision or its note appends a `flag_reviews` row, and that includes reopening a flag. A correction never deletes the earlier decision.
 - **Deletes are restricted.** Deleting a project also deletes its steps, finals, analysis, flags, history and notes. Courses, assignments, enrolments and profiles that still have records can't be deleted.
 - **Matching isn't a character count.** The old prompt and critique character model is gone. The matcher works its result out from the saved final text and the logged steps whenever it's read, and each result carries the matcher version. `match_results` stays empty until submission needs a frozen snapshot.
 
@@ -193,7 +195,7 @@ flowchart LR
     d2[("draft: projects, iterations, final_versions")]:::ready
     d3[("submitted and locked")]:::ready
     d4[("match_results, analysis_results, flags")]:::ready
-    d6[("flag decisions, flag_reviews, grader_notes")]:::ready
+    d6[("flag decisions, flag_reviews, grader_notes")]:::live
     d2 -->|"submit locks the rows"| d3
   end
 
@@ -205,8 +207,8 @@ flowchart LR
 
   subgraph inst["Instructor"]
     direction TB
-    i1["Queue, submissions, visualiser"]:::planned
-    i2["9 Dismiss, add to feedback, note"]:::planned
+    i1["Queue, submissions, visualiser"]:::live
+    i2["9 Dismiss, add to feedback, note"]:::live
     i3["Download report"]:::planned
   end
 
@@ -224,9 +226,9 @@ flowchart LR
   d3 --> a5
   a5 <-->|"step text out, structured result in"| e2
   a5 --> d4
-  d3 -.-> i1
-  d4 -.-> i1
-  i2 -.-> d6
+  d3 --> i1
+  d4 --> i1
+  i2 --> d6
   i1 -.-> a6 -.-> i3
 ```
 
@@ -240,7 +242,7 @@ flowchart LR
 | 6 | Atomic submission | Working, [#23](https://github.com/DDarrenYe/DAYS-Capstone/issues/23) | The Submit button on the final-version panel calls `public.submit_project`. It locks the project row, then checks that the student is enrolled, the project is a Lane 2 draft, there's at least one step, every step has a critique and the saved final version isn't blank. If so, it sets `status`, `submitted_at` and the final version's `submitted_at` in one transaction. Submitting twice returns the first time. Students can no longer write `status` or `submitted_at` themselves, and a save that runs at the same time waits for the submit and is refused if it comes second. Once it succeeds, the server starts the reflection check (row 8) without waiting for it, and a failure there never undoes the submission. |
 | 7 | Text matching | Working, [#26](https://github.com/DDarrenYe/DAYS-Capstone/issues/26) | A deterministic matcher compares the saved final text with the logged AI answers and makes no outside call. Students and instructors read the same numbers through RLS. It doesn't write `match_results`. See "Final-text matching" in `supabase/README.md`. |
 | 8 | Reflection check | Working, [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32); limits and retries planned, [#34](https://github.com/DDarrenYe/DAYS-Capstone/issues/34) | After a submit, the server claims a run with `start_analysis` (one claimant per project) and checks the steps one at a time in `after()`. It calls the LLM API through the AI SDK, validates each answer and saves one `analysis_results` row per step plus any `flags` in one call (`complete_analysis`), or records a plain failure reason (`fail_analysis`). `projects.analysis_status` goes `pending`, `running`, then `completed` or `failed`. A finished run with no flags is different from pending or failed. An instructor can run it again from the Visualiser. A re-run adds a new set, keeps the old results and their reviews, and carries a decision over to a flag with the same step and kind. See "Running it on a submission" in `docs/flagging.md`. |
-| 9 | Grader decisions | Database-ready, [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33) | An instructor of that course changes a flag's decision, reviewer and time, and a trigger appends it to `flag_reviews`. They can only add, edit and delete their own `grader_notes`. The Visualiser keeps one note per step, enforced by a unique index on author and step. Saving an empty note deletes it. |
+| 9 | Grader decisions | Working, [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33) | An instructor of that course dismisses a flag or adds it to feedback, with an optional note, from the Flags page or the Visualiser. Both call `review_flag(flag, decision, note)`, which takes the reviewer and time from the session, ignores a repeat of the same decision and note, and keeps the earlier decision in `flag_reviews` when one is corrected or undone. They can only add, edit and delete their own `grader_notes`. The Visualiser keeps one note per step, enforced by a unique index on author and step. Saving an empty note deletes it. |
 | 10 | Export | Planned, [#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36) | The server builds the PDF and CSV from the same submitted snapshot, matches and decisions the instructor sees. Notes only go in when the grader picks that. |
 
 ## Who can do what
@@ -284,15 +286,16 @@ Matching and export stay inside the app. The reflection check sends each submitt
 | Student assignments page | Prototype. Three hard-coded cards, and "Add steps" opens a placeholder. |
 | Progress | Prototype. Example data. |
 | Privacy | Working. `/privacy` describes the flow above, linked from sign-in, the account menu and Add steps. It says what the reflection check sends and that the provider's retention isn't ours to set. Update it when [#39](https://github.com/DDarrenYe/DAYS-Capstone/issues/39) settles our own retention period. |
-| Instructor overview | Working, [#27](https://github.com/DDarrenYe/DAYS-Capstone/issues/27). The header, review progress, the bands of "not from logged AI", the open flags by reason and the totals on `/instructor` come from the same rows as the submissions table, one assignment at a time (`?assignment=` in the URL). The flags and reports pages are still placeholders. |
+| Instructor overview | Working, [#27](https://github.com/DDarrenYe/DAYS-Capstone/issues/27). The header, review progress, the bands of "not from logged AI", the open flags by reason, the flags added to feedback and the totals on `/instructor` come from the same rows as the submissions table, one assignment at a time (`?assignment=` in the URL). The reports page is still a placeholder. |
 | Submissions table | Working. The table on `/instructor` reads submitted projects from Supabase on the server and shows the shared match and critique figures, the reflection-check state, search, a filter and 50-row pages in the URL. |
-| Visualiser | Working, [#29](https://github.com/DDarrenYe/DAYS-Capstone/issues/29), [#30](https://github.com/DDarrenYe/DAYS-Capstone/issues/30). `/instructor/visualiser?project=` reads one submitted project on the server and shows the matcher's spans in the final essay, the words kept from each AI answer, critique questions answered per step, the errors the student marked and the open flags. The totals come from `submissionMetrics`, so they equal the submissions table. The note box under each step saves to `grader_notes` for the signed-in instructor. It saves when the field loses focus or on ⌘↵ (Ctrl+Enter), and a failed save keeps what was typed. Each flag on a step links to the Flags page. Flag decisions and the PDF export on that page aren't connected yet ([#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33), [#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36)). |
+| Visualiser | Working, [#29](https://github.com/DDarrenYe/DAYS-Capstone/issues/29), [#30](https://github.com/DDarrenYe/DAYS-Capstone/issues/30), [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33). `/instructor/visualiser?project=` reads one submitted project on the server and shows the matcher's spans in the final essay, the words kept from each AI answer, critique questions answered per step, the errors the student marked and the flags. Each step with a check result shows the three question results with their quotes, the explanation and the uncertainty, and each flag on it has Dismiss, Add to feedback, Undo and a note. The totals come from `submissionMetrics`, so they equal the submissions table. The note box under each step saves to `grader_notes` for the signed-in instructor. It saves when the field loses focus or on ⌘↵ (Ctrl+Enter), and a failed save keeps what was typed. The PDF export isn't connected yet ([#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36)). |
+| Flags | Working, [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33). `/instructor/flags` lists every flag in the newest saved result set of each submitted project in the instructor's own courses, open flags first, with the evidence, the explanation, the full critique, the check's question results and the same decision controls. A decision survives a reload because the page reads it again from the database. The sidebar count is the number of open flags, counted the same way as the overview. Pending, empty and failed states differ: a skeleton while it loads, one of three empty messages (no submissions, no finished check, nothing flagged), and the instructor error page when the read fails. |
 | Import, critique, final essay, submit | Working in My log. |
 | Matching | Working as code and reads (`src/lib/final-match.ts`, `src/lib/submission-metrics.ts`). The final-version panel in My log shows the preview from the saved text. The submissions table and the Visualiser both show it per student. |
 | Reflection check | Working, [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32). A submit starts it, the Visualiser shows its state and lets an instructor run it again. |
-| Grader decisions, export | Not built. The tables, versions and review history are ready. |
+| Grader decisions | Working, [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33). Decisions and notes are stored with reviewer and time, and the review history keeps every change. |
+| Export | Not built. It will read the same decisions, notes and flags added to feedback ([#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36)). |
 
 ## What's still missing
 
-- **Flag decisions have no note column.** [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33) mentions an optional note, but the review columns and `flag_reviews` don't store one.
 - **Roles can't be changed from the app.** Instructors are promoted by a trusted administrator. Enrolling by email never changes a role, and an invitation is only linked to a confirmed student account.

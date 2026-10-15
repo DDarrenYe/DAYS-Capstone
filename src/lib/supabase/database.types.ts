@@ -279,6 +279,7 @@ export interface Database {
         Row: {
           flag_id: string;
           id: string;
+          note: string | null;
           review_state: Database["public"]["Enums"]["flag_review_state"];
           reviewed_at: string;
           reviewer_id: string;
@@ -287,6 +288,7 @@ export interface Database {
         Insert: {
           flag_id: string;
           id?: string;
+          note?: string | null;
           review_state: Database["public"]["Enums"]["flag_review_state"];
           reviewed_at?: string;
           reviewer_id: string;
@@ -294,6 +296,7 @@ export interface Database {
         Update: {
           flag_id?: string;
           id?: string;
+          note?: string | null;
           review_state?: Database["public"]["Enums"]["flag_review_state"];
           reviewed_at?: string;
           reviewer_id?: string;
@@ -323,6 +326,7 @@ export interface Database {
           explanation: string;
           id: string;
           kind: string;
+          review_note: string | null;
           review_state: Database["public"]["Enums"]["flag_review_state"];
           reviewed_at: string | null;
           reviewed_by: string | null;
@@ -335,6 +339,7 @@ export interface Database {
           explanation: string;
           id?: string;
           kind: string;
+          review_note?: string | null;
           review_state?: Database["public"]["Enums"]["flag_review_state"];
           reviewed_at?: string | null;
           reviewed_by?: string | null;
@@ -346,6 +351,7 @@ export interface Database {
           explanation?: string;
           id?: string;
           kind?: string;
+          review_note?: string | null;
           review_state?: Database["public"]["Enums"]["flag_review_state"];
           reviewed_at?: string | null;
           reviewed_by?: string | null;
@@ -615,6 +621,14 @@ export interface Database {
       remove_step: {
         Args: { project: string; step: string };
         Returns: undefined;
+      };
+      review_flag: {
+        Args: {
+          decision: Database["public"]["Enums"]["flag_review_state"];
+          flag: string;
+          note?: string;
+        };
+        Returns: string;
       };
       save_final_version: {
         Args: {

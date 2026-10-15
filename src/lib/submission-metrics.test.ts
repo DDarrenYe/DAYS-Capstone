@@ -202,7 +202,6 @@ test("flag counts cover the newest saved analysis of the current final version",
     ])
   ).flags;
   assert.deepEqual(counts, {
-    active: 2,
     addedToFeedback: 1,
     dismissed: 1,
     open: 1,
@@ -247,7 +246,6 @@ test("a completed analysis without flags has zero counts", () => {
   assert.deepEqual(
     submissionMetrics(analysed([result("v2", "final-1")])).flags,
     {
-      active: 0,
       addedToFeedback: 0,
       dismissed: 0,
       open: 0,

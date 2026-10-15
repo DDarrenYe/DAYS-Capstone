@@ -3,20 +3,15 @@ import type { ReactNode } from "react";
 
 import { AccountMenu } from "@/components/shell/account-menu";
 import { Brand } from "@/components/shell/brand";
+import { InstructorNav } from "@/components/shell/instructor-navigation";
 import { SidebarNav } from "@/components/shell/shell-navigation";
 import type { NavItem, UserRole } from "@/components/shell/shell-navigation";
-import { cohortFlags } from "@/lib/example-data";
 
 const navigation: Record<UserRole, NavItem[]> = {
   instructor: [
     { icon: "submissions", label: "Submissions", segment: null },
     { icon: "essay", label: "Visualiser", segment: "visualiser" },
-    {
-      count: cohortFlags.length,
-      icon: "flag",
-      label: "Flags",
-      segment: "flags",
-    },
+    { icon: "flag", label: "Flags", segment: "flags" },
     { icon: "report", label: "Reports", segment: "reports" },
     { icon: "book", label: "Courses", segment: "courses" },
   ],
@@ -45,7 +40,17 @@ export const AppShell = ({
     <aside className="bg-sidebar flex gap-4.5 px-2.5 py-3.5 max-md:sticky max-md:top-0 max-md:z-30 max-md:items-center max-md:gap-3 max-md:border-b max-md:py-2 md:flex-col md:pl-3">
       <Brand href={`/${userRole}`} />
       <div className="min-w-0 flex-1">
-        <SidebarNav items={navigation[userRole]} userRole={userRole} />
+        {userRole === "instructor" ? (
+          <Suspense
+            fallback={
+              <SidebarNav items={navigation.instructor} userRole={userRole} />
+            }
+          >
+            <InstructorNav items={navigation.instructor} />
+          </Suspense>
+        ) : (
+          <SidebarNav items={navigation.student} userRole={userRole} />
+        )}
       </div>
       <Suspense
         fallback={

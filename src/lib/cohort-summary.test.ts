@@ -91,6 +91,20 @@ test("assignments are listed by title with their submission counts", () => {
   ]);
 });
 
+test("flags added to feedback are totalled apart from the open reasons", () => {
+  const summary = cohortSummary(
+    rowsOf(
+      entry("a", {
+        flags: [flag("open"), flag("added_to_feedback"), flag("dismissed")],
+      }),
+      entry("b", { flags: [flag("added_to_feedback")] }),
+      entry("c", { flags: null, status: "pending" })
+    )
+  );
+  assert.equal(summary.feedbackFlags, 2);
+  assert.deepEqual(summary.reasons, [{ count: 1, kind: "reads_like_ai" }]);
+});
+
 test("a check that has not finished is never counted as checked", () => {
   const summary = cohortSummary(
     rowsOf(

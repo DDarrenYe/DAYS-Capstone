@@ -1,12 +1,14 @@
-import Link from "next/link";
 import { useState } from "react";
 import type { ReactNode } from "react";
 
+import { CheckResult } from "@/app/instructor/check-result";
+import { FlagDecision } from "@/app/instructor/flag-decision";
 import type { SubmissionDetail } from "@/app/instructor/visualiser/submission-detail";
 import { MARKS, MarkedAnswer } from "@/app/student/log/marked-answer";
 import { Icon } from "@/components/icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardHeader, CardTitle } from "@/components/ui/card";
+import { FLAG_STATE_LABEL } from "@/lib/flag-review";
 import {
   countWords,
   critiqueOrder,
@@ -20,10 +22,10 @@ const LONG_TEXT_WORDS = 45;
 
 type DetailStep = SubmissionDetail["steps"][number];
 
-const FLAG_STATE: Record<DetailStep["flags"][number]["state"], string> = {
-  added_to_feedback: "Added to feedback",
-  dismissed: "Dismissed",
-  open: "Open",
+const FLAG_TONE: Record<DetailStep["flags"][number]["state"], string> = {
+  added_to_feedback: "bg-review-soft text-review-ink shadow-hairline",
+  dismissed: "bg-muted text-muted-foreground shadow-hairline",
+  open: "bg-flag-soft text-flag-ink shadow-flag-ring",
 };
 
 const Clamped = ({
@@ -80,20 +82,19 @@ const Field = ({
   </section>
 );
 
-const FlagCard = ({ flag }: { flag: DetailStep["flags"][number] }) => (
-  <div
-    className={cn(
-      "rounded-lg px-3 py-2.75",
-      flag.state === "open"
-        ? "bg-flag-soft text-flag-ink shadow-flag-ring"
-        : "bg-muted text-muted-foreground shadow-hairline"
-    )}
-  >
+const FlagCard = ({
+  flag,
+  subject,
+}: {
+  flag: DetailStep["flags"][number];
+  subject: string;
+}) => (
+  <div className={cn("rounded-lg px-3 py-2.75", FLAG_TONE[flag.state])}>
     <div className="font-heading flex items-center gap-1.75">
       <Icon name="flag" />
       {flag.label}
       <span className="text-label font-emphasis ml-auto">
-        {FLAG_STATE[flag.state]}
+        {FLAG_STATE_LABEL[flag.state]}
       </span>
     </div>
     <p className="mt-0.75 ml-5.75 whitespace-pre-line">{flag.explanation}</p>
@@ -102,14 +103,15 @@ const FlagCard = ({ flag }: { flag: DetailStep["flags"][number] }) => (
         {flag.evidence}
       </blockquote>
     ) : null}
-    <div className="text-label mt-2 ml-5.75 flex items-center gap-2">
-      <p className="opacity-60">Reflection check · suggested</p>
-      <Link
-        className="font-emphasis ml-auto underline-offset-4 hover:underline"
-        href="/instructor/flags"
-      >
-        Review in Flags
-      </Link>
+    <p className="text-label mt-2 ml-5.75 opacity-60">
+      Reflection check · suggested
+    </p>
+    <div className="mt-1.5 ml-5.75">
+      <FlagDecision
+        flag={flag}
+        key={flag.reviewedAt ?? "open"}
+        subject={subject}
+      />
     </div>
   </div>
 );
@@ -207,7 +209,11 @@ export const StepCard = ({
       key={step.id}
     >
       {step.flags.map((flag) => (
-        <FlagCard flag={flag} key={flag.id} />
+        <FlagCard
+          flag={flag}
+          key={flag.id}
+          subject={`${flag.label} flag on step ${index + 1}`}
+        />
       ))}
       {step.markedError ? (
         <div className="bg-success-soft text-success rounded-lg px-3 py-2.25">
@@ -262,6 +268,20 @@ export const StepCard = ({
         )}
         <CritiqueQuestions answered={step.answered} />
       </Field>
+      {step.check ? (
+        <details className="group/check" open={step.flags.length > 0}>
+          <summary className="text-label text-muted-foreground font-emphasis flex cursor-pointer list-none items-center gap-1">
+            Reflection check
+            <Icon
+              className="size-3.5 transition-transform group-open/check:rotate-180"
+              name="down"
+            />
+          </summary>
+          <div className="mt-2">
+            <CheckResult result={step.check} />
+          </div>
+        </details>
+      ) : null}
     </div>
     {children}
   </Card>

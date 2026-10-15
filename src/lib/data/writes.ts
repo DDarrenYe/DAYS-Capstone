@@ -63,6 +63,7 @@ const openSchema = z.object({ assignmentId: z.guid() });
 const projectSchema = z.object({ projectId: z.guid() });
 const reviewSchema = z.object({
   flagId: z.guid(),
+  note: z.string().max(MAX_NOTE).optional(),
   state: z.enum(flagReviewState.enumValues),
 });
 const noteSchema = z.object({
@@ -455,26 +456,24 @@ export const writeReanalysis = async (
   return {};
 };
 
+/* The database records who decided and when, from the session, and ignores a repeat of the same decision. */
 export const writeReview = async (
   client: Client,
-  reviewerId: string,
   input: ReviewInput
 ): Promise<WriteResult> => {
   const { data: review, success } = reviewSchema.safeParse(input);
   if (!success) {
     return invalidInput;
   }
-  const { data, error } = await client
-    .from("flags")
-    .update({
-      review_state: review.state,
-      reviewed_at: new Date().toISOString(),
-      reviewed_by: reviewerId,
-    })
-    .eq("id", review.flagId)
-    .select("id")
-    .maybeSingle();
-  return settle(data, error);
+  const { data, error } = await client.rpc("review_flag", {
+    decision: review.state,
+    flag: review.flagId,
+    note: review.note,
+  });
+  if (error) {
+    return failure(error);
+  }
+  return data ? {} : forbidden;
 };
 
 export const writeNote = async (

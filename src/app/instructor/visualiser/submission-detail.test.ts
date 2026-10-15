@@ -28,8 +28,33 @@ const flag = (
   evidence: "“Done.”",
   explanation: "The critique says too little.",
   id,
+  flag_reviews: [],
   kind: "low_effort_reflection",
+  review_note: null,
   review_state,
+  reviewed_at: null,
+});
+
+const answers = {
+  ai_correctness_addressed: true,
+  ai_correctness_evidence: "Done.",
+  changes_addressed: false,
+  changes_evidence: "",
+  explanation: "The critique gives a verdict and nothing else.",
+  uncertainty: "A short critique may follow a discussion that was not logged.",
+  verification_addressed: false,
+  verification_evidence: "",
+};
+
+const result = (flags: ReturnType<typeof flag>[]) => ({
+  ...answers,
+  analysis_version: "v1",
+  created_at: "2026-10-14T01:04:00Z",
+  final_version_id: "final-1",
+  flags,
+  iteration_id: "step-2",
+  model: "glm-test",
+  rubric_version: "three-questions-v1",
 });
 
 const project = (
@@ -37,6 +62,7 @@ const project = (
 ): SubmissionProject => ({
   analysis_results: [
     {
+      ...answers,
       analysis_version: "v1",
       created_at: "2026-10-14T01:04:00Z",
       final_version_id: "final-1",
@@ -46,6 +72,7 @@ const project = (
       rubric_version: "three-questions-v1",
     },
     {
+      ...answers,
       analysis_version: "v1",
       created_at: "2026-10-14T01:04:00Z",
       final_version_id: "final-0",
@@ -222,6 +249,55 @@ test("each step carries its retained words, critique depth, marks and open flags
   assert.equal(steps[1]?.marks.length, 1);
   assert.equal(steps[1]?.critique, "");
   assert.equal(steps[0]?.title, "Explain photosynthesis");
+});
+
+test("a step carries the question results, explanation and uncertainty of the current check", () => {
+  const { steps } = submissionDetail(project());
+  assert.equal(steps[0]?.check, null);
+  assert.deepEqual(steps[1]?.check, {
+    explanation: "The critique gives a verdict and nothing else.",
+    model: "glm-test",
+    questions: [
+      {
+        addressed: true,
+        evidence: "Done.",
+        label: "Was the AI right or wrong?",
+      },
+      { addressed: false, evidence: "", label: "How did you check?" },
+      { addressed: false, evidence: "", label: "What did you change?" },
+    ],
+    rubricVersion: "three-questions-v1",
+    uncertainty:
+      "A short critique may follow a discussion that was not logged.",
+  });
+});
+
+test("open flags and flags added to feedback are counted apart, and a decided flag no longer marks the step", () => {
+  const detail = submissionDetail(
+    project({
+      analysis_results: [
+        result([
+          flag("a", "open"),
+          flag("b", "added_to_feedback"),
+          flag("c", "dismissed"),
+        ]),
+      ],
+    })
+  );
+  assert.equal(detail.openFlags, 1);
+  assert.equal(detail.feedbackFlags, 1);
+  assert.equal(detail.steps[1]?.flag, "Thin critique");
+  const decided = submissionDetail(
+    project({
+      analysis_results: [
+        result([flag("b", "added_to_feedback"), flag("c", "dismissed")]),
+      ],
+    })
+  );
+  assert.equal(decided.openFlags, 0);
+  assert.equal(decided.feedbackFlags, 1);
+  assert.equal(decided.steps[1]?.flag, undefined);
+  assert.equal(decided.steps[1]?.flags.length, 2);
 });
 
 test("each step carries only its own saved note", () => {

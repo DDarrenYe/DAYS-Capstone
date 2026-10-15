@@ -204,6 +204,12 @@ export const CohortOverview = ({ rows }: { rows: SubmissionRow[] }) => {
               </span>
             </div>
             <Reasons summary={summary} />
+            <p className="text-muted-foreground text-meta mt-2">
+              <b className="text-foreground font-heading tabular-nums">
+                {summary.feedbackFlags}
+              </b>{" "}
+              added to feedback, not counted above
+            </p>
             <p className="text-muted-foreground text-meta mt-3 mb-3 text-pretty">
               Flags only ask you to look closer. They never change a grade, and
               you can dismiss any of them.

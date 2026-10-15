@@ -177,6 +177,11 @@ const columns = helper.columns([
               {row.original.openFlags}
             </Badge>
           ) : null}
+          {row.original.feedbackFlags > 0 ? (
+            <Badge variant="review">
+              {row.original.feedbackFlags} in feedback
+            </Badge>
+          ) : null}
         </span>
       );
     },
