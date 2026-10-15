@@ -6,7 +6,7 @@
   "cacheMaxAge": "14d",
   "tasks": {
     "dev:app": {
-      "with": ["db:start"],
+      "dependsOn": ["db:migrate"],
       "cache": false,
       "persistent": true,
       "passThroughEnv": ["PORTLESS*"],
@@ -20,6 +20,11 @@
       ]
     },
     "db:start": {
+      "cache": false,
+      "env": ["SUPABASE_*"]
+    },
+    "db:migrate": {
+      "dependsOn": ["db:start"],
       "cache": false,
       "env": ["SUPABASE_*"]
     },
