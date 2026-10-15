@@ -1,7 +1,8 @@
 ALTER TABLE "flag_reviews" ADD COLUMN "note" text;--> statement-breakpoint
 ALTER TABLE "flags" ADD COLUMN "review_note" text;--> statement-breakpoint
 ALTER TABLE "flag_reviews" ADD CONSTRAINT "flag_reviews_note_check" CHECK ("flag_reviews"."note" is null or btrim("flag_reviews"."note") <> '');--> statement-breakpoint
-ALTER TABLE "flags" ADD CONSTRAINT "flags_review_note_check" CHECK ("flags"."review_note" is null or (btrim("flags"."review_note") <> '' and char_length("flags"."review_note") <= 2000 and "flags"."review_state" <> 'open'));--> statement-breakpoint
+ALTER TABLE "flags" ADD CONSTRAINT "flags_review_note_check" CHECK ("flags"."review_note" is null or (btrim("flags"."review_note") <> '' and char_length("flags"."review_note") <= 2000 and "flags"."review_state" <> 'open'));
+--> statement-breakpoint
 grant update (review_note) on public.flags to authenticated;
 
 create or replace function public.record_flag_review() returns trigger
@@ -50,7 +51,7 @@ $$;
 revoke all on function public.review_flag(uuid, public.flag_review_state, text) from public, anon;
 grant execute on function public.review_flag(uuid, public.flag_review_state, text) to authenticated;
 
-create or replace function public.complete_analysis(project uuid, run text, results jsonb)
+create or replace function public.complete_analysis(project uuid, run text, results jsonb, tokens integer default null)
 returns void
 language plpgsql set search_path = '' as $$
 declare
@@ -120,5 +121,7 @@ begin
     analysis_error = null,
     analysis_finished_at = now()
     where p.id = project;
+  update public.analysis_attempts a set used_tokens = coalesce(tokens, a.reserved_tokens), finished_at = now()
+    where a.project_id = project and a.finished_at is null;
 end;
 $$;

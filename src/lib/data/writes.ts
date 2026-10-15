@@ -448,12 +448,12 @@ export const writeReanalysis = async (
     return readError ? failure(readError) : forbidden;
   }
   try {
-    await start(project.id, true);
+    const refused = await start(project.id, true);
+    return refused ? { error: refused } : {};
   } catch (error) {
     console.error("Unable to start the reflection check", error);
     return { error: "Unable to start the check. Try again shortly." };
   }
-  return {};
 };
 
 /* The database records who decided and when, from the session, and ignores a repeat of the same decision. */

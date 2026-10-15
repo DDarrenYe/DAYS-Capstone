@@ -35,6 +35,12 @@ Resolve these guides under `node_modules/next/dist/docs/`; use the installed ver
 
 After changes, run the repository’s lint, unit test, typecheck, and build scripts. For rendering or routing changes, also check Next.js dev diagnostics and production prefetch/navigation behaviour. A passing static build does not verify runtime streaming, authorization, or CI browser coverage.
 
+## Review loop
+
+Write code with `ponytail` (`.agents/skills/ponytail`) so the diff starts small.
+
+Before finishing a task that changes files, review the diff with `codebase-design` and `ponytail-review` (both in `.agents/skills`). Fix every finding, then review the new diff again and run the checks above. Repeat until a full pass returns no findings and the checks pass, and say so in the final message. Leave unrelated edits untouched.
+
 <!-- BEGIN:turborepo-agent-rules -->
 
 # This is NOT the Turborepo you know

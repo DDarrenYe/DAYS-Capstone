@@ -1,9 +1,120 @@
 {
-  "id": "06ca9d5b-efcf-40de-8a09-c690116acca8",
+  "id": "bcc346b1-7add-492c-994b-124e6ffd5bcd",
   "prevId": "37335a62-80e4-4ba8-ac2b-a7935e911388",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.analysis_attempts": {
+      "name": "analysis_attempts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reserved_tokens": {
+          "name": "reserved_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "used_tokens": {
+          "name": "used_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "finished_at": {
+          "name": "finished_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "analysis_attempts_started": {
+          "name": "analysis_attempts_started",
+          "columns": [
+            {
+              "expression": "started_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "analysis_attempts_project": {
+          "name": "analysis_attempts_project",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "started_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "analysis_attempts_project_id_projects_id_fk": {
+          "name": "analysis_attempts_project_id_projects_id_fk",
+          "tableFrom": "analysis_attempts",
+          "tableTo": "projects",
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "analysis_attempts_reserved_tokens_check": {
+          "name": "analysis_attempts_reserved_tokens_check",
+          "value": "\"analysis_attempts\".\"reserved_tokens\" >= 0"
+        },
+        "analysis_attempts_used_tokens_check": {
+          "name": "analysis_attempts_used_tokens_check",
+          "value": "\"analysis_attempts\".\"used_tokens\" >= 0"
+        },
+        "analysis_attempts_finished": {
+          "name": "analysis_attempts_finished",
+          "value": "(\"analysis_attempts\".\"used_tokens\" is not null) = (\"analysis_attempts\".\"finished_at\" is not null)"
+        }
+      },
+      "isRLSEnabled": true
+    },
     "public.analysis_results": {
       "name": "analysis_results",
       "schema": "",
@@ -626,12 +737,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "note": {
-          "name": "note",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -689,12 +794,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "flag_reviews_note_check": {
-          "name": "flag_reviews_note_check",
-          "value": "\"flag_reviews\".\"note\" is null or btrim(\"flag_reviews\".\"note\") <> ''"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": true
     },
     "public.flags": {
@@ -749,12 +849,6 @@
         "reviewed_at": {
           "name": "reviewed_at",
           "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "review_note": {
-          "name": "review_note",
-          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -816,10 +910,6 @@
         "flags_kind_check": {
           "name": "flags_kind_check",
           "value": "btrim(\"flags\".\"kind\") <> ''"
-        },
-        "flags_review_note_check": {
-          "name": "flags_review_note_check",
-          "value": "\"flags\".\"review_note\" is null or (btrim(\"flags\".\"review_note\") <> '' and char_length(\"flags\".\"review_note\") <= 2000 and \"flags\".\"review_state\" <> 'open')"
         },
         "flags_evidence_check": {
           "name": "flags_evidence_check",

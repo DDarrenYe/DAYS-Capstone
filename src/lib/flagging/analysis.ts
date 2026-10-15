@@ -3,9 +3,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { APICallError, RetryError } from "ai";
 import type { LanguageModel } from "ai";
 import { after } from "next/server";
+import { z } from "zod";
 
-import { checkReflection } from "@/lib/flagging/check";
+import {
+  InvalidReplyError,
+  MAX_OUTPUT_TOKENS,
+  checkReflection,
+  isTimeout,
+} from "@/lib/flagging/check";
 import { createReflectionModel } from "@/lib/flagging/model";
+import { SYSTEM_PROMPT } from "@/lib/flagging/rubric";
 import { createAnalysisClient } from "@/lib/supabase/analysis";
 import type { Database, Json } from "@/lib/supabase/database.types";
 
@@ -14,10 +21,29 @@ type Client = SupabaseClient<Database>;
 export const RUN_BUDGET_MS = 200_000;
 export const STALE_AFTER_SECONDS = 600;
 
+export const LIMITS = {
+  daily_tokens:
+    Math.trunc(Number(process.env.ANALYSIS_DAILY_TOKENS ?? "")) || 3_000_000,
+  max_attempts: 5,
+  max_running: 3,
+  max_step_chars: 30_000,
+  max_steps: 20,
+  stale_after: STALE_AFTER_SECONDS,
+  step_overhead: Math.ceil(SYSTEM_PROMPT.length / 3) + MAX_OUTPUT_TOKENS,
+};
+
 export interface AnalysisRun {
   projectId: string;
   version: string;
 }
+
+export interface Refusal {
+  refused: string;
+}
+
+const claimSchema = z
+  .union([z.object({ version: z.string() }), z.object({ refused: z.string() })])
+  .nullable();
 
 type Checked = Awaited<ReturnType<typeof checkReflection>>;
 
@@ -25,16 +51,19 @@ export const claimAnalysis = async (
   client: Client,
   projectId: string,
   restart: boolean
-): Promise<AnalysisRun | null> => {
+): Promise<AnalysisRun | Refusal | null> => {
   const { data, error } = await client.rpc("start_analysis", {
     project: projectId,
     restart,
-    stale_after: STALE_AFTER_SECONDS,
+    ...LIMITS,
   });
   if (error) {
     throw new Error("Unable to start the reflection check.", { cause: error });
   }
-  return data ? { projectId, version: data } : null;
+  const claim = claimSchema.parse(data);
+  return claim && "version" in claim
+    ? { projectId, version: claim.version }
+    : claim;
 };
 
 const resultRow = (iterationId: string, checked: Checked): Json => ({
@@ -53,7 +82,7 @@ const resultRow = (iterationId: string, checked: Checked): Json => ({
 });
 
 const reasonFor = (failure: Error) => {
-  if (failure.name === "TimeoutError" || failure.name === "AbortError") {
+  if (isTimeout(failure)) {
     return "The reflection check timed out.";
   }
   if (APICallError.isInstance(failure)) {
@@ -61,13 +90,17 @@ const reasonFor = (failure: Error) => {
       ? "The model provider was busy. Try again shortly."
       : "The model provider rejected the request.";
   }
+  if (failure instanceof InvalidReplyError) {
+    return "The model's reply could not be used. Try again.";
+  }
   return "The reflection check failed. Try again.";
 };
 
 const checkSteps = async (
   client: Client,
   projectId: string,
-  model: LanguageModel
+  model: LanguageModel,
+  onUsage: (tokens?: number) => void
 ) => {
   const { data: steps, error } = await client
     .from("iterations")
@@ -89,11 +122,15 @@ const checkSteps = async (
         "TimeoutError"
       );
     }
-    const checked = await checkReflection(model, {
-      aiAnswer: step.raw_answer,
-      critique: step.critique ?? "",
-      prompt: step.prompt,
-    });
+    const checked = await checkReflection(
+      model,
+      {
+        aiAnswer: step.raw_answer,
+        critique: step.critique ?? "",
+        prompt: step.prompt,
+      },
+      onUsage
+    );
     return check(index + 1, [...done, resultRow(step.id, checked)]);
   };
   return check(0, []);
@@ -104,12 +141,18 @@ export const executeAnalysis = async (
   { projectId, version }: AnalysisRun,
   loadModel: () => LanguageModel = createReflectionModel
 ): Promise<void> => {
+  let tokens: number | undefined = 0;
+  const onUsage = (used?: number) => {
+    tokens =
+      tokens === undefined || used === undefined ? undefined : tokens + used;
+  };
   try {
-    const results = await checkSteps(client, projectId, loadModel());
+    const results = await checkSteps(client, projectId, loadModel(), onUsage);
     const { error } = await client.rpc("complete_analysis", {
       project: projectId,
       results,
       run: version,
+      tokens,
     });
     if (error) {
       throw new Error("Unable to save the results.", { cause: error });
@@ -127,6 +170,7 @@ export const executeAnalysis = async (
       project: projectId,
       reason: reasonFor(failure),
       run: version,
+      tokens,
     });
     if (recordError) {
       console.error("Unable to record the failed check", recordError);
@@ -134,10 +178,17 @@ export const executeAnalysis = async (
   }
 };
 
-export const startAnalysis = async (projectId: string, restart: boolean) => {
+export const startAnalysis = async (
+  projectId: string,
+  restart: boolean
+): Promise<string | null> => {
   const client = createAnalysisClient();
-  const run = await claimAnalysis(client, projectId, restart);
-  if (run) {
-    after(() => executeAnalysis(client, run));
+  const claim = await claimAnalysis(client, projectId, restart);
+  if (claim && "refused" in claim) {
+    return claim.refused;
   }
+  if (claim) {
+    after(() => executeAnalysis(client, claim));
+  }
+  return null;
 };

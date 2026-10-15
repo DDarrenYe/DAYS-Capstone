@@ -34,6 +34,42 @@ export interface Database {
   };
   public: {
     Tables: {
+      analysis_attempts: {
+        Row: {
+          finished_at: string | null;
+          id: string;
+          project_id: string;
+          reserved_tokens: number;
+          started_at: string;
+          used_tokens: number | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          finished_at?: string | null;
+          id?: string;
+          project_id: string;
+          reserved_tokens: number;
+          started_at?: string;
+          used_tokens?: number | null;
+        };
+        Update: {
+          finished_at?: string | null;
+          id?: string;
+          project_id?: string;
+          reserved_tokens?: number;
+          started_at?: string;
+          used_tokens?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "analysis_attempts_project_id_projects_id_fk";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       analysis_results: {
         Row: {
           ai_correctness_addressed: boolean;
@@ -595,7 +631,7 @@ export interface Database {
         }[];
       };
       complete_analysis: {
-        Args: { project: string; results: Json; run: string };
+        Args: { project: string; results: Json; run: string; tokens?: number };
         Returns: undefined;
       };
       enrol_students: {
@@ -606,7 +642,7 @@ export interface Database {
         }[];
       };
       fail_analysis: {
-        Args: { project: string; reason: string; run: string };
+        Args: { project: string; reason: string; run: string; tokens?: number };
         Returns: undefined;
       };
       has_work: {
@@ -644,8 +680,18 @@ export interface Database {
         }[];
       };
       start_analysis: {
-        Args: { project: string; restart: boolean; stale_after: number };
-        Returns: string;
+        Args: {
+          daily_tokens: number;
+          max_attempts: number;
+          max_running: number;
+          max_step_chars: number;
+          max_steps: number;
+          project: string;
+          restart: boolean;
+          stale_after: number;
+          step_overhead: number;
+        };
+        Returns: Json;
       };
       submit_project: { Args: { project: string }; Returns: string };
     };

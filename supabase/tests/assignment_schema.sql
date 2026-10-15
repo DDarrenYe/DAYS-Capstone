@@ -1,7 +1,7 @@
 begin;
 select plan(50);
 
-truncate public.grader_notes, public.flag_reviews, public.flags, public.analysis_results,
+truncate public.grader_notes, public.flag_reviews, public.flags, public.analysis_results, public.analysis_attempts,
   public.final_versions, public.iterations, public.projects, public.assignments,
   public.enrolments, public.courses, public.profiles;
 delete from auth.users;
@@ -94,7 +94,7 @@ insert into public.grader_notes (project_id, iteration_id, final_version_id, aut
   ('00000000-0000-0000-0000-000000000030', '00000000-0000-0000-0000-000000000040', '00000000-0000-0000-0000-000000000050', '00000000-0000-0000-0000-000000000001', 'Check the survey reference.');
 select throws_ok($$update public.grader_notes set final_version_id = '00000000-0000-0000-0000-000000000051'$$, '23503', null, 'Notes cannot reference another project final');
 select throws_ok($$delete from public.final_versions where id = '00000000-0000-0000-0000-000000000050'$$, '23503', null, 'Final text supporting analysis and notes cannot be deleted individually');
-select is((select count(*)::integer from pg_class join pg_namespace on pg_namespace.oid = relnamespace where nspname = 'public' and relkind = 'r' and relrowsecurity), 11, 'Every application table has RLS enabled');
+select is((select count(*)::integer from pg_class join pg_namespace on pg_namespace.oid = relnamespace where nspname = 'public' and relkind = 'r' and relrowsecurity), 12, 'Every application table has RLS enabled');
 set local role anon;
 select throws_ok($$select * from public.iterations$$, '42501', null, 'Anonymous clients cannot read student text');
 reset role;

@@ -96,8 +96,22 @@
     {
       "idx": 13,
       "version": "7",
-      "when": 1792027341121,
-      "tag": "20261015012221_flag_decision_notes",
+      "when": 1792027403603,
+      "tag": "20261015012323_analysis_attempts",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792027406873,
+      "tag": "20261015012326_bound_analysis_cost",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1792029007833,
+      "tag": "20261015015007_flag_decision_notes",
       "breakpoints": true
     }
   ]
