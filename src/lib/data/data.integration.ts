@@ -10,10 +10,15 @@ import type {
 } from "@supabase/supabase-js";
 import { QueryClient, QueryObserver } from "@tanstack/query-core";
 import type { QueryKey } from "@tanstack/query-core";
+import { APICallError } from "ai";
+import { MockLanguageModelV4 } from "ai/test";
 
+import { claimAnalysis, executeAnalysis } from "@/lib/flagging/analysis";
+import type { AnalysisRun } from "@/lib/flagging/analysis";
 import type { loadShare } from "@/lib/import/share";
 import { createAnalysisClient } from "@/lib/supabase/analysis";
 import type { Database } from "@/lib/supabase/database.types";
+import { quietly } from "@/lib/test-console";
 
 import {
   assignmentsQuery,
@@ -45,6 +50,7 @@ import {
   writeSteps,
   writeSubmission,
 } from "./writes";
+import type { SubmitInput } from "./writes";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonymousKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -72,6 +78,9 @@ const must = async <T>(pending: PromiseLike<PostgrestSingleResponse<T>>) => {
   }
   return data;
 };
+
+const submit = (client: SupabaseClient<Database>, input: SubmitInput) =>
+  writeSubmission(client, input, () => Promise.resolve());
 
 const run = async (pending: PromiseLike<{ error: PostgrestError | null }>) => {
   const { error } = await pending;
@@ -901,7 +910,7 @@ test("final text saves as versions, the log shows the current one, and stale, fo
     assert.ok(hidden, "matching outputs are not readable by students");
 
     await addCheckedStep(projectId);
-    assert.deepEqual(await writeSubmission(s1.client, { projectId }), {});
+    assert.deepEqual(await submit(s1.client, { projectId }), {});
     assert.deepEqual(await writeFinal(s1.client, input), forbidden);
     const [locked] = await current();
     assert.equal(locked?.version_number, 3);
@@ -970,9 +979,9 @@ test("opening a Lane 2 assignment creates one project, however often it is opene
 test("submitting refuses incomplete logs, then locks the project and rejects other users", async () => {
   const { p1, p3, s1, s2, teacherA } = await fixture;
   const rejected = await Promise.all([
-    writeSubmission(s2.client, { projectId: p1 }),
-    writeSubmission(s1.client, { projectId: p3 }),
-    writeSubmission(teacherA.client, { projectId: p1 }),
+    submit(s2.client, { projectId: p1 }),
+    submit(s1.client, { projectId: p3 }),
+    submit(teacherA.client, { projectId: p1 }),
   ]);
   assert.deepEqual(rejected, [forbidden, forbidden, forbidden]);
   const queryClient = newQueryClient();
@@ -994,7 +1003,7 @@ test("submitting refuses incomplete logs, then locks the project and rejects oth
     );
   assert.equal(await statusOf(), "draft");
 
-  const noCritique = await writeSubmission(s1.client, { projectId: p1 });
+  const noCritique = await submit(s1.client, { projectId: p1 });
   assert.match(noCritique.error ?? "", /Add a critique to every step/u);
   await run(
     admin
@@ -1002,7 +1011,7 @@ test("submitting refuses incomplete logs, then locks the project and rejects oth
       .update({ critique: "Checked the answer." })
       .eq("project_id", p1)
   );
-  assert.deepEqual(await writeSubmission(s1.client, { projectId: p1 }), {
+  assert.deepEqual(await submit(s1.client, { projectId: p1 }), {
     error: "Save your final version before you submit.",
   });
   assert.deepEqual(await stored(), { status: "draft", submitted_at: null });
@@ -1015,14 +1024,14 @@ test("submitting refuses incomplete logs, then locks the project and rejects oth
   assert.equal(saved.version, 1);
 
   const retries = await Promise.all([
-    writeSubmission(s1.client, { projectId: p1 }),
-    writeSubmission(s1.client, { projectId: p1 }),
-    writeSubmission(s1.client, { projectId: p1 }),
+    submit(s1.client, { projectId: p1 }),
+    submit(s1.client, { projectId: p1 }),
+    submit(s1.client, { projectId: p1 }),
   ]);
   assert.deepEqual(retries, [{}, {}, {}]);
   const first = await stored();
   assert.equal(first.status, "submitted");
-  assert.deepEqual(await writeSubmission(s1.client, { projectId: p1 }), {});
+  assert.deepEqual(await submit(s1.client, { projectId: p1 }), {});
   assert.deepEqual(await stored(), first);
   const stamped = await must(
     admin
@@ -1106,7 +1115,7 @@ test("a student cannot submit by writing the project row, and a save racing a su
         projectId,
         text: "Racing text",
       }),
-      writeSubmission(s1.client, { projectId }),
+      submit(s1.client, { projectId }),
     ]);
     assert.deepEqual(submitResult, {});
     const current = await must(
@@ -1550,10 +1559,7 @@ test("the student preview and the grader read the same final-text totals", async
       .update({ critique: "Checked the answer." })
       .eq("project_id", project.id)
   );
-  assert.deepEqual(
-    await writeSubmission(writer.client, { projectId: project.id }),
-    {}
-  );
+  assert.deepEqual(await submit(writer.client, { projectId: project.id }), {});
 
   const graded = await read(teacherA.client, teacherA.id, project.id);
   assert.deepEqual(graded, second);
@@ -1693,4 +1699,294 @@ test("the student preview and the grader read the same final-text totals", async
     open: 1,
     openKinds: [{ count: 1, kind: "blind" }],
   });
+});
+
+const usage = {
+  inputTokens: {
+    cacheRead: undefined,
+    cacheWrite: undefined,
+    noCache: 10,
+    total: 10,
+  },
+  outputTokens: { reasoning: undefined, text: 20, total: 20 },
+};
+
+const specificCritique =
+  "The date was wrong. I checked the article. I fixed it.";
+const thinCritique = "Looks good.";
+
+const reflectionFor = (critique: string) =>
+  critique === thinCritique
+    ? {
+        aiCorrectness: { addressed: true, evidence: "Looks good" },
+        changes: { addressed: false, evidence: "" },
+        explanation: "Accepts the answer without a check.",
+        flags: [
+          {
+            evidence: "Looks good",
+            explanation: "No check and no change.",
+            kind: "blind_acceptance",
+          },
+        ],
+        uncertainty: "Moderate.",
+        verification: { addressed: false, evidence: "" },
+      }
+    : {
+        aiCorrectness: { addressed: true, evidence: "The date was wrong" },
+        changes: { addressed: true, evidence: "I fixed it" },
+        explanation: "Names the error, the check and the fix.",
+        flags: [],
+        uncertainty: "Low.",
+        verification: { addressed: true, evidence: "I checked the article" },
+      };
+
+const modelForSteps = () => {
+  const critiques = [specificCritique, thinCritique];
+  return new MockLanguageModelV4({
+    doGenerate: () => {
+      const critique = critiques.shift() ?? thinCritique;
+      return Promise.resolve({
+        content: [
+          {
+            text: JSON.stringify(reflectionFor(critique)),
+            type: "text" as const,
+          },
+        ],
+        finishReason: { raw: undefined, unified: "stop" as const },
+        usage,
+        warnings: [],
+      });
+    },
+  });
+};
+
+const modelRejecting = () =>
+  new MockLanguageModelV4({
+    doGenerate: () =>
+      Promise.reject(
+        new APICallError({
+          isRetryable: false,
+          message: "Bad request",
+          requestBodyValues: {},
+          statusCode: 400,
+          url: "https://api.example.com/chat/completions",
+        })
+      ),
+  });
+
+const soleRun = (runs: AnalysisRun[]) => {
+  const [only] = runs;
+  assert.equal(runs.length, 1);
+  assert.ok(only);
+  return only;
+};
+
+const claimed = async (projectId: string, restart: boolean) => {
+  const attempts = await Promise.all(
+    Array.from({ length: 4 }, () => claimAnalysis(admin, projectId, restart))
+  );
+  return attempts.filter((attempt): attempt is AnalysisRun => attempt !== null);
+};
+
+test("a submission is analysed once, shows its state, and a re-run keeps earlier results and decisions", async () => {
+  const { teacherA, teacherB } = await fixture;
+  const writer = await createAccount("analyst", "student");
+  const course = await must(
+    admin
+      .from("courses")
+      .insert({
+        code: `R-${tag}`,
+        instructor_id: teacherA.id,
+        title: "Analysis",
+      })
+      .select("id")
+      .single()
+  );
+  created.courses.add(course.id);
+  const assignment = await must(
+    admin
+      .from("assignments")
+      .insert({ course_id: course.id, lane: "lane_2", title: `${tag} Run` })
+      .select("id")
+      .single()
+  );
+  created.assignments.add(assignment.id);
+  await run(
+    admin.from("enrolments").insert({
+      course_id: course.id,
+      email: writer.email,
+      student_id: writer.id,
+    })
+  );
+  const project = await must(
+    admin
+      .from("projects")
+      .insert({
+        assignment_id: assignment.id,
+        course_id: course.id,
+        student_id: writer.id,
+      })
+      .select("id")
+      .single()
+  );
+  created.projects.add(project.id);
+  await run(
+    admin.from("iterations").insert([
+      {
+        ai_tool: "Tool",
+        critique: specificCritique,
+        project_id: project.id,
+        prompt: "When?",
+        raw_answer: "In 1990.",
+        step_number: 1,
+      },
+      {
+        ai_tool: "Tool",
+        critique: thinCritique,
+        project_id: project.id,
+        prompt: "Why?",
+        raw_answer: "Because.",
+        step_number: 2,
+      },
+    ])
+  );
+  await run(
+    admin.from("final_versions").insert({
+      extracted_text: "My final essay.",
+      project_id: project.id,
+      version_number: 1,
+    })
+  );
+  const readSubmission = async () => {
+    const found = await submissionQuery(
+      teacherA.client,
+      teacherA.id,
+      project.id
+    ).queryFn();
+    assert.ok(found);
+    return found;
+  };
+
+  assert.equal(
+    await claimAnalysis(admin, project.id, true),
+    null,
+    "a draft is never analysed"
+  );
+  assert.deepEqual(await submit(writer.client, { projectId: project.id }), {});
+  const statusNow = async () => {
+    const found = await readSubmission();
+    return found.analysis_status;
+  };
+  const { submitted_at: submittedAt } = await readSubmission();
+  assert.equal(await statusNow(), "pending");
+
+  const firstRun = soleRun(await claimed(project.id, false));
+  assert.deepEqual(firstRun, { projectId: project.id, version: "analysis-v1" });
+  assert.equal(await statusNow(), "running");
+  assert.deepEqual(await claimed(project.id, true), []);
+
+  await quietly(() => executeAnalysis(admin, firstRun, modelRejecting));
+  const failed = await readSubmission();
+  assert.equal(failed.analysis_status, "failed");
+  assert.equal(
+    failed.analysis_error,
+    "The model provider rejected the request."
+  );
+  assert.equal(failed.submitted_at, submittedAt);
+  assert.equal(failed.analysis_results.length, 0);
+  assert.deepEqual(await claimed(project.id, false), []);
+
+  const retried = soleRun(await claimed(project.id, true));
+  assert.equal(retried.version, "analysis-v1");
+  await executeAnalysis(admin, retried, modelForSteps);
+  const done = await readSubmission();
+  assert.equal(done.analysis_status, "completed");
+  assert.equal(done.analysis_error, null);
+  assert.equal(done.analysis_results.length, 2);
+  assert.deepEqual(
+    done.analysis_results
+      .map(({ flags }) => flags.map(({ kind }) => kind))
+      .toSorted(),
+    [[], ["blind_acceptance"]]
+  );
+  assert.deepEqual(await claimed(project.id, false), []);
+  const studentRead = await writer.client
+    .from("analysis_results")
+    .select("id")
+    .eq("project_id", project.id);
+  assert.deepEqual(studentRead.data, []);
+  const foreign = await submissionQuery(
+    teacherB.client,
+    teacherB.id,
+    project.id
+  ).queryFn();
+  assert.equal(foreign, null);
+  assert.deepEqual(
+    await writeCritique(writer.client, {
+      critique: "Changed after submitting.",
+      projectId: project.id,
+      stepId: done.iterations[0]?.id ?? "",
+    }),
+    forbidden
+  );
+
+  const [flag] = done.analysis_results.flatMap(({ flags }) => flags);
+  assert.deepEqual(
+    await writeReview(teacherA.client, teacherA.id, {
+      flagId: flag?.id ?? "",
+      state: "dismissed",
+    }),
+    {}
+  );
+
+  const second = soleRun(await claimed(project.id, true));
+  assert.equal(second.version, "analysis-v2");
+  assert.equal(await statusNow(), "running");
+  await quietly(() => executeAnalysis(admin, second, modelRejecting));
+  const kept = await readSubmission();
+  assert.equal(kept.analysis_status, "failed");
+  assert.equal(kept.submitted_at, submittedAt);
+  assert.equal(kept.analysis_results.length, 2);
+  const metrics = await projectMetricsQuery(
+    teacherA.client,
+    teacherA.id,
+    project.id
+  ).queryFn();
+  assert.equal(metrics.flags?.dismissed, 1);
+  assert.equal(metrics.flags?.open, 0);
+
+  const third = soleRun(await claimed(project.id, true));
+  assert.equal(third.version, "analysis-v2");
+  await executeAnalysis(admin, third, modelForSteps);
+  const latest = await readSubmission();
+  assert.equal(latest.analysis_status, "completed");
+  assert.equal(latest.analysis_version, "analysis-v2");
+  assert.equal(latest.analysis_results.length, 4);
+  const rerun = await projectMetricsQuery(
+    teacherA.client,
+    teacherA.id,
+    project.id
+  ).queryFn();
+  assert.equal(rerun.flags?.dismissed, 1);
+  assert.equal(rerun.flags?.open, 0);
+
+  const history = await reviewsQuery(
+    teacherA.client,
+    teacherA.id,
+    project.id
+  ).queryFn();
+  const decided = history
+    .flatMap(({ analysis_version: version, flags }) =>
+      flags.map((item) => ({ item, version }))
+    )
+    .filter(({ item }) => item.review_state === "dismissed");
+  assert.deepEqual(decided.map(({ version }) => version).toSorted(), [
+    "analysis-v1",
+    "analysis-v2",
+  ]);
+  assert.ok(decided.every(({ item }) => item.flag_reviews.length >= 1));
+  assert.deepEqual(
+    new Set(decided.map(({ item }) => item.reviewed_by)),
+    new Set([teacherA.id])
+  );
 });

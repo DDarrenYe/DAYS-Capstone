@@ -47,8 +47,8 @@ const sections: {
   },
   {
     body: [
-      "The reflection check is not switched on yet, and today no text is sent to an AI service. Once it is, text from your submitted steps will be sent after you submit to a third-party AI provider (we expect to use Z.ai, which makes the GLM models), which processes it on its own servers and under its own retention rules, which we don't control. Whether any of your final essay is sent too isn't decided. We'll update this page before the check is switched on.",
-      "The check reads each critique against three questions: was the AI right, how did you check, and what did you change. It can ask an instructor to look closer. Its flags are evidence for a person to judge. They don't prove who wrote anything, they never set a grade, and an instructor can dismiss any of them.",
+      "When you submit, the reflection check runs on our server. For each step in your log it sends three things to a third-party AI provider (currently Z.ai, which makes the GLM models): your prompt, the AI's answer and your critique. It doesn't send your name, your email, your final essay or anything an instructor writes. The provider processes that text on its own servers and under its own retention rules, which we don't control. An instructor can run the check again later, and that sends the same text again.",
+      "The check reads each critique against three questions: was the AI right, how did you check, and what did you change. It can ask an instructor to look closer. Its flags are evidence for a person to judge. They don't prove who wrote anything, they never set a grade, and an instructor can dismiss any of them. We keep what it finds for each step, such as the quotes it relied on and any flags, but not the provider's raw reply. If the check fails, your submission is not affected.",
     ],
     icon: "flag",
     id: "reflection-check",

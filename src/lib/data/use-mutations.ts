@@ -12,6 +12,7 @@ import {
   importSteps,
   openProject,
   previewImport,
+  reanalyseProject,
   removeStudent,
   reviewFlag,
   saveCritique,
@@ -37,6 +38,7 @@ import type {
   NoteInput,
   OpenInput,
   PreviewInput,
+  ReanalyseInput,
   RemoveEnrolmentInput,
   RemoveStepInput,
   ReviewInput,
@@ -179,6 +181,11 @@ export const useSubmitProject = (userId: string) => {
       invalidateAfterSubmit(queryClient, userId, projectId),
   });
 };
+
+export const useReanalyse = () =>
+  useMutation({
+    mutationFn: (input: ReanalyseInput) => succeeded(reanalyseProject(input)),
+  });
 
 export const useReviewFlag = (userId: string, projectId: string) => {
   const queryClient = useQueryClient();

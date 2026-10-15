@@ -39,6 +39,7 @@ const entry = (
       ? [
           {
             analysis_version: "v1",
+            created_at: "2026-10-12T00:00:00Z",
             final_version_id: "final-1",
             flags: flags.map((review_state) => ({
               kind: "low_effort_reflection",
@@ -47,8 +48,6 @@ const entry = (
           },
         ]
       : [],
-    analysis_status: status,
-    analysis_version: "v1",
     final_versions: [
       {
         extracted_text: `${ANSWER} My own closing thought here.`,
@@ -83,6 +82,16 @@ test("a check that has not finished is never shown as a check with no flags", ()
   assert.equal(stateOf(entry("a", { status: "failed" })), "failed");
   assert.equal(stateOf(entry("a", { status: "completed" })), "unavailable");
   assert.equal(stateOf(entry("a", { flags: [] })), "none");
+});
+
+test("a check that is running or has failed again keeps the earlier flags in view", () => {
+  for (const status of ["running", "failed"] as const) {
+    const [row] = submissionRows([
+      entry("a", { flags: ["open", "dismissed"], status }),
+    ]);
+    assert.equal(row?.state, status);
+    assert.equal(row?.openFlags, 1);
+  }
 });
 
 test("flags are open until every one has a decision", () => {

@@ -20,6 +20,7 @@ export interface MetricsFinal {
 
 export interface MetricsAnalysis {
   analysis_version: string;
+  created_at: string;
   final_version_id: string;
   flags: readonly {
     kind: string;
@@ -29,8 +30,6 @@ export interface MetricsAnalysis {
 
 export interface MetricsProject {
   analysis_results?: readonly MetricsAnalysis[];
-  analysis_status?: Enums["analysis_status"];
-  analysis_version?: string | null;
   final_versions: readonly MetricsFinal[];
   iterations: readonly MetricsStep[];
 }
@@ -44,30 +43,28 @@ export interface FlagCounts {
 }
 
 export const currentAnalyses = <T extends MetricsAnalysis>(
-  {
-    analysis_status: status,
-    analysis_version: version,
-  }: Pick<MetricsProject, "analysis_status" | "analysis_version">,
   results: readonly T[],
   finalVersionId: string | null | undefined
-) =>
-  status === "completed"
-    ? results.filter(
-        (result) =>
-          result.final_version_id === finalVersionId &&
-          result.analysis_version === version
+) => {
+  const forFinal = results.filter(
+    (result) => result.final_version_id === finalVersionId
+  );
+  const [newest] = forFinal.toSorted(
+    (first, second) =>
+      Date.parse(second.created_at) - Date.parse(first.created_at)
+  );
+  return newest
+    ? forFinal.filter(
+        ({ analysis_version: version }) => version === newest.analysis_version
       )
     : [];
+};
 
 const flagCounts = (
   project: MetricsProject,
   final: MetricsFinal | undefined
 ): FlagCounts | null => {
-  const current = currentAnalyses(
-    project,
-    project.analysis_results ?? [],
-    final?.id
-  );
+  const current = currentAnalyses(project.analysis_results ?? [], final?.id);
   if (current.length === 0) {
     return null;
   }

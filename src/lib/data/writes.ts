@@ -12,6 +12,7 @@ import {
   marksSchema,
   removeEnrolmentSchema,
 } from "@/lib/data/schemas";
+import { startAnalysis } from "@/lib/flagging/analysis";
 import { DocxError, readDocument } from "@/lib/import/docx";
 import { ImportError } from "@/lib/import/errors";
 import { loadShare } from "@/lib/import/share";
@@ -59,7 +60,7 @@ const saveFinalSchema = z.object({
   text: z.string().max(MAX_TEXT),
 });
 const openSchema = z.object({ assignmentId: z.guid() });
-const submitSchema = z.object({ projectId: z.guid() });
+const projectSchema = z.object({ projectId: z.guid() });
 const reviewSchema = z.object({
   flagId: z.guid(),
   state: z.enum(flagReviewState.enumValues),
@@ -77,7 +78,8 @@ export type CritiqueInput = z.input<typeof critiqueSchema>;
 export type RemoveStepInput = z.input<typeof removeStepSchema>;
 export type SaveFinalInput = z.input<typeof saveFinalSchema>;
 export type OpenInput = z.input<typeof openSchema>;
-export type SubmitInput = z.input<typeof submitSchema>;
+export type SubmitInput = z.input<typeof projectSchema>;
+export type ReanalyseInput = SubmitInput;
 export type ReviewInput = z.input<typeof reviewSchema>;
 export type NoteInput = z.input<typeof noteSchema>;
 export type CourseInput = z.input<typeof courseSchema>;
@@ -405,16 +407,52 @@ export const writeProject = async (
 
 export const writeSubmission = async (
   client: Client,
-  input: SubmitInput
+  input: SubmitInput,
+  start: typeof startAnalysis = startAnalysis
 ): Promise<WriteResult> => {
-  const { data: submission, success } = submitSchema.safeParse(input);
+  const { data: submission, success } = projectSchema.safeParse(input);
   if (!success) {
     return invalidInput;
   }
-  const { error } = await client.rpc("submit_project", {
+  const { error: submitError } = await client.rpc("submit_project", {
     project: submission.projectId,
   });
-  return error ? failure(error) : {};
+  if (submitError) {
+    return failure(submitError);
+  }
+  try {
+    await start(submission.projectId, false);
+  } catch (error) {
+    console.error("Unable to start the reflection check", error);
+  }
+  return {};
+};
+
+export const writeReanalysis = async (
+  client: Client,
+  input: ReanalyseInput,
+  start: typeof startAnalysis = startAnalysis
+): Promise<WriteResult> => {
+  const { data: request, success } = projectSchema.safeParse(input);
+  if (!success) {
+    return invalidInput;
+  }
+  const { data: project, error: readError } = await client
+    .from("projects")
+    .select("id")
+    .eq("id", request.projectId)
+    .eq("status", "submitted")
+    .maybeSingle();
+  if (readError || !project) {
+    return readError ? failure(readError) : forbidden;
+  }
+  try {
+    await start(project.id, true);
+  } catch (error) {
+    console.error("Unable to start the reflection check", error);
+    return { error: "Unable to start the check. Try again shortly." };
+  }
+  return {};
 };
 
 export const writeReview = async (

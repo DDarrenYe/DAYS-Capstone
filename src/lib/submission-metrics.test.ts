@@ -157,8 +157,6 @@ test("the same saved text gives the same totals however it was read", () => {
   const asGrader = submissionMetrics({
     ...log,
     analysis_results: [],
-    analysis_status: "completed",
-    analysis_version: "v1",
   });
   const { flags: studentFlags, ...student } = submissionMetrics(log);
   const { flags: graderFlags, ...grader } = asGrader;
@@ -167,12 +165,18 @@ test("the same saved text gives the same totals however it was read", () => {
   assert.equal(graderFlags, null);
 });
 
+const SAVED = {
+  v1: "2026-10-10T00:00:00Z",
+  v2: "2026-10-12T00:00:00Z",
+};
+
 const result = (
-  version: string,
+  version: keyof typeof SAVED,
   finalId: string,
   ...states: ("open" | "dismissed" | "added_to_feedback")[]
 ) => ({
   analysis_version: version,
+  created_at: SAVED[version],
   final_version_id: finalId,
   flags: states.map((review_state) => ({
     kind: "low_effort_reflection",
@@ -180,24 +184,15 @@ const result = (
   })),
 });
 
-const analysed = (
-  analysis_results: MetricsProject["analysis_results"],
-  analysis_status: MetricsProject["analysis_status"] = "completed"
-) => project({ analysis_results, analysis_status, analysis_version: "v2" });
+const analysed = (analysis_results: MetricsProject["analysis_results"]) =>
+  project({ analysis_results });
 
-test("flag counts stay unavailable until a completed analysis of this final has results", () => {
+test("flag counts stay unavailable until a check has saved results for this final", () => {
   assert.equal(submissionMetrics(project()).flags, null);
   assert.equal(submissionMetrics(analysed([])).flags, null);
-  for (const status of ["pending", "running", "failed"] as const) {
-    assert.equal(
-      submissionMetrics(analysed([result("v2", "final-1", "open")], status))
-        .flags,
-      null
-    );
-  }
 });
 
-test("flag counts cover the current analysis of the current final version", () => {
+test("flag counts cover the newest saved analysis of the current final version", () => {
   const counts = submissionMetrics(
     analysed([
       result("v2", "final-1", "open", "added_to_feedback", "dismissed"),
@@ -213,6 +208,23 @@ test("flag counts cover the current analysis of the current final version", () =
     open: 1,
     openKinds: [{ count: 1, kind: "low_effort_reflection" }],
   });
+});
+
+test("an earlier result set stays in force until a newer one has been saved", () => {
+  const before = submissionMetrics(
+    analysed([result("v1", "final-1", "open", "dismissed")])
+  ).flags;
+  assert.deepEqual([before?.open, before?.dismissed], [1, 1]);
+  const after = submissionMetrics(
+    analysed([
+      result("v1", "final-1", "open", "dismissed"),
+      result("v2", "final-1", "added_to_feedback"),
+    ])
+  ).flags;
+  assert.deepEqual(
+    [after?.open, after?.addedToFeedback, after?.dismissed],
+    [0, 1, 0]
+  );
 });
 
 test("open flags are counted by kind, and decided flags are not", () => {

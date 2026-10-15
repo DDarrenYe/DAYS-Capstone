@@ -183,7 +183,7 @@ flowchart LR
     a2["Fetch the share link"]:::planned
     a3["Extract .docx text"]:::planned
     a4["7 Match final text to AI answers"]:::planned
-    a5["8 Reflection check job"]:::planned
+    a5["8 Reflection check job"]:::live
     a6["10 PDF and CSV export"]:::planned
   end
 
@@ -221,9 +221,9 @@ flowchart LR
   s5 -.-> a3 -.-> d2
   s6 -.->|"status, submitted_at"| d2
   d3 -.-> a4 -.-> d4
-  d3 -.-> a5
-  a5 <-.->|"step text out, structured result in"| e2
-  a5 -.-> d4
+  d3 --> a5
+  a5 <-->|"step text out, structured result in"| e2
+  a5 --> d4
   d3 -.-> i1
   d4 -.-> i1
   i2 -.-> d6
@@ -237,15 +237,15 @@ flowchart LR
 | 3 | Import or manual entry | Database-ready, [#20](https://github.com/DDarrenYe/DAYS-Capstone/issues/20) | `iterations` stores the prompt, raw answer, tool and where it came from (`import_source`, source URL and IDs). A unique key on tool, conversation and step ID stops the same imported step being saved twice. Fetching a public link isn't built. |
 | 4 | Critique | Database-ready, [#20](https://github.com/DDarrenYe/DAYS-Capstone/issues/20) | The three questions are only guidance in the UI. The answer is one `critique` text. It's null while an imported step waits, and can't be blank once saved. Marking an AI error needs evidence, and it only records what the student said. |
 | 5 | Final essay | Database-ready, [#22](https://github.com/DDarrenYe/DAYS-Capstone/issues/22) | Every save is a new `final_versions` row. `.docx` extraction and the size and type checks will run on the server. |
-| 6 | Atomic submission | Working, [#23](https://github.com/DDarrenYe/DAYS-Capstone/issues/23) | The Submit button on the final-version panel calls `public.submit_project`. It locks the project row, then checks that the student is enrolled, the project is a Lane 2 draft, there's at least one step, every step has a critique and the saved final version isn't blank. If so, it sets `status`, `submitted_at` and the final version's `submitted_at` in one transaction. Submitting twice returns the first time. Students can no longer write `status` or `submitted_at` themselves, and a save that runs at the same time waits for the submit and is refused if it comes second. We haven't built starting analysis. |
+| 6 | Atomic submission | Working, [#23](https://github.com/DDarrenYe/DAYS-Capstone/issues/23) | The Submit button on the final-version panel calls `public.submit_project`. It locks the project row, then checks that the student is enrolled, the project is a Lane 2 draft, there's at least one step, every step has a critique and the saved final version isn't blank. If so, it sets `status`, `submitted_at` and the final version's `submitted_at` in one transaction. Submitting twice returns the first time. Students can no longer write `status` or `submitted_at` themselves, and a save that runs at the same time waits for the submit and is refused if it comes second. Once it succeeds, the server starts the reflection check (row 8) without waiting for it, and a failure there never undoes the submission. |
 | 7 | Text matching | Working, [#26](https://github.com/DDarrenYe/DAYS-Capstone/issues/26) | A deterministic matcher compares the saved final text with the logged AI answers and makes no outside call. Students and instructors read the same numbers through RLS. It doesn't write `match_results`. See "Final-text matching" in `supabase/README.md`. |
-| 8 | Reflection check | Tables ready, job planned, [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32) [#34](https://github.com/DDarrenYe/DAYS-Capstone/issues/34) | A server job sets `analysis_status`, calls the LLM API through the AI SDK, validates the answer, and writes one `analysis_results` row per step plus any `flags`. A finished run with no flags is different from pending or failed. A new run keeps the old results and their reviews. |
+| 8 | Reflection check | Working, [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32); limits and retries planned, [#34](https://github.com/DDarrenYe/DAYS-Capstone/issues/34) | After a submit, the server claims a run with `start_analysis` (one claimant per project) and checks the steps one at a time in `after()`. It calls the LLM API through the AI SDK, validates each answer and saves one `analysis_results` row per step plus any `flags` in one call (`complete_analysis`), or records a plain failure reason (`fail_analysis`). `projects.analysis_status` goes `pending`, `running`, then `completed` or `failed`. A finished run with no flags is different from pending or failed. An instructor can run it again from the Visualiser. A re-run adds a new set, keeps the old results and their reviews, and carries a decision over to a flag with the same step and kind. See "Running it on a submission" in `docs/flagging.md`. |
 | 9 | Grader decisions | Database-ready, [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33) | An instructor of that course changes a flag's decision, reviewer and time, and a trigger appends it to `flag_reviews`. They can only add, edit and delete their own `grader_notes`. The Visualiser keeps one note per step, enforced by a unique index on author and step. Saving an empty note deletes it. |
 | 10 | Export | Planned, [#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36) | The server builds the PDF and CSV from the same submitted snapshot, matches and decisions the instructor sees. Notes only go in when the grader picks that. |
 
 ## Who can do what
 
-The database enforces this for any client using the anon key and a user session. `service_role` is for trusted server code only. It skips RLS, so any route using it has to check `requireRole` and course ownership itself. Nothing in the app uses `service_role` or `getDb()` yet.
+The database enforces this for any client using the anon key and a user session. `service_role` is for trusted server code only. It skips RLS, so any route using it has to check `requireRole` and course ownership itself. Only the reflection-check job uses `service_role` (`src/lib/flagging/analysis.ts`), and it only starts after the submit or re-run action has checked who is asking. Nothing in the app uses `getDb()` yet.
 
 | Table | Student (own enrolled courses) | Instructor (own courses) | `service_role` |
 | --- | --- | --- | --- |
@@ -265,16 +265,14 @@ Anonymous clients can't touch any table. Instructors can't change student text. 
 
 ## Text that leaves the app
 
-Right now nothing does. We have no link fetcher, no `.docx` upload and no LLM client. Sign-in sends the email and password to Supabase, which runs locally in dev.
-
-The plan adds two outside calls. Both run on the server, never in the browser.
+Two calls leave the app. Both run on the server, never in the browser. Sign-in sends the email and password to Supabase, which runs locally in dev.
 
 | Call | What goes out | What comes back | Issue |
 | --- | --- | --- | --- |
 | Share-link import (step 3) | The URL the student pasted, sent to an allowlisted host | The public chat page | [#20](https://github.com/DDarrenYe/DAYS-Capstone/issues/20) |
-| Reflection check (step 8, after submission) | Text from the submitted steps, sent to the LLM provider (GLM on Z.ai) | A validated, structured result | [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31), [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32) |
+| Reflection check (step 8, after submission and when an instructor runs it again) | The prompt, AI answer and critique of each submitted step, sent to the LLM provider (GLM on Z.ai) | A validated, structured result | [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31), [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32) |
 
-Matching and export stay inside the app. We haven't fixed what the reflection check sends. We should settle it in [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) and update the privacy page, which [#25](https://github.com/DDarrenYe/DAYS-Capstone/issues/25) added. What we'd propose is submitted steps only (prompt, AI answer and critique), sent from a server job, with no names, emails, grader notes or review decisions. Whether any essay text goes too is still open. We can't control Z.ai's own retention, and the privacy page can't say that no text leaves the app.
+Matching and export stay inside the app. The reflection check sends each submitted step as three fields (prompt, AI answer and critique) from a server job. It sends no names, emails, grader notes, review decisions or final essay. The provider processes that text under its own retention rules, which we can't control, so the privacy page says so and doesn't claim that no text leaves the app.
 
 ## Prototype versus working
 
@@ -285,13 +283,14 @@ Matching and export stay inside the app. We haven't fixed what the reflection ch
 | Seed data | Working, local only. `supabase/seed.sql` builds one course, eight accounts and eight example projects, listed in `supabase/README.md`. The instructor overview shows the submitted projects, and `match_results` stays empty because the matcher works its result out on read. |
 | Student assignments page | Prototype. Three hard-coded cards, and "Add steps" opens a placeholder. |
 | Progress | Prototype. Example data. |
-| Privacy | Working. `/privacy` describes the flow above, linked from sign-in, the account menu and Add steps. It says the reflection check isn't on and no retention period is set. Update it when [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) and [#39](https://github.com/DDarrenYe/DAYS-Capstone/issues/39) settle those. |
+| Privacy | Working. `/privacy` describes the flow above, linked from sign-in, the account menu and Add steps. It says what the reflection check sends and that the provider's retention isn't ours to set. Update it when [#39](https://github.com/DDarrenYe/DAYS-Capstone/issues/39) settles our own retention period. |
 | Instructor overview | Working, [#27](https://github.com/DDarrenYe/DAYS-Capstone/issues/27). The header, review progress, the bands of "not from logged AI", the open flags by reason and the totals on `/instructor` come from the same rows as the submissions table, one assignment at a time (`?assignment=` in the URL). The flags and reports pages are still placeholders. |
 | Submissions table | Working. The table on `/instructor` reads submitted projects from Supabase on the server and shows the shared match and critique figures, the reflection-check state, search, a filter and 50-row pages in the URL. |
 | Visualiser | Working, [#29](https://github.com/DDarrenYe/DAYS-Capstone/issues/29), [#30](https://github.com/DDarrenYe/DAYS-Capstone/issues/30). `/instructor/visualiser?project=` reads one submitted project on the server and shows the matcher's spans in the final essay, the words kept from each AI answer, critique questions answered per step, the errors the student marked and the open flags. The totals come from `submissionMetrics`, so they equal the submissions table. The note box under each step saves to `grader_notes` for the signed-in instructor. It saves when the field loses focus or on ⌘↵ (Ctrl+Enter), and a failed save keeps what was typed. Each flag on a step links to the Flags page. Flag decisions and the PDF export on that page aren't connected yet ([#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33), [#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36)). |
 | Import, critique, final essay, submit | Working in My log. |
 | Matching | Working as code and reads (`src/lib/final-match.ts`, `src/lib/submission-metrics.ts`). The final-version panel in My log shows the preview from the saved text. The submissions table and the Visualiser both show it per student. |
-| Reflection check, grader decisions, export | Not built. The tables, versions and review history are ready. |
+| Reflection check | Working, [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32). A submit starts it, the Visualiser shows its state and lets an instructor run it again. |
+| Grader decisions, export | Not built. The tables, versions and review history are ready. |
 
 ## What's still missing
 

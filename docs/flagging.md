@@ -1,6 +1,6 @@
 # Reflection check rubric
 
-This is how the reflection check reads one step of a student's log. The code is in `src/lib/flagging/`. [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) built the check itself. Running it on submission and saving the results is [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32).
+This is how the reflection check reads one step of a student's log. The code is in `src/lib/flagging/`. [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) built the check itself. [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32) runs it when a student submits and saves the results.
 
 The check looks for evidence. It doesn't grade, and it can't tell who wrote a critique. A grader reads the result and decides what to do.
 
@@ -51,7 +51,61 @@ The model's reply is checked twice. The schema (zod) catches the wrong shape, un
 - Every quote has to appear in the critique, ignoring case and spacing. A quote from the prompt or the AI answer, or one the model made up, fails.
 - A flag kind appears at most once.
 
-Anything that fails throws, so a bad reply can't turn into a flag. #32 decides what a failed step looks like.
+Anything that fails throws, so a bad reply can't turn into a flag. A failed step fails the whole run (see "Running it on a submission").
+
+## Running it on a submission
+
+The job is in `src/lib/flagging/analysis.ts`. It starts the moment a student submits and never decides whether the submission worked.
+
+1. `submitProject` calls `submit_project`. Only if that succeeds does `writeSubmission` ask `startAnalysis` for a run. A failure to claim or run the check is logged and the student still sees their submission.
+2. `claimAnalysis` calls the `start_analysis` function. It locks the project row, refuses a draft, and hands out the next version (`analysis-v1`, `analysis-v2`, ...) to exactly one caller. Everyone else gets nothing back.
+3. The check runs inside Next's `after()`, so the response doesn't wait for it. `executeAnalysis` reads the submitted steps, checks them one at a time and saves every result with `complete_analysis`. If anything goes wrong it calls `fail_analysis` instead. It never throws.
+
+`start_analysis`, `complete_analysis` and `fail_analysis` can only be called with the service role. The Next.js side needs `SUPABASE_SERVICE_ROLE_KEY` and the three `LLM_*` variables.
+
+### State
+
+The state lives on the project row, so the pages that already read `analysis_status` show it:
+
+| `analysis_status` | Means |
+| --- | --- |
+| `pending` | Submitted, no run claimed yet. |
+| `running` | A run holds the claim. `analysis_version` and `analysis_started_at` say which and since when. |
+| `completed` | Every step's result and flags were saved. `analysis_finished_at` says when. |
+| `failed` | The run saved nothing. `analysis_error` says why in one plain sentence. |
+
+Each result row also carries the `model` and `rubric_version` that produced it. A student can read none of this. On the Visualiser an instructor sees the state, the reason, the model and the time, and can run the check again.
+
+### Time limits
+
+- One model call stops after 60 seconds (`check.ts`).
+- No new step starts once a run has used 200 seconds (`RUN_BUDGET_MS`). The last call can still take its 60 seconds, so a run ends within about 260 seconds.
+- `/student/log` and `/instructor/visualiser` set `maxDuration = 300`, which is the limit for the server action and for the `after()` work. Keep the run budget plus one call under it if you change either.
+- A run still marked `running` after 600 seconds (`STALE_AFTER_SECONDS`) is treated as dead, for example because the function was killed. The next request to start a check replaces it.
+
+At the 7 to 24 seconds a step took in the live samples, about 8 to 28 steps finish inside the budget. A longer log fails with "The reflection check timed out." and needs the bounds in [#34](https://github.com/DDarrenYe/DAYS-Capstone/issues/34).
+
+### All or nothing
+
+The results are saved in one database call, so a run either has a result for every step and its flags, or nothing at all. `complete_analysis` refuses a run that isn't the current claim, that skips a step or that repeats one. A failed run leaves the project submitted and locked. Nothing about a failed run touches the steps, the final text or any earlier result.
+
+A failed run records one of these, never the model's reply or the student's text:
+
+| Reason | When |
+| --- | --- |
+| The reflection check timed out. | A call or the run budget timed out. |
+| The model provider was busy. Try again shortly. | A retryable provider error, such as Z.ai's 429 with code 1305, after the SDK's own retries. |
+| The model provider rejected the request. | A provider error that isn't retryable. |
+| The reflection check failed. Try again. | Anything else, including a reply that fails the checks above and missing configuration. The server log has the detail. |
+
+### Duplicates and re-analysis
+
+- A second submit, a retry or two requests at once don't start a second run. Only a `pending` project can be claimed by a submit. A finished or failed one stays as it is.
+- An instructor of the course can run the check again from the Visualiser. `reanalyseProject` first reads the project with their own session, so only a submitted project in their course qualifies. A run that is already going isn't started twice. A run that has stopped responding is replaced.
+- A re-run gets a new version and saves a new set of results next to the old ones. Nothing is overwritten.
+- Until the new set is saved, readers keep using the newest saved set. While a re-run is going, or after it fails, the instructor still sees the last results and their decisions, together with the state of the latest run.
+- A flag in the new set that has the same step and kind as an earlier flag starts with that flag's decision, reviewer and time. Reopening is a decision too: a flag whose latest earlier version was reopened starts open.
+- A flag that the new run doesn't raise isn't copied. It stays on the earlier result with its decision and review history, but it isn't part of the current set any more.
 
 ## Pasted text is data
 
@@ -96,6 +150,6 @@ Run on 15 Oct 2026 with `glm-4.7-flash` on Z.ai (free). Three full runs, plus tw
 What we learned:
 
 - The whole path works against a real API. Every reply that came back parsed and passed the quote check, and none was rejected.
-- Z.ai often answers HTTP 429 with code 1305 ("service may be temporarily overloaded"). It hit about 40% of calls, at random, even with the SDK's retries. #32 has to treat that as a retryable failure, not a bad result.
+- Z.ai often answers HTTP 429 with code 1305 ("service may be temporarily overloaded"). It hit about 40% of calls, at random, even with the SDK's retries. #32 records it as "The model provider was busy" and lets an instructor run the check again. Automatic retries are [#34](https://github.com/DDarrenYe/DAYS-Capstone/issues/34).
 - Calls took 7 to 24 seconds each.
 - `glm-4.7-flash` isn't consistent enough on blind acceptance. The same step got different flags on two calls at temperature 0. Try `glm-5.3-flash` (paid, about $0.15 in and $0.50 out per 1M tokens) or an OpenRouter model before relying on it. #35 should compare them on the 30 labelled critiques.

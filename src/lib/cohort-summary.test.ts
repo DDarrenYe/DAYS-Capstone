@@ -43,10 +43,15 @@ const entry = (
   id,
   metrics: submissionMetrics({
     analysis_results: flags
-      ? [{ analysis_version: "v1", final_version_id: "final", flags }]
+      ? [
+          {
+            analysis_version: "v1",
+            created_at: "2026-10-12T00:00:00Z",
+            final_version_id: "final",
+            flags,
+          },
+        ]
       : [],
-    analysis_status: status,
-    analysis_version: "v1",
     final_versions: [{ extracted_text: text, id: "final", version_number: 1 }],
     iterations: [
       {

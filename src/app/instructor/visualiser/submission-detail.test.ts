@@ -38,17 +38,26 @@ const project = (
   analysis_results: [
     {
       analysis_version: "v1",
+      created_at: "2026-10-14T01:04:00Z",
       final_version_id: "final-1",
       flags: [flag("flag-1", "open"), flag("flag-2", "dismissed")],
       iteration_id: "step-2",
+      model: "glm-test",
+      rubric_version: "three-questions-v1",
     },
     {
       analysis_version: "v1",
+      created_at: "2026-10-14T01:04:00Z",
       final_version_id: "final-0",
       flags: [flag("flag-3", "open")],
       iteration_id: "step-1",
+      model: "glm-test",
+      rubric_version: "three-questions-v1",
     },
   ],
+  analysis_error: null,
+  analysis_finished_at: "2026-10-14T01:05:00Z",
+  analysis_started_at: "2026-10-14T01:01:00Z",
   analysis_status: "completed",
   analysis_version: "v1",
   assignment: { id: "assignment-1", title: "Essay 2" },
@@ -223,17 +232,74 @@ test("each step carries only its own saved note", () => {
   );
 });
 
-test("a check that has not finished invents no flags or counts", () => {
+test("a first check that has not finished invents no flags or counts", () => {
   for (const status of ["pending", "running", "failed"] as const) {
-    const detail = submissionDetail(project({ analysis_status: status }));
+    const detail = submissionDetail(
+      project({ analysis_results: [], analysis_status: status })
+    );
     assert.equal(detail.check, status);
     assert.equal(detail.openFlags, 0);
+    assert.equal(detail.analysis.kept, false);
     assert.deepEqual(
       detail.steps.map(({ flags }) => flags),
       [[], []]
     );
     assert.equal(detail.match.matchedWords, 10);
   }
+});
+
+test("a re-run that is going or has failed keeps the last results in view", () => {
+  for (const status of ["running", "failed"] as const) {
+    const detail = submissionDetail(
+      project({
+        analysis_error:
+          status === "failed" ? "The reflection check timed out." : null,
+        analysis_status: status,
+        analysis_version: "v2",
+      })
+    );
+    assert.equal(detail.check, status);
+    assert.equal(detail.analysis.kept, true);
+    assert.equal(detail.openFlags, 1);
+    assert.deepEqual(
+      detail.steps.map(({ flags }) => flags.length),
+      [0, 2]
+    );
+    assert.match(
+      detail.analysis.note,
+      /The results below are from the last check that finished\.$/u
+    );
+  }
+});
+
+const note = (overrides: Partial<SubmissionProject>) =>
+  submissionDetail(project(overrides)).analysis.note;
+
+test("the status line says what happened and with which model", () => {
+  assert.match(
+    note({}),
+    /^Finished .+ with glm-test, rubric three-questions-v1\.$/u
+  );
+  assert.match(
+    note({ analysis_results: [], analysis_status: "pending" }),
+    /^It starts when a student submits/u
+  );
+  assert.match(
+    note({ analysis_results: [], analysis_status: "running" }),
+    /^Started .+\.$/u
+  );
+  assert.equal(
+    note({
+      analysis_error: "The model provider was busy. Try again shortly.",
+      analysis_results: [],
+      analysis_status: "failed",
+    }),
+    "The model provider was busy. Try again shortly."
+  );
+  assert.equal(
+    note({ analysis_results: [] }),
+    "The check finished but saved no results for this submission."
+  );
 });
 
 test("a submission with no final text has no essay and no percentage", () => {

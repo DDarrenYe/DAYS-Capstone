@@ -588,12 +588,20 @@ export interface Database {
           step_number: number;
         }[];
       };
+      complete_analysis: {
+        Args: { project: string; results: Json; run: string };
+        Returns: undefined;
+      };
       enrol_students: {
         Args: { course: string; emails: string[] };
         Returns: {
           address: string;
           outcome: string;
         }[];
+      };
+      fail_analysis: {
+        Args: { project: string; reason: string; run: string };
+        Returns: undefined;
       };
       has_work: {
         Args: {
@@ -620,6 +628,10 @@ export interface Database {
           id: string;
           version_number: number;
         }[];
+      };
+      start_analysis: {
+        Args: { project: string; restart: boolean; stale_after: number };
+        Returns: string;
       };
       submit_project: { Args: { project: string }; Returns: string };
     };
