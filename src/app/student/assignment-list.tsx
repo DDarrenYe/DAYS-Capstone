@@ -3,6 +3,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { AssignmentCard } from "@/app/student/assignment-card";
+import { GetStarted } from "@/app/student/walkthrough/get-started";
 import { assignmentsQuery } from "@/lib/data/queries";
 import type { AssignmentRows } from "@/lib/data/queries";
 import { createClient } from "@/lib/supabase/browser";
@@ -32,17 +33,25 @@ export const AssignmentList = ({
       </p>
     );
   }
+  const newToLogging =
+    assignments.some(({ lane }) => lane === "lane_2") &&
+    assignments.every(
+      ({ projects }) => (projects[0]?.iterations[0]?.count ?? 0) === 0
+    );
   return (
-    <section aria-label="Your assignments" className={gridClassName}>
-      {assignments.map((assignment) => (
-        <AssignmentCard
-          assignment={assignment}
-          key={assignment.id}
-          now={dataUpdatedAt}
-          userId={userId}
-        />
-      ))}
-    </section>
+    <>
+      {newToLogging ? <GetStarted /> : null}
+      <section aria-label="Your assignments" className={gridClassName}>
+        {assignments.map((assignment) => (
+          <AssignmentCard
+            assignment={assignment}
+            key={assignment.id}
+            now={dataUpdatedAt}
+            userId={userId}
+          />
+        ))}
+      </section>
+    </>
   );
 };
 
