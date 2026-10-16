@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Geist_Mono, Inter, Newsreader } from "next/font/google";
 
 import "./globals.css";
@@ -26,13 +26,6 @@ export const metadata: Metadata = {
     default: "Pentimento · AI-Interaction Analytics",
     template: "%s · Pentimento",
   },
-};
-
-export const viewport: Viewport = {
-  themeColor: [
-    { color: "#f4f4f0", media: "(prefers-color-scheme: light)" },
-    { color: "#111110", media: "(prefers-color-scheme: dark)" },
-  ],
 };
 
 const RootLayout = ({ children }: LayoutProps<"/">) => (

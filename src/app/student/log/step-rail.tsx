@@ -84,7 +84,7 @@ const StepGroup = ({
                       "text-micro relative z-10 mt-0.5 grid size-5.5 place-items-center rounded-full font-mono font-medium transition-colors duration-200",
                       saved
                         ? "bg-primary text-primary-foreground"
-                        : "bg-ai ring-ai-soft text-ai-foreground ring-3"
+                        : "bg-ai ring-ai-soft text-white ring-3"
                     )}
                   >
                     {saved ? (

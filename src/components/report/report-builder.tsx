@@ -77,7 +77,7 @@ const ReportPage = ({
     <div className="mx-auto h-168.5 w-119 shrink-0">
       <article
         aria-label="Preview of page 1"
-        className="shadow-page text-body paper relative h-280.75 w-198.5 origin-top-left scale-60 overflow-hidden rounded-xs bg-white px-16 pt-14 text-sm"
+        className="shadow-page text-body relative h-280.75 w-198.5 origin-top-left scale-60 overflow-hidden rounded-xs bg-white px-16 pt-14 text-sm"
       >
         <div className="text-muted-foreground flex items-center gap-2 text-xs">
           <Logo className="size-5" />

@@ -307,16 +307,6 @@ The palette is warm neutrals with four meaning colours. A meaning colour is neve
 - **Review amber (#C98A1B):** work waiting for a grader.
 - **Human (#2B2C30):** the student's critique in process charts, so it reads as the same ink as their writing.
 
-### Ink, the dark theme
-
-Pentimento follows the system setting. After dark it becomes **Ink**: the same system on graphite, not a negative of it. Every token in `src/app/globals.css` has an Ink value, so components never need a `dark:` class.
-
-- **Surfaces get lighter as they rise.** Paper is #111110, the sheet #1A1A18, and popovers, menus and dialogs #21211F, so floating things read as closer without heavy shadows. Hairlines that ring a card or popover use the `--edge` token, a 7% ink line on paper and an 8% white line in Ink.
-- **Ink and paper trade places.** Text is warm paper (#EDECE7) and primary buttons turn paper-coloured with ink labels. Human bars in charts follow the text colour, so a critique still reads as the student's own ink.
-- **Meaning colours are lifted, never swapped.** Cobalt becomes #8AA0F8, vermilion #F2784F, green #62C890 and amber #E6AD45, each with a darker tint behind it. Body, muted and meaning-colour text all pass WCAG AA on their surfaces, and body text clears 9:1. Faint stays a metadata colour here too.
-- **Printed pages stay paper.** Anything that stands for a printed page, such as the report preview, carries the `paper` class, which puts the light tokens back inside it.
-- Dialog backdrops use the `scrim` token: 34% ink on paper and 56% black in Ink, so the page behind always darkens.
-
 ## Typography
 
 Three families with fixed jobs:
@@ -355,7 +345,7 @@ Pentimento is nearly flat. Hierarchy comes from paper against sheet, and from ha
 
 - Cards and fields use a 1px inset hairline (`--border`, #E7E6E1), not a drop shadow.
 - The inset page sheet has a very soft card shadow to lift it off the paper.
-- Only things that float get a real shadow: popovers, menus and tooltips use the `pop` shadow, and dialogs use the deeper `dialog` shadow over the `scrim` backdrop. In Ink, floating surfaces are also a step lighter than the sheet.
+- Only things that float get a real shadow: popovers, menus and tooltips use the `pop` shadow, and dialogs use the deeper `dialog` shadow with a 34% ink backdrop.
 - The report preview uses a paper shadow so it reads as a printed A4 page.
 
 ## Shapes
@@ -425,4 +415,3 @@ Motion follows Emil Kowalski's rules, judged by how often a grader sees it.
 - Don't use more than one meaning colour on a single element, and don't use a meaning colour as a background for a whole section.
 - Don't use 700 weights, heavy shadows or radii above 14px.
 - Do keep Faint (#9C9DA1) to metadata. It is too light for anything a grader has to read.
-- Do give every new colour an Ink value in `globals.css`. Don't add `dark:` classes or hard-coded hex values to components.

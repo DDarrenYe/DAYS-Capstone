@@ -21,7 +21,7 @@ const buttonVariants = cva(
       },
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-primary hover:bg-primary/88 [&_kbd]:bg-primary-foreground/12 [&_kbd]:text-primary-foreground/70 [&_kbd]:shadow-none",
+          "bg-primary text-primary-foreground shadow-primary hover:bg-primary/88 [&_kbd]:bg-white/12 [&_kbd]:text-white/70 [&_kbd]:shadow-none",
         destructive:
           "bg-flag-soft text-flag-ink shadow-flag-ring hover:bg-flag-soft/70",
         ghost: "text-body hover:bg-muted aria-expanded:bg-muted",

@@ -34,7 +34,7 @@ const LogVignette = () => (
               className={cn(
                 "text-micro grid size-5 shrink-0 place-items-center rounded-full font-mono font-medium",
                 waiting
-                  ? "bg-ai text-ai-foreground"
+                  ? "bg-ai text-white"
                   : "bg-primary text-primary-foreground"
               )}
             >

@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "shadcn/tailwind.css";
 
+@custom-variant dark (&:is(.dark *));
+
 /*
   Pentimento. Warm paper neutrals and ink do the work. Cobalt marks only text traced to a logged AI answer, vermilion
   only a flag, green only an AI error a student caught, amber only work waiting for review. Inter runs the
@@ -71,17 +73,15 @@
   --color-review: var(--review);
   --color-review-soft: var(--review-soft);
   --color-review-ink: var(--review-ink);
-  --color-ai-foreground: var(--ai-foreground);
-  --color-scrim: var(--scrim);
   --shadow-xs: 0 1px 2px rgb(21 22 24 / 5%);
   --shadow-card:
-    0 0 0 1px var(--edge), 0 1px 2px rgb(21 22 24 / 4%),
+    0 0 0 1px rgb(21 22 24 / 6%), 0 1px 2px rgb(21 22 24 / 4%),
     0 2px 8px -2px rgb(21 22 24 / 5%);
   --shadow-pop:
-    0 0 0 1px var(--edge), 0 12px 32px -8px rgb(21 22 24 / 18%),
+    0 0 0 1px rgb(21 22 24 / 7%), 0 12px 32px -8px rgb(21 22 24 / 18%),
     0 3px 8px -3px rgb(21 22 24 / 10%);
   --shadow-dialog:
-    0 0 0 1px var(--edge), 0 30px 80px -20px rgb(21 22 24 / 40%),
+    0 0 0 1px rgb(21 22 24 / 8%), 0 30px 80px -20px rgb(21 22 24 / 40%),
     0 10px 24px -10px rgb(21 22 24 / 20%);
   --shadow-page:
     0 1px 2px rgb(21 22 24 / 8%), 0 12px 32px -12px rgb(21 22 24 / 22%);
@@ -148,9 +148,7 @@
   --animate-trace: trace 320ms ease both;
 }
 
-:root,
-.paper {
-  color-scheme: light;
+:root {
   --paper: #f4f4f0;
   --sheet: #ffffff;
   --ink: #151618;
@@ -176,9 +174,6 @@
   --review: #c98a1b;
   --review-soft: #f6ecd5;
   --review-ink: #7a5410;
-  --ai-foreground: #ffffff;
-  --scrim: rgb(21 22 24 / 34%);
-  --edge: rgb(21 22 24 / 7%);
   --background: var(--paper);
   --foreground: var(--ink);
   --card: var(--sheet);
@@ -211,48 +206,6 @@
   --sidebar-accent-foreground: var(--ink);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --paper: #111110;
-    --sheet: #1a1a18;
-    --ink: #edece7;
-    --body: #c2c1bb;
-    --faint: #74736e;
-    --reading: #e3e1db;
-    --border-strong: #3d3d39;
-    --well: #0d0d0c;
-    --human: #d8d7d1;
-    --human-soft: #2e2e2b;
-    --ai: #8aa0f8;
-    --ai-ink: #b4c2fb;
-    --ai-soft: #2a3561;
-    --ai-wash: #1c2135;
-    --ai-line: #4d60b0;
-    --ai-select: #33407a;
-    --flag: #f2784f;
-    --flag-ink: #ff9f80;
-    --flag-soft: #3b1e14;
-    --flag-line: #7c3a24;
-    --ok: #62c890;
-    --ok-soft: #16301f;
-    --review: #e6ad45;
-    --review-soft: #352914;
-    --review-ink: #f1c77a;
-    --ai-foreground: #0f1220;
-    --scrim: rgb(0 0 0 / 56%);
-    --edge: rgb(255 255 255 / 8%);
-    --primary: #edece7;
-    --primary-foreground: #151618;
-    --popover: #21211f;
-    --muted: #282825;
-    --muted-foreground: #9a9993;
-    --accent: #282825;
-    --border: #2b2b28;
-    --input: #3a3a36;
-  }
 }
 
 @layer base {
