@@ -72,29 +72,33 @@ export const LandingPreview = () => (
       </p>
     </div>
     {flagged?.flag ? (
-      <div
-        className="bg-card shadow-pop animate-rise stagger absolute -bottom-20 -left-10 w-76 rounded-xl p-3.5"
-        style={{ "--i": 16 }}
-      >
-        <p className="text-flag-ink font-heading flex items-center gap-1.75">
-          <Icon name="flag" />
-          {flagged.flag.title}
-        </p>
-        <blockquote className="text-reading border-flag text-lead mt-2 border-l-2 pl-3 font-serif">
-          “{flagged.critique}”
-        </blockquote>
-        <p className="text-muted-foreground mt-2 text-xs">
-          Step {steps.indexOf(flagged) + 1} · {flagged.carried} words reached
-          the conclusion
-        </p>
+      <div className="drift absolute -bottom-20 -left-10 w-76 [--drift:-56px]">
+        <div
+          className="bg-card shadow-pop animate-rise stagger rounded-xl p-3.5"
+          style={{ "--i": 16 }}
+        >
+          <p className="text-flag-ink font-heading flex items-center gap-1.75">
+            <Icon name="flag" />
+            {flagged.flag.title}
+          </p>
+          <blockquote className="text-reading border-flag text-lead mt-2 border-l-2 pl-3 font-serif">
+            “{flagged.critique}”
+          </blockquote>
+          <p className="text-muted-foreground mt-2 text-xs">
+            Step {steps.indexOf(flagged) + 1} · {flagged.carried} words reached
+            the conclusion
+          </p>
+        </div>
       </div>
     ) : null}
-    <div
-      className="bg-success-soft text-success shadow-pop animate-rise stagger text-meta font-emphasis absolute -top-5 -right-5 flex items-center gap-2 rounded-full py-1.5 pr-3.5 pl-2.5"
-      style={{ "--i": 18 }}
-    >
-      <Icon name="caught" />
-      {summary.caught} AI errors caught
+    <div className="drift absolute -top-5 -right-5 [--drift:-24px]">
+      <div
+        className="bg-success-soft text-success shadow-pop animate-rise stagger text-meta font-emphasis flex items-center gap-2 rounded-full py-1.5 pr-3.5 pl-2.5"
+        style={{ "--i": 18 }}
+      >
+        <Icon name="caught" />
+        {summary.caught} AI errors caught
+      </div>
     </div>
   </div>
 );

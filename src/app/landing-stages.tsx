@@ -13,7 +13,7 @@ const flagged = steps.find((step) => step.flag);
 
 const LogVignette = () => (
   <div className="flex flex-col gap-2.5">
-    <div className="flex items-center gap-2">
+    <div className="stage-in flex items-center gap-2 [--i:0]">
       <Badge variant="ai">ChatGPT</Badge>
       <span className="text-faint text-label truncate font-mono">
         chatgpt.com/share/6f2a91c…
@@ -25,10 +25,11 @@ const LogVignette = () => (
         return (
           <li
             className={cn(
-              "flex items-center gap-2.5 rounded-lg px-2.5 py-2",
+              "stage-in flex items-center gap-2.5 rounded-lg px-2.5 py-2",
               waiting ? "bg-ai-wash shadow-ai-ring" : "bg-card shadow-hairline"
             )}
             key={step.title}
+            style={{ "--i": index + 1 }}
           >
             <span
               className={cn(
@@ -63,7 +64,7 @@ const VERDICTS = [
 
 const CritiqueVignette = () => (
   <div className="flex flex-col gap-3">
-    <span className="bg-muted shadow-hairline inline-flex w-fit rounded-lg p-0.5">
+    <span className="bg-muted shadow-hairline stage-in inline-flex w-fit rounded-lg p-0.5 [--i:0]">
       {VERDICTS.map(({ dot, label }) => (
         <span
           className={cn(
@@ -79,10 +80,10 @@ const CritiqueVignette = () => (
         </span>
       ))}
     </span>
-    <p className="text-reading border-human line-clamp-3 border-l-2 pl-3 font-serif">
+    <p className="text-reading border-human stage-reveal line-clamp-3 border-l-2 pl-3 font-serif [--i:1]">
       {caught?.critique}
     </p>
-    <div className="flex items-center gap-2">
+    <div className="stage-in flex items-center gap-2 [--i:3]">
       <Badge variant="success">
         <Icon name="caught" />
         Caught: {caught?.caught}
@@ -96,7 +97,7 @@ const CritiqueVignette = () => (
 
 const ReviewVignette = () => (
   <div className="flex flex-col gap-3">
-    <div className="flex items-end justify-between gap-3">
+    <div className="stage-in flex items-end justify-between gap-3 [--i:0]">
       <div>
         <span className="text-label text-muted-foreground font-emphasis block">
           Not traced to logged AI
@@ -109,13 +110,13 @@ const ReviewVignette = () => (
     </div>
     <ProcessBars
       base={46}
-      className="w-full"
+      className="stage-reveal w-full [--i:1]"
       height={64}
       steps={steps}
       width={280}
     />
     {flagged?.flag ? (
-      <p className="text-flag-ink text-meta font-emphasis flex items-center gap-1.75">
+      <p className="text-flag-ink text-meta font-emphasis stage-in flex items-center gap-1.75 [--i:3]">
         <Icon name="flag" />
         {flagged.flag.title}
         <span className="text-muted-foreground font-book ml-auto font-mono">
@@ -152,8 +153,9 @@ export const Stages = () => (
   <ol className="grid gap-4 md:grid-cols-3">
     {stages.map(({ body, title, vignette }, index) => (
       <li
-        className="bg-card shadow-card rise-on-scroll flex flex-col overflow-hidden rounded-xl"
+        className="bg-card shadow-card rise-on-scroll stage flex flex-col overflow-clip rounded-xl"
         key={title}
+        style={{ "--i": index }}
       >
         <div
           aria-hidden="true"

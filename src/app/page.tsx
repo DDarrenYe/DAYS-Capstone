@@ -113,7 +113,7 @@ const Home = () => (
       aria-hidden="true"
       className="bg-border pointer-events-none absolute inset-y-0 left-3 w-px max-md:hidden"
     />
-    <header className="flex items-center justify-between gap-6 py-4">
+    <header className="header-settle bg-background/90 sticky top-0 z-40 -mx-8 flex items-center justify-between gap-6 border-b px-8 py-4 backdrop-blur max-md:-mx-5 max-md:px-5">
       <Brand href="/" subtitle="AI-Interaction Analytics" />
       <nav
         aria-label="Site"
@@ -131,6 +131,9 @@ const Home = () => (
         >
           Privacy
         </Link>
+        <a className={buttonVariants({ size: "sm" })} href="#sign-in">
+          Sign in
+        </a>
       </nav>
     </header>
     <main className="flex flex-1 flex-col">
@@ -142,20 +145,22 @@ const Home = () => (
           <Marker className="animate-rise before:bg-ai-line">
             <Badge variant="ai">Built for Lane 2 assessment</Badge>
           </Marker>
-          <h1
-            className="text-display animate-rise stagger font-semibold text-balance [--i:1]"
-            id="hero-title"
-          >
-            See the thinking behind the work.
+          <h1 className="text-display font-semibold" id="hero-title">
+            <span className="line-mask">
+              <span className="line-up [--i:1]">See the thinking</span>
+            </span>{" "}
+            <span className="line-mask">
+              <span className="line-up [--i:2]">behind the work.</span>
+            </span>
           </h1>
-          <p className="text-body animate-rise stagger text-lead text-pretty [--i:2]">
+          <p className="text-body animate-rise stagger text-lead text-pretty [--i:3]">
             Students log every AI prompt and critique each answer. Graders see
             the whole process at a glance, and exactly where a critique ran
             thin.
           </p>
           <section
             aria-labelledby="sign-in-title"
-            className="bg-card shadow-card animate-rise stagger mt-1 w-full scroll-mt-8 rounded-xl p-5 [--i:3]"
+            className="bg-card shadow-card animate-rise stagger mt-1 w-full scroll-mt-28 rounded-xl p-5 [--i:4]"
             id="sign-in"
           >
             <h2
@@ -164,7 +169,13 @@ const Home = () => (
             >
               Sign in to your course
             </h2>
-            <Suspense fallback={<output>Loading sign-in…</output>}>
+            <Suspense
+              fallback={
+                <div aria-busy="true" inert>
+                  <SignInForm />
+                </div>
+              }
+            >
               <SignIn />
             </Suspense>
           </section>
@@ -211,7 +222,7 @@ const Home = () => (
 
       <section
         aria-labelledby="how-it-works-title"
-        className="flex scroll-mt-4 flex-col gap-12 border-t py-20"
+        className="flex scroll-mt-24 flex-col gap-12 border-t py-20"
         id="how-it-works"
       >
         <SectionHeading
@@ -236,8 +247,12 @@ const Home = () => (
           Judgement stays with people.
         </SectionHeading>
         <ul className="grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
-          {rules.map(({ body, icon, title }) => (
-            <li className="rise-on-scroll flex flex-col gap-2.5" key={title}>
+          {rules.map(({ body, icon, title }, index) => (
+            <li
+              className="rise-on-scroll flex flex-col gap-2.5"
+              key={title}
+              style={{ "--i": index }}
+            >
               <span className="bg-card shadow-strong-ring text-body grid size-8 place-items-center rounded-lg">
                 <Icon name={icon} />
               </span>
@@ -256,10 +271,13 @@ const Home = () => (
           Lane 2, made legible
         </Marker>
         <h2
-          className="text-display max-w-200 font-semibold text-balance"
+          className="text-display relative max-w-200 font-semibold text-balance"
           id="closing-title"
         >
-          Make the messy middle visible.
+          <span aria-hidden="true" className="underdrawing absolute inset-0">
+            Make the messy middle visible.
+          </span>
+          <span className="relative">Make the messy middle visible.</span>
         </h2>
         <div className="flex flex-wrap items-center gap-3">
           <a className={buttonVariants({ size: "lg" })} href="#sign-in">

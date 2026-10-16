@@ -307,6 +307,8 @@ The palette is warm neutrals with four meaning colours. A meaning colour is neve
 - **Review amber (#C98A1B):** work waiting for a grader.
 - **Human (#2B2C30):** the student's critique in process charts, so it reads as the same ink as their writing.
 
+Pentimento is light-only. The root layout declares `color-scheme: light` and a paper `theme-color`, so a browser in dark mode paints paper, not a dark canvas, before the page arrives.
+
 ## Typography
 
 Three families with fixed jobs:
@@ -327,13 +329,13 @@ Every page starts with a page bar: breadcrumbs on the left, the page's own actio
 
 A page that needs a submission never dead-ends. Opening the Visualiser or Reports without one lists the submissions grouped by assignment, in the same "look closer first" order as the table, so a grader is one click from the work.
 
-Landing, privacy and the 404 page sit outside the shell. Landing keeps a hairline rule down the left of the page. A cobalt dot on it marks the hero, and a neutral dot marks each section after it. The page runs in five parts:
+Landing, privacy and the 404 page sit outside the shell. Landing keeps a hairline rule down the left of the page. A cobalt dot on it marks the hero, and a neutral dot marks each section after it. Its header sticks to the top with a small "Sign in" button, so signing in is one click from anywhere on the page. The page runs in five parts:
 
 1. **Hero:** the promise, the sign-in card and a preview of the Visualiser built from the real components.
 2. **The earlier layer:** the finished essay with a lens that shows the traced layer underneath, beside a legend and the "Not traced to logged AI" figure.
 3. **How it works:** three numbered stages (log, critique, review), each with a small picture of the product drawn from the same tokens and example data. They use the same `01`–`03` markers as the student's log.
 4. **Ground rules:** what Pentimento will never claim, in plain words.
-5. **Close:** "Make the messy middle visible", with sign-in and privacy links.
+5. **Close:** "Make the messy middle visible", drawn over a hairline underdrawing of itself, with sign-in and privacy links.
 
 Privacy reads like a document: a sticky "On this page" index on wide screens, and sections divided by hairlines rather than cards. The 404 page repeats the logo's two layers with its own number, a hairline cobalt 404 tilted under a heavy one.
 
@@ -393,14 +395,18 @@ Motion follows Emil Kowalski's rules, judged by how often a grader sees it.
 - **Motion comes from what the user does.** Clicking a step slides the selection band (240ms, `ease-in-out`), swaps the inspector with a 2px blur (180ms) and moves the essay highlight (160ms). Filter thumbs and tab indicators slide with the `morph` utility (200ms, `ease-in-out`).
 - **State changes morph instead of jumping.** A button label that changes while it works ("Save" to "Saving…") crossfades with the same 2px blur through `SwapText`, but never on first render. Deciding a flag swaps its actions the same way. A checkbox tick draws in from the left (150ms) and wipes back out (100ms). Progress fills slide with `translate` (240ms), and each answered critique question fills its pip from the left.
 - **Landing tells the story once.** The process chart sweeps in left to right with a `clip-path` reveal (720ms), the traced and flagged passages then highlight in, and the flag and caught-error notes land last. The whole sequence is over in about 1.1 seconds and never blocks sign-in.
-- **Landing sections rise as they scroll in** with `rise-on-scroll`, a scroll-linked version of the same 6px rise. Browsers without scroll timelines show them in place.
+- **Landing sections rise as they scroll in** with `rise-on-scroll`, a scroll-linked version of the same 6px rise. Neighbours set `--i` to arrive one after another. Browsers without scroll timelines show them in place.
+- **The hero headline rises out of a mask,** one line at a time (`line-mask` and `line-up`, 760ms, `--ease-out`, 90ms apart). Like the chart sweep, it is a landing-only exception to the 300ms limit.
+- **The landing header settles as you scroll.** Over the first 96px it gains its paper bar and hairline (`header-settle`). The flag note and caught-error chip in the hero preview drift up at different speeds (`drift`), so the preview has depth as it leaves.
+- **Each stage card plays out as it enters.** The card names a view timeline (`stage`) and the parts of its picture follow it in order with `stage-in` and `stage-reveal`: the steps tick in, the critique reveals, the process chart sweeps in and the flag lands last.
+- **The closing line settles.** A hairline copy of it in Faint (`underdrawing`) starts slightly tilted and offset, then slides into place and fades as the line comes into view, the same two layers as the logo. It finishes before the page can no longer scroll.
 - **The lens follows the reader.** Until someone touches it, scrolling past the earlier-layer section carries the lens down the essay over the traced passages. A pointer picks it up: it trails the cursor by 150ms and grows from 84px to 96px, and when the pointer leaves it stays where it was put down. "Show the whole layer" opens it into a full reveal over 500ms, and it is the way in on touch screens and keyboards. These are landing-only exceptions to the 300ms limit, because they tell the product's idea once. The lens state lives in the `lens-area` utility and its registered `--lens-*` properties.
 - **Keyboard actions never animate.** Arrow keys move the selection with no transition.
 - **Easing:** `--ease-out` is `cubic-bezier(0.23, 1, 0.32, 1)` for anything entering, and `--ease-in-out` is `cubic-bezier(0.77, 0, 0.175, 1)` for movement on screen. Hover and colour changes use the default ease-shaped curve. Never use `ease-in`.
 - **Durations:** button press 140ms (`scale(0.97)`), tooltips 125ms, menus and popovers 160ms in and 100ms out, dialogs 220ms in and 150ms out. Keep UI motion under 300ms.
 - **Origins:** popovers and menus scale from their trigger with Base UI's `--transform-origin`. Dialogs stay centred. Nothing scales from 0; entrances start at 0.96 to 0.97 with opacity.
 - **Tooltips** wait 300ms the first time, then open instantly while one is already showing.
-- **Reduced motion** keeps fades and colour changes and drops anything that moves or scales. The lens stays parked and jumps instead of gliding.
+- **Reduced motion** keeps fades and colour changes and drops anything that moves or scales. The lens stays parked and jumps instead of gliding. The landing header keeps its paper bar from the start, the preview notes don't drift, and the underdrawing never shows.
 - Animate only `transform`, `opacity`, colours, shadows and `clip-path` reveals. Never `transition: all`.
 
 ## Do's and Don'ts
