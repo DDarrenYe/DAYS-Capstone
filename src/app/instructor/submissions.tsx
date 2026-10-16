@@ -5,10 +5,13 @@ import { submissionRows } from "@/lib/submission-rows";
 import { createClient } from "@/lib/supabase/server";
 
 /* Read on the server as the signed-in instructor, so RLS decides which courses show and the essay text never reaches the browser. */
-export const Submissions = async () => {
+export const loadSubmissionRows = async () => {
   const { id } = await requireRole("instructor");
-  const rows = submissionRows(
+  return submissionRows(
     await cohortMetricsQuery(await createClient(), id).queryFn()
   );
-  return <CohortOverview rows={rows} />;
 };
+
+export const Submissions = async () => (
+  <CohortOverview rows={await loadSubmissionRows()} />
+);

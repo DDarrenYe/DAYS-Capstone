@@ -131,6 +131,9 @@
   --text-stat: 22px;
   --text-stat--line-height: 1.1;
   --text-stat--letter-spacing: -0.025em;
+  --text-headline: clamp(28px, 3vw, 40px);
+  --text-headline--line-height: 1.08;
+  --text-headline--letter-spacing: -0.022em;
   --text-display: clamp(34px, 4.2vw, 52px);
   --text-display--line-height: 1.04;
   --text-display--letter-spacing: -0.025em;
@@ -374,6 +377,185 @@ body {
   transition-property: translate, width, height, opacity;
   transition-duration: 200ms;
   transition-timing-function: var(--ease-in-out);
+}
+
+@utility rise-on-scroll {
+  @supports (animation-timeline: view()) {
+    animation: rise linear both;
+    animation-timeline: view();
+    animation-range: entry calc(var(--i, 0) * 10%) entry
+      calc(70% + var(--i, 0) * 10%);
+  }
+}
+
+@keyframes line-up {
+  from {
+    translate: 0 110%;
+  }
+}
+
+@utility line-mask {
+  display: block;
+  overflow: clip;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+@utility line-up {
+  display: block;
+  animation: line-up 760ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 90ms + 60ms);
+}
+
+@keyframes header-settle {
+  from {
+    background-color: transparent;
+    border-bottom-color: transparent;
+  }
+}
+
+@keyframes drift {
+  to {
+    translate: 0 var(--drift, -32px);
+  }
+}
+
+@keyframes settle {
+  from {
+    opacity: 1;
+    translate: -14px 10px;
+    rotate: -2deg;
+  }
+}
+
+@utility stage {
+  view-timeline-name: --stage;
+}
+
+@utility stage-in {
+  @supports (animation-timeline: view()) {
+    animation: rise linear both;
+    animation-timeline: --stage;
+    animation-range: entry calc(30% + var(--i, 0) * 12%) entry
+      calc(60% + var(--i, 0) * 12%);
+  }
+}
+
+@utility stage-reveal {
+  @supports (animation-timeline: view()) {
+    animation: reveal linear both;
+    animation-timeline: --stage;
+    animation-range: entry calc(30% + var(--i, 0) * 12%) entry
+      calc(75% + var(--i, 0) * 12%);
+  }
+}
+
+@utility header-settle {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      animation: header-settle linear both;
+      animation-timeline: scroll();
+      animation-range: 0 96px;
+    }
+  }
+}
+
+@utility drift {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      animation: drift linear both;
+      animation-timeline: scroll();
+      animation-range: 0 720px;
+    }
+  }
+}
+
+@utility underdrawing {
+  color: transparent;
+  -webkit-text-stroke: 1px var(--faint);
+  opacity: 0;
+  transform-origin: left center;
+  pointer-events: none;
+  user-select: none;
+
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      animation: settle linear both;
+      animation-timeline: view();
+      animation-range: entry 0% contain 15%;
+    }
+  }
+}
+
+@property --lens-x {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+
+@property --lens-y {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+
+@property --lens-r {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@utility lens {
+  clip-path: circle(var(--lens-r) at var(--lens-x) var(--lens-y));
+}
+
+@keyframes lens-scan {
+  0% {
+    --lens-x: 64%;
+    --lens-y: 16%;
+  }
+  45% {
+    --lens-x: 30%;
+    --lens-y: 46%;
+  }
+  100% {
+    --lens-x: 60%;
+    --lens-y: 86%;
+  }
+}
+
+@utility lens-area {
+  --lens-x: 64%;
+  --lens-y: 16%;
+  --lens-r: 84px;
+  transition-property: --lens-x, --lens-y, --lens-r;
+  transition-duration: 300ms;
+  transition-timing-function: var(--ease-in-out);
+
+  &[data-lens="track"] {
+    --lens-r: 96px;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  &[data-lens="open"] {
+    --lens-r: 150%;
+    transition-duration: 500ms;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      &[data-lens="scan"] {
+        animation: lens-scan linear both;
+        animation-timeline: view();
+        animation-range: cover 25% cover 75%;
+      }
+    }
+  }
+}
+
+@utility lens-ring {
+  clip-path: circle(calc(var(--lens-r) + 1.5px) at var(--lens-x) var(--lens-y));
 }
 
 /* Reduced motion keeps every fade and colour change and drops anything that moves or scales. */

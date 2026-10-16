@@ -1,5 +1,6 @@
 import { loadSubmission } from "@/app/instructor/visualiser/load-submission";
 import { NoSubmission } from "@/app/instructor/visualiser/no-submission";
+import { PickSubmission } from "@/app/instructor/visualiser/pick-submission";
 import { ReportBuilder } from "@/components/report/report-builder";
 import { PageBar } from "@/components/shell/page-bar";
 
@@ -7,6 +8,14 @@ export const SubmissionExport = async ({
   searchParams,
 }: Pick<PageProps<"/instructor/reports">, "searchParams">) => {
   const { detail, problem } = await loadSubmission(searchParams);
+  if (problem === "none") {
+    return (
+      <PickSubmission
+        intro="Choose whose process report to build. You pick the sections and the format on the next screen."
+        page="Reports"
+      />
+    );
+  }
   if (!detail) {
     return (
       <NoSubmission page="Reports">
@@ -15,7 +24,6 @@ export const SubmissionExport = async ({
             empty: "This submission has no logged steps.",
             missing:
               "That submission doesn’t exist, or it isn’t in one of your courses.",
-            none: "Open a submission from the list, then choose Export to build its report.",
           }[problem]
         }
       </NoSubmission>

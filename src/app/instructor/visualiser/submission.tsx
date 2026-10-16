@@ -1,5 +1,6 @@
 import { loadSubmission } from "@/app/instructor/visualiser/load-submission";
 import { NoSubmission } from "@/app/instructor/visualiser/no-submission";
+import { PickSubmission } from "@/app/instructor/visualiser/pick-submission";
 import { Visualiser } from "@/app/instructor/visualiser/visualiser";
 
 export const Submission = async ({
@@ -9,6 +10,14 @@ export const Submission = async ({
   if (loaded.detail) {
     return <Visualiser detail={loaded.detail} key={loaded.detail.id} />;
   }
+  if (loaded.problem === "none") {
+    return (
+      <PickSubmission
+        intro="Open one to see every step, the critique beside it and where the final text came from."
+        page="Visualiser"
+      />
+    );
+  }
   return (
     <NoSubmission>
       {
@@ -16,7 +25,6 @@ export const Submission = async ({
           empty: "This submission has no logged steps.",
           missing:
             "That submission doesn’t exist, or it isn’t in one of your courses.",
-          none: "Open a submission from the list to see how it was written.",
         }[loaded.problem]
       }
     </NoSubmission>
