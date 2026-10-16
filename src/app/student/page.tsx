@@ -5,6 +5,7 @@ import {
   AssignmentList,
   AssignmentsSkeleton,
 } from "@/app/student/assignment-list";
+import { Walkthrough } from "@/app/student/walkthrough/walkthrough";
 import { PageBar } from "@/components/shell/page-bar";
 import { requireRole } from "@/lib/auth";
 import { assignmentsQuery } from "@/lib/data/queries";
@@ -34,7 +35,11 @@ const Assignments = async () => {
 
 const StudentPage = () => (
   <>
-    <PageBar crumbs={[{ label: "Assignments" }]} />
+    <PageBar crumbs={[{ label: "Assignments" }]}>
+      <Walkthrough size="sm" variant="outline">
+        How it works
+      </Walkthrough>
+    </PageBar>
     <div className="flex-1 overflow-y-auto px-6 pt-5 pb-6 max-md:px-4">
       <h1 className="text-title font-semibold">Assignments</h1>
       <p className="text-muted-foreground mt-1.5">

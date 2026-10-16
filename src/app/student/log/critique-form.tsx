@@ -8,7 +8,7 @@ import { z } from "zod";
 import { AnswerMarker } from "@/app/student/log/answer-marker";
 import { ConfirmDialog } from "@/app/student/log/confirm-dialog";
 import { CritiqueSidebar } from "@/app/student/log/critique-sidebar";
-import { Center, Part, SourceChip } from "@/app/student/log/part";
+import { Center, Part, Question, SourceChip } from "@/app/student/log/part";
 import { SourceList } from "@/app/student/log/source-list";
 import { StepActions } from "@/app/student/log/step-actions";
 import {
@@ -28,7 +28,6 @@ import { markDraftSchema } from "@/lib/data/schemas";
 import { useSaveCritique } from "@/lib/data/use-mutations";
 import { usePersistentState } from "@/lib/local-state";
 import {
-  MIN_ANSWER_WORDS,
   composeCritique,
   countWords,
   critiqueCoverage,
@@ -64,40 +63,6 @@ const saveStatus = (complete: boolean, unexplained: boolean, done: number) => {
   }
   return `${done} of 3 answered`;
 };
-
-const Question = ({
-  id,
-  label,
-  hint,
-  words,
-  children,
-}: {
-  id: string;
-  label: string;
-  hint: string;
-  words: number;
-  children: ReactNode;
-}) => (
-  <div className="mt-4.5">
-    <div className="mb-1.5 flex items-baseline gap-2">
-      <label className="text-body text-label font-emphasis" htmlFor={id}>
-        {label}
-      </label>
-      <span className="text-faint text-label">{hint}</span>
-      {words >= MIN_ANSWER_WORDS ? (
-        <span className="text-success text-label ml-auto flex items-center gap-1">
-          <Icon className="size-3" name="check" />
-          Enough to go on
-        </span>
-      ) : (
-        <span className="text-faint text-micro ml-auto font-mono tabular-nums">
-          {words}/{MIN_ANSWER_WORDS} words
-        </span>
-      )}
-    </div>
-    {children}
-  </div>
-);
 
 const SaveBar = ({
   coverage,

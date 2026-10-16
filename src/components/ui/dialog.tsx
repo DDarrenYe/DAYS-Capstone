@@ -48,6 +48,7 @@ const dialogContentVariants = cva(
     variants: {
       size: {
         default: "grid max-w-[calc(100%-2rem)] gap-4 p-5 sm:max-w-md",
+        tour: "flex max-h-[calc(100dvh-2rem)] max-w-[calc(100%-2rem)] flex-col sm:h-180 sm:w-180",
         workspace:
           "flex h-190 max-h-[calc(100dvh-2rem)] max-w-[calc(100%-2rem)] flex-col sm:w-270",
       },

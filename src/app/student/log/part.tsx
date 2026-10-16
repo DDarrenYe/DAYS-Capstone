@@ -2,7 +2,42 @@ import type { ReactNode } from "react";
 
 import type { LoggedStep } from "@/app/student/log/step-meta";
 import { Icon } from "@/components/icon";
+import { MIN_ANSWER_WORDS } from "@/lib/process";
 import { cn } from "@/lib/utils";
+
+export const Question = ({
+  id,
+  label,
+  hint,
+  words,
+  children,
+}: {
+  id: string;
+  label: string;
+  hint: string;
+  words: number;
+  children: ReactNode;
+}) => (
+  <div className="mt-4.5">
+    <div className="mb-1.5 flex items-baseline gap-2">
+      <label className="text-body text-label font-emphasis" htmlFor={id}>
+        {label}
+      </label>
+      <span className="text-faint text-label">{hint}</span>
+      {words >= MIN_ANSWER_WORDS ? (
+        <span className="text-success text-label ml-auto flex items-center gap-1">
+          <Icon className="size-3" name="check" />
+          Enough to go on
+        </span>
+      ) : (
+        <span className="text-faint text-micro ml-auto font-mono tabular-nums">
+          {words}/{MIN_ANSWER_WORDS} words
+        </span>
+      )}
+    </div>
+    {children}
+  </div>
+);
 
 export const Part = ({
   number,
