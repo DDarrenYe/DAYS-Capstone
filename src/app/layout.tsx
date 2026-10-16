@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter, Newsreader } from "next/font/google";
 
 import "./globals.css";
@@ -21,8 +21,18 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   description:
-    "Lane 2 grading dashboard: students log and critique their AI use, graders see the process at a glance",
-  title: "Pentimento · AI-Interaction Analytics",
+    "Students log and critique every AI answer they use. Graders see the thinking behind the work, and where a critique ran thin.",
+  title: {
+    default: "Pentimento · AI-Interaction Analytics",
+    template: "%s · Pentimento",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { color: "#f4f4f0", media: "(prefers-color-scheme: light)" },
+    { color: "#111110", media: "(prefers-color-scheme: dark)" },
+  ],
 };
 
 const RootLayout = ({ children }: LayoutProps<"/">) => (

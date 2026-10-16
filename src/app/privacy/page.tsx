@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Icon } from "@/components/icon";
@@ -63,6 +64,8 @@ const sections: {
     title: "Keeping and deleting",
   },
 ];
+
+export const metadata: Metadata = { title: "Privacy and who sees what" };
 
 const PrivacyPage = () => (
   <div className="mx-auto w-full max-w-280 px-8 pb-20 max-md:px-5">

@@ -36,6 +36,12 @@ colors:
   review-soft: "#F6ECD5"
   error: "#C8431B"
 typography:
+  headline:
+    fontFamily: Inter
+    fontSize: 40px
+    fontWeight: 600
+    lineHeight: 1.08
+    letterSpacing: -0.022em
   display:
     fontFamily: Inter
     fontSize: 52px
@@ -301,6 +307,16 @@ The palette is warm neutrals with four meaning colours. A meaning colour is neve
 - **Review amber (#C98A1B):** work waiting for a grader.
 - **Human (#2B2C30):** the student's critique in process charts, so it reads as the same ink as their writing.
 
+### Ink, the dark theme
+
+Pentimento follows the system setting. After dark it becomes **Ink**: the same system on graphite, not a negative of it. Every token in `src/app/globals.css` has an Ink value, so components never need a `dark:` class.
+
+- **Surfaces get lighter as they rise.** Paper is #111110, the sheet #1A1A18, and popovers, menus and dialogs #21211F, so floating things read as closer without heavy shadows. Hairlines that ring a card or popover use the `--edge` token, a 7% ink line on paper and an 8% white line in Ink.
+- **Ink and paper trade places.** Text is warm paper (#EDECE7) and primary buttons turn paper-coloured with ink labels. Human bars in charts follow the text colour, so a critique still reads as the student's own ink.
+- **Meaning colours are lifted, never swapped.** Cobalt becomes #8AA0F8, vermilion #F2784F, green #62C890 and amber #E6AD45, each with a darker tint behind it. Body, muted and meaning-colour text all pass WCAG AA on their surfaces, and body text clears 9:1. Faint stays a metadata colour here too.
+- **Printed pages stay paper.** Anything that stands for a printed page, such as the report preview, carries the `paper` class, which puts the light tokens back inside it.
+- Dialog backdrops use the `scrim` token: 34% ink on paper and 56% black in Ink, so the page behind always darkens.
+
 ## Typography
 
 Three families with fixed jobs:
@@ -311,7 +327,7 @@ Three families with fixed jobs:
 
 Weights are deliberate in-between values: 450 for book text in menus, 520 for emphasis and labels, 580 for headings and figures, 600 for page titles. Avoid 700. The utilities are `font-book`, `font-emphasis` and `font-heading`; `font-heading` is a weight, not a family.
 
-Page titles are 21px. The display size, used on landing and privacy only, scales with `clamp(34px, 4.2vw, 52px)`. In-app headings never go above the title size.
+Page titles are 21px. The display size, used on landing, privacy and the 404 page only, scales with `clamp(34px, 4.2vw, 52px)`. Landing section headings use the headline size, `clamp(28px, 3vw, 40px)`, one step under the hero. In-app headings never go above the title size.
 
 ## Layout
 
@@ -319,7 +335,17 @@ The signed-in app is a fixed shell: a 236px paper sidebar on the left, and the p
 
 Every page starts with a page bar: breadcrumbs on the left, the page's own actions on the right, and an "Example data" badge on screens not yet connected to Supabase. Content below uses a 24px gutter (16px on phones).
 
-Landing and privacy sit outside the shell. Landing keeps a hairline rule down the left of the page, with a small dot on it beside the hero. Below the hero, three numbered stages (log, critique, review) use the same `01`–`03` markers as the student's log. Privacy reads like a document: a sticky "On this page" index on wide screens, and sections divided by hairlines rather than cards.
+A page that needs a submission never dead-ends. Opening the Visualiser or Reports without one lists the submissions grouped by assignment, in the same "look closer first" order as the table, so a grader is one click from the work.
+
+Landing, privacy and the 404 page sit outside the shell. Landing keeps a hairline rule down the left of the page. A cobalt dot on it marks the hero, and a neutral dot marks each section after it. The page runs in five parts:
+
+1. **Hero:** the promise, the sign-in card and a preview of the Visualiser built from the real components.
+2. **The earlier layer:** the finished essay with a lens that shows the traced layer underneath, beside a legend and the "Not traced to logged AI" figure.
+3. **How it works:** three numbered stages (log, critique, review), each with a small picture of the product drawn from the same tokens and example data. They use the same `01`–`03` markers as the student's log.
+4. **Ground rules:** what Pentimento will never claim, in plain words.
+5. **Close:** "Make the messy middle visible", with sign-in and privacy links.
+
+Privacy reads like a document: a sticky "On this page" index on wide screens, and sections divided by hairlines rather than cards. The 404 page repeats the logo's two layers with its own number, a hairline cobalt 404 tilted under a heavy one.
 
 Spacing follows Tailwind's 4px scale. Cards pad 16px. Related items group by hairline dividers inside one card rather than by separate cards. Data screens are dense on purpose. A grader should see the chart, the essay and the selected step without scrolling on a laptop.
 
@@ -329,7 +355,7 @@ Pentimento is nearly flat. Hierarchy comes from paper against sheet, and from ha
 
 - Cards and fields use a 1px inset hairline (`--border`, #E7E6E1), not a drop shadow.
 - The inset page sheet has a very soft card shadow to lift it off the paper.
-- Only things that float get a real shadow: popovers, menus and tooltips use the `pop` shadow, and dialogs use the deeper `dialog` shadow with a 34% ink backdrop.
+- Only things that float get a real shadow: popovers, menus and tooltips use the `pop` shadow, and dialogs use the deeper `dialog` shadow over the `scrim` backdrop. In Ink, floating surfaces are also a step lighter than the sheet.
 - The report preview uses a paper shadow so it reads as a printed A4 page.
 
 ## Shapes
@@ -377,17 +403,19 @@ Motion follows Emil Kowalski's rules, judged by how often a grader sees it.
 - **Motion comes from what the user does.** Clicking a step slides the selection band (240ms, `ease-in-out`), swaps the inspector with a 2px blur (180ms) and moves the essay highlight (160ms). Filter thumbs and tab indicators slide with the `morph` utility (200ms, `ease-in-out`).
 - **State changes morph instead of jumping.** A button label that changes while it works ("Save" to "Saving…") crossfades with the same 2px blur through `SwapText`, but never on first render. Deciding a flag swaps its actions the same way. A checkbox tick draws in from the left (150ms) and wipes back out (100ms). Progress fills slide with `translate` (240ms), and each answered critique question fills its pip from the left.
 - **Landing tells the story once.** The process chart sweeps in left to right with a `clip-path` reveal (720ms), the traced and flagged passages then highlight in, and the flag and caught-error notes land last. The whole sequence is over in about 1.1 seconds and never blocks sign-in.
+- **Landing sections rise as they scroll in** with `rise-on-scroll`, a scroll-linked version of the same 6px rise. Browsers without scroll timelines show them in place.
+- **The lens follows the reader.** Until someone touches it, scrolling past the earlier-layer section carries the lens down the essay over the traced passages. A pointer picks it up: it trails the cursor by 150ms and grows from 84px to 96px, and when the pointer leaves it stays where it was put down. "Show the whole layer" opens it into a full reveal over 500ms, and it is the way in on touch screens and keyboards. These are landing-only exceptions to the 300ms limit, because they tell the product's idea once. The lens state lives in the `lens-area` utility and its registered `--lens-*` properties.
 - **Keyboard actions never animate.** Arrow keys move the selection with no transition.
 - **Easing:** `--ease-out` is `cubic-bezier(0.23, 1, 0.32, 1)` for anything entering, and `--ease-in-out` is `cubic-bezier(0.77, 0, 0.175, 1)` for movement on screen. Hover and colour changes use the default ease-shaped curve. Never use `ease-in`.
 - **Durations:** button press 140ms (`scale(0.97)`), tooltips 125ms, menus and popovers 160ms in and 100ms out, dialogs 220ms in and 150ms out. Keep UI motion under 300ms.
 - **Origins:** popovers and menus scale from their trigger with Base UI's `--transform-origin`. Dialogs stay centred. Nothing scales from 0; entrances start at 0.96 to 0.97 with opacity.
 - **Tooltips** wait 300ms the first time, then open instantly while one is already showing.
-- **Reduced motion** keeps fades and colour changes and drops anything that moves or scales.
+- **Reduced motion** keeps fades and colour changes and drops anything that moves or scales. The lens stays parked and jumps instead of gliding.
 - Animate only `transform`, `opacity`, colours, shadows and `clip-path` reveals. Never `transition: all`.
 
 ## Do's and Don'ts
 
-- Do use cobalt only for text traced to a logged AI answer, the current step and focus. Don't use it for links, decoration or charts of other data.
+- Do use cobalt only for text traced to a logged AI answer, the current step and focus. Don't use it for links, decoration or charts of other data. The logo and the 404 mark are the one place cobalt draws a shape, because there it is the earlier layer.
 - Do set anything a student wrote in Newsreader, and everything else in Inter.
 - Do call the 68% figure "Not traced to logged AI". Don't call it the student's own words, originality or an AI-detection score. Matching text is a prompt for judgement, not proof of authorship.
 - Do describe flags as asking a grader to look closer. Don't imply a flag changes a grade.
@@ -397,3 +425,4 @@ Motion follows Emil Kowalski's rules, judged by how often a grader sees it.
 - Don't use more than one meaning colour on a single element, and don't use a meaning colour as a background for a whole section.
 - Don't use 700 weights, heavy shadows or radii above 14px.
 - Do keep Faint (#9C9DA1) to metadata. It is too light for anything a grader has to read.
+- Do give every new colour an Ink value in `globals.css`. Don't add `dark:` classes or hard-coded hex values to components.
