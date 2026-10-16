@@ -195,7 +195,7 @@ flowchart LR
     a3["Extract .docx text"]:::planned
     a4["7 Match final text to AI answers"]:::planned
     a5["8 Reflection check job"]:::live
-    a6["10 PDF and CSV export"]:::planned
+    a6["10 PDF and CSV export"]:::live
   end
 
   subgraph db["Supabase Postgres with RLS"]
@@ -218,7 +218,7 @@ flowchart LR
     direction TB
     i1["Queue, submissions, visualiser"]:::live
     i2["9 Dismiss, add to feedback, note"]:::live
-    i3["Download report"]:::planned
+    i3["Download report"]:::live
   end
 
   s1 --> a1 --> d1
@@ -238,7 +238,7 @@ flowchart LR
   d3 --> i1
   d4 --> i1
   i2 --> d6
-  i1 -.-> a6 -.-> i3
+  i1 --> a6 --> i3
 ```
 
 | # | Stage | Status | What happens |
@@ -252,7 +252,47 @@ flowchart LR
 | 7 | Text matching | Working, [#26](https://github.com/DDarrenYe/DAYS-Capstone/issues/26) | A deterministic matcher compares the saved final text with the logged AI answers and makes no outside call. Students and instructors read the same numbers through RLS. It doesn't write `match_results`. See "Final-text matching" in `supabase/README.md`. |
 | 8 | Reflection check | Working, [#31](https://github.com/DDarrenYe/DAYS-Capstone/issues/31) [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32); limits and retries, [#34](https://github.com/DDarrenYe/DAYS-Capstone/issues/34) | After a submit, the server claims a run with `start_analysis` (one claimant per project) and checks the steps one at a time in `after()`. It calls the LLM API through the AI SDK, validates each answer and saves one `analysis_results` row per step plus any `flags` in one call (`complete_analysis`), or records a plain failure reason (`fail_analysis`). `projects.analysis_status` goes `pending`, `running`, then `completed` or `failed`. A finished run with no flags is different from pending or failed. An instructor can run it again from the Visualiser. A re-run adds a new set, keeps the old results and their reviews, and carries a decision over to a flag with the same step and kind. Each run is bounded: steps, step size, runs at once, a daily token budget reserved in `analysis_attempts` and settled with the tokens used, five runs per submission a day, and three retries a model call. A run a limit stops shows its reason as a failed check. See "Running it on a submission" and "Limits" in `docs/flagging.md`. |
 | 9 | Grader decisions | Working, [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33) | An instructor of that course dismisses a flag or adds it to feedback, with an optional note, from the Flags page or the Visualiser. Both call `review_flag(flag, decision, note)`, which takes the reviewer and time from the session, ignores a repeat of the same decision and note, and keeps the earlier decision in `flag_reviews` when one is corrected or undone. They can only add, edit and delete their own `grader_notes`. The Visualiser keeps one note per step, enforced by a unique index on author and step. Saving an empty note deletes it. |
-| 10 | Export | Planned, [#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36) | The server builds the PDF and CSV from the same submitted snapshot, matches and decisions the instructor sees. Notes only go in when the grader picks that. |
+| 10 | Export | Working, [#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36) | The server builds the PDF or the step CSV from the same submitted snapshot, matches and decisions the instructor sees. Notes only go in when the grader picks that. See "Export" below. |
+
+## Export
+
+An instructor opens the builder from the Visualiser's Export button or from `/instructor/reports?project=`. The download is `GET /instructor/reports/export`. The route reads the submission the way the Visualiser does, with `submissionQuery` as the signed-in user, so RLS decides which submissions they can see. It builds the file from `submissionDetail`, so the figures, flags and decisions in the report are the numbers on screen.
+
+Options go in the query string and zod checks them on the server (`src/lib/export-options.ts`). A missing option takes its default. A value that isn't a yes or a no is a 400, and so is a format other than `pdf` or `csv`.
+
+| Option | In the PDF | In the CSV | Default |
+| --- | --- | --- | --- |
+| `summary` | Figures, the matched share with its caveat, the check state and the errors the student marked | No | On |
+| `chart` | Words of each AI answer, and how many reached the essay, against critique words | No | On |
+| `steps` | Every critique in full, the questions it answered and the marks | No | On |
+| `prompts` | The full prompt and AI answer of every step | `prompt` and `ai_answer` columns | Off |
+| `flags` | Flag evidence and every decision, including dismissed ones | Always in the `flags` column | On |
+| `notes` | Your grader notes and the notes on flag decisions | `grader_note` and `flag_notes` columns | Off |
+| `essay` | The final essay, with text that matches an AI answer highlighted | No | Off |
+
+The PDF always has the student, course and assignment, and a table of every step.
+
+### Who can export
+
+Only a signed-in instructor. No session is a 401 (`proxy.ts` already sends a browser to sign-in), a student is a 403, and a submission outside the instructor's courses is a 404. Every answer, refusals included, sends `Cache-Control: private, no-store`, so a shared cache can't keep a report. Grader notes are read with `grader_notes.author_id` set to the signed-in user, so one instructor's notes never end up in another instructor's export. Notes and prompt history stay out of the file unless the request asks for them.
+
+### The PDF
+
+`@react-pdf/renderer` makes it on the server (`src/app/instructor/reports/export/report.tsx`). It breaks pages by itself, so long answers carry on to the next page and the rows of the step table don't split.
+
+- **Fonts:** Inter is embedded from `@fontsource/inter` (Latin, Latin Extended, Vietnamese, Greek and Cyrillic), so macrons and accents print. `outputFileTracingIncludes` in `next.config.ts` lists the font files so the hosted build ships them.
+- **Long words:** a word or URL over 28 characters is cut into pieces so it wraps instead of running off the page.
+- **Other scripts:** the font has no Japanese, Chinese, Korean, Arabic or emoji. Those characters print as `?` and the first page says so. The CSV keeps the original text.
+- **Test setup:** react-pdf can't run under the `react-server` condition that `bun test` uses, so `render.test.ts` renders in a child process.
+
+### The CSV
+
+One row per step, oldest first. The first columns (student, email, course, assignment, check) repeat on every row, so files from several students can be stacked. A cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return, also after leading spaces, gets an apostrophe in front so a spreadsheet can't run it as a formula. The apostrophe shows in the cell. The file starts with a byte order mark so Excel reads it as UTF-8, and lines end in CRLF.
+
+### What we left out
+
+- **All submissions:** the prototype had a zip of every PDF plus a cohort summary. The issue doesn't ask for it.
+- **Page count and thumbnails:** the prototype showed them, but we can't know the page count before the PDF is made. The builder previews page 1 instead.
 
 ## Who can do what
 
@@ -296,15 +336,15 @@ Matching and export stay inside the app. The reflection check sends each submitt
 | Student assignments page | Prototype. Three hard-coded cards, and "Add steps" opens a placeholder. |
 | Progress | Prototype. Example data. |
 | Privacy | Working. `/privacy` describes the flow above, linked from sign-in, the account menu and Add steps. It says what the reflection check sends and that the provider's retention isn't ours to set. Update it when [#39](https://github.com/DDarrenYe/DAYS-Capstone/issues/39) settles our own retention period. |
-| Instructor overview | Working, [#27](https://github.com/DDarrenYe/DAYS-Capstone/issues/27). The header, review progress, the bands of "not from logged AI", the open flags by reason, the flags added to feedback and the totals on `/instructor` come from the same rows as the submissions table, one assignment at a time (`?assignment=` in the URL). The reports page is still a placeholder. |
+| Instructor overview | Working, [#27](https://github.com/DDarrenYe/DAYS-Capstone/issues/27). The header, review progress, the bands of "not from logged AI", the open flags by reason, the flags added to feedback and the totals on `/instructor` come from the same rows as the submissions table, one assignment at a time (`?assignment=` in the URL). `/instructor/reports?project=` builds an export for one submission. Without a submission it asks you to open one from the list. |
 | Submissions table | Working. The table on `/instructor` reads submitted projects from Supabase on the server and shows the shared match and critique figures, the reflection-check state, search, a filter and 50-row pages in the URL. |
-| Visualiser | Working, [#29](https://github.com/DDarrenYe/DAYS-Capstone/issues/29), [#30](https://github.com/DDarrenYe/DAYS-Capstone/issues/30), [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33). `/instructor/visualiser?project=` reads one submitted project on the server and shows the matcher's spans in the final essay, the words kept from each AI answer, critique questions answered per step, the errors the student marked and the flags. Each step with a check result shows the three question results with their quotes, the explanation and the uncertainty, and each flag on it has Dismiss, Add to feedback, Undo and a note. The totals come from `submissionMetrics`, so they equal the submissions table. The note box under each step saves to `grader_notes` for the signed-in instructor. It saves when the field loses focus or on ⌘↵ (Ctrl+Enter), and a failed save keeps what was typed. The PDF export isn't connected yet ([#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36)). |
+| Visualiser | Working, [#29](https://github.com/DDarrenYe/DAYS-Capstone/issues/29), [#30](https://github.com/DDarrenYe/DAYS-Capstone/issues/30), [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33). `/instructor/visualiser?project=` reads one submitted project on the server and shows the matcher's spans in the final essay, the words kept from each AI answer, critique questions answered per step, the errors the student marked and the flags. Each step with a check result shows the three question results with their quotes, the explanation and the uncertainty, and each flag on it has Dismiss, Add to feedback, Undo and a note. The totals come from `submissionMetrics`, so they equal the submissions table. The note box under each step saves to `grader_notes` for the signed-in instructor. It saves when the field loses focus or on ⌘↵ (Ctrl+Enter), and a failed save keeps what was typed. The Export button opens the report builder in a dialog ([#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36)). |
 | Flags | Working, [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33). `/instructor/flags` lists every flag in the newest saved result set of each submitted project in the instructor's own courses, open flags first, with the evidence, the explanation, the full critique, the check's question results and the same decision controls. A decision survives a reload because the page reads it again from the database. The sidebar count is the number of open flags, counted the same way as the overview. Pending, empty and failed states differ: a skeleton while it loads, one of three empty messages (no submissions, no finished check, nothing flagged), and the instructor error page when the read fails. |
 | Import, critique, final essay, submit | Working in My log. |
 | Matching | Working as code and reads (`src/lib/final-match.ts`, `src/lib/submission-metrics.ts`). The final-version panel in My log shows the preview from the saved text. The submissions table and the Visualiser both show it per student. |
 | Reflection check | Working, [#32](https://github.com/DDarrenYe/DAYS-Capstone/issues/32). A submit starts it, the Visualiser shows its state and lets an instructor run it again. |
 | Grader decisions | Working, [#33](https://github.com/DDarrenYe/DAYS-Capstone/issues/33). Decisions and notes are stored with reviewer and time, and the review history keeps every change. |
-| Export | Not built. It will read the same decisions, notes and flags added to feedback ([#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36)). |
+| Export | Working, [#36](https://github.com/DDarrenYe/DAYS-Capstone/issues/36). It reads the same decisions, notes and flags added to feedback as the Visualiser. We still need to download a PDF and a CSV from the hosted build before release. |
 
 ## What's still missing
 

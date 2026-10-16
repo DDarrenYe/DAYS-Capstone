@@ -80,6 +80,14 @@ const UNFINISHED: ReadonlySet<CheckState> = new Set([
 export const isUnfinished = ({ state }: Pick<SubmissionRow, "state">) =>
   UNFINISHED.has(state);
 
+export const hasCheckResults = ({
+  analysis,
+  check,
+}: {
+  analysis: { kept: boolean };
+  check: CheckState;
+}) => !isUnfinished({ state: check }) || analysis.kept;
+
 export const submissionRows = (cohort: CohortRows): SubmissionRow[] =>
   cohort
     .map((entry): SubmissionRow => {

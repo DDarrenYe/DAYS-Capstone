@@ -10,14 +10,23 @@ import { StepCard } from "@/app/instructor/visualiser/step-card";
 import { StepNote } from "@/app/instructor/visualiser/step-note";
 import type { SubmissionDetail } from "@/app/instructor/visualiser/submission-detail";
 import { useStepNotes } from "@/app/instructor/visualiser/use-step-notes";
+import { Icon } from "@/components/icon";
 import { CompositionBar, Stat } from "@/components/process/metrics";
 import { ProcessChart } from "@/components/process/process-chart";
+import { ReportBuilder } from "@/components/report/report-builder";
 import { Avatar } from "@/components/shell/avatar";
 import { PageBar } from "@/components/shell/page-bar";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Kbd } from "@/components/ui/kbd";
 import { critiqueOrder } from "@/lib/process";
-import { isUnfinished } from "@/lib/submission-rows";
+import { hasCheckResults } from "@/lib/submission-rows";
 import { cn } from "@/lib/utils";
 
 const LEGEND = [
@@ -30,8 +39,7 @@ const LEGEND = [
 
 const Summary = ({ detail }: { detail: SubmissionDetail }) => {
   const { match } = detail;
-  const noResults =
-    isUnfinished({ state: detail.check }) && !detail.analysis.kept;
+  const noResults = !hasCheckResults(detail);
   return (
     <section className="flex flex-wrap items-start gap-x-3.5 gap-y-4 px-6 pt-4.5 pb-4 max-md:px-4">
       <Avatar name={detail.name} size="lg" />
@@ -86,7 +94,8 @@ const Summary = ({ detail }: { detail: SubmissionDetail }) => {
 const isTyping = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
   (target.isContentEditable ||
-    ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+    ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
+    target.closest("[role='dialog']") !== null);
 
 const stepParser = parseAsInteger.withOptions({ history: "replace" });
 
@@ -138,7 +147,25 @@ export const Visualiser = ({ detail }: { detail: SubmissionDetail }) => {
           },
           { label: detail.name },
         ]}
-      />
+      >
+        <Dialog>
+          <DialogTrigger render={<Button variant="outline" />}>
+            <Icon name="export" />
+            Export
+          </DialogTrigger>
+          <DialogContent size="workspace">
+            <ReportBuilder
+              cancel={
+                <DialogClose render={<Button variant="outline" />}>
+                  Cancel
+                </DialogClose>
+              }
+              detail={detail}
+              inDialog
+            />
+          </DialogContent>
+        </Dialog>
+      </PageBar>
 
       <div className="flex-1 overflow-y-auto">
         <Summary detail={detail} />

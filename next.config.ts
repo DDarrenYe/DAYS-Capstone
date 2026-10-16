@@ -4,6 +4,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
+  outputFileTracingIncludes: {
+    "/instructor/reports/export": [
+      "./node_modules/@fontsource/inter/files/inter-*-{400,600}-normal.woff",
+    ],
+  },
   partialPrefetching: true,
   experimental: {
     serverActions: { bodySizeLimit: "4.2mb" },

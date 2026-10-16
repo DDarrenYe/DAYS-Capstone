@@ -181,7 +181,7 @@ const FLAG_COLUMNS =
   "id, kind, evidence, explanation, review_state, review_note, reviewed_at, flag_reviews(review_state, reviewed_at, note)";
 
 const SUBMISSION_COLUMNS =
-  `id, submitted_at, analysis_status, analysis_version, analysis_error, analysis_started_at, analysis_finished_at, assignment:assignments(id, title), student:enrolments(email, profile:profiles(display_name)), iterations(id, step_number, prompt, raw_answer, critique, marks, student_marked_ai_error, ai_error_evidence, created_at), final_versions(id, version_number, extracted_text, original_filename), analysis_results(${CHECK_RESULT_COLUMNS}, flags(${FLAG_COLUMNS})), grader_notes(iteration_id, body)` as const;
+  `id, submitted_at, analysis_status, analysis_version, analysis_error, analysis_started_at, analysis_finished_at, assignment:assignments(id, title, course:courses(id, code, title)), student:enrolments(email, profile:profiles(display_name)), iterations(id, step_number, prompt, raw_answer, critique, marks, student_marked_ai_error, ai_error_evidence, created_at), final_versions(id, version_number, extracted_text, original_filename), analysis_results(${CHECK_RESULT_COLUMNS}, flags(${FLAG_COLUMNS})), grader_notes(iteration_id, body)` as const;
 
 const readSubmission = async (
   client: Client,

@@ -2,7 +2,9 @@ import { wordsAxis } from "@/lib/process";
 import type { Step } from "@/lib/process";
 import { cn } from "@/lib/utils";
 
-type BarStep = Pick<Step, "words" | "carried" | "critiqueWords" | "flag">;
+type BarStep = Pick<Step, "words" | "carried" | "critiqueWords"> & {
+  flag?: unknown;
+};
 
 /* Labels need about 14px each; narrower slots label every nth step instead. */
 const LABEL_SLOT = 14;
