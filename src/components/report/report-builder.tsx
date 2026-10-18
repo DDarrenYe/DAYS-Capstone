@@ -101,7 +101,7 @@ const ReportPage = ({
                   : `${detail.match.unmatchedPercent}%`}
               </Figure>
               <Figure label="AI errors marked">{detail.markedErrors}</Figure>
-              <Figure label="Critique questions">
+              <Figure label="Critique score">
                 {detail.critiqueAverage.toFixed(1)} / {critiqueOrder.length}
               </Figure>
               <Figure label="Open flags">

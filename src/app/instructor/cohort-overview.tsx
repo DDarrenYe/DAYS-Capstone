@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 
-import { ReviewProgress } from "@/app/instructor/review-progress";
+import { CHECK_STATE } from "@/app/instructor/check-state";
 import { SubmissionsTable } from "@/app/instructor/submissions-table";
 import { UnmatchedDistribution } from "@/app/instructor/unmatched-distribution";
 import { Icon } from "@/components/icon";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -20,6 +21,7 @@ import {
   flagKindLabel,
 } from "@/lib/cohort-summary";
 import type { CohortSummary } from "@/lib/cohort-summary";
+import { isUnfinished } from "@/lib/submission-rows";
 import type { SubmissionRow } from "@/lib/submission-rows";
 
 const noOpenFlags = ({ counts, submissions }: CohortSummary) => {
@@ -91,6 +93,113 @@ const Totals = ({ summary }: { summary: CohortSummary }) => (
   </dl>
 );
 
+/* The grader's first question is "who needs me?", so open flags lead the page as one card each. */
+const NeedsReview = ({ rows }: { rows: SubmissionRow[] }) => {
+  const flagged = rows
+    .filter(({ state }) => state === "flagged")
+    .toSorted((first, second) => second.openFlags - first.openFlags);
+  const unfinished = rows.filter(isUnfinished);
+  return (
+    <section aria-labelledby="needs-review" className="px-6 pt-5 max-md:px-4">
+      <div className="flex flex-wrap items-baseline gap-x-2.5">
+        <h2 className="text-ui font-heading" id="needs-review">
+          Needs your review
+        </h2>
+        <span className="text-muted-foreground text-meta">
+          {flagged.length === 0
+            ? "Nothing flagged right now"
+            : `${flagged.length} ${flagged.length === 1 ? "submission has" : "submissions have"} open flags`}
+        </span>
+      </div>
+      {flagged.length > 0 ? (
+        <ul className="mt-3 grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+          {flagged.map((row) => (
+            <li key={row.id}>
+              <Card>
+                <CardContent>
+                  <div className="flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-heading">{row.name}</span>
+                      <Badge variant="flag">
+                        <Icon name="flag" />
+                        {row.openFlags} open
+                      </Badge>
+                    </div>
+                    <p className="text-pretty">
+                      {row.openKinds
+                        .map(({ kind }) => flagKindLabel(kind))
+                        .join(" · ")}
+                    </p>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <span className="text-muted-foreground text-meta">
+                        {row.stepCount} {row.stepCount === 1 ? "step" : "steps"}
+                      </span>
+                      <Link
+                        className={buttonVariants()}
+                        href={`/instructor/visualiser?project=${row.id}`}
+                      >
+                        Review
+                        <Icon name="right" />
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {unfinished.length > 0 ? (
+        <p className="text-muted-foreground text-meta mt-3">
+          Also waiting:{" "}
+          {unfinished
+            .map(
+              (row) =>
+                `${row.name} (${CHECK_STATE[row.state].label.toLowerCase()})`
+            )
+            .join(" · ")}
+        </p>
+      ) : null}
+    </section>
+  );
+};
+
+/* Cohort-wide numbers help with context, not with the next action, so they start folded away. */
+const CohortDetails = ({ summary }: { summary: CohortSummary }) => (
+  <details className="group mx-6 mb-6 rounded-xl border px-5 py-4 max-md:mx-4">
+    <summary className="cursor-pointer select-none">
+      <span className="font-heading">Cohort overview</span>
+      <span className="text-muted-foreground text-meta">
+        {summary.medianUnmatched === null
+          ? ""
+          : ` · median ${summary.medianUnmatched}% not from logged AI`}
+        {` · ${summary.totalWords.toLocaleString("en")} final words`}
+      </span>
+    </summary>
+    <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div>
+        <h3 className="text-ui font-heading">
+          Not from logged AI, by submission
+        </h3>
+        <div className="mt-3">
+          <UnmatchedDistribution
+            bins={summary.distribution}
+            median={summary.medianUnmatched}
+          />
+        </div>
+      </div>
+      <div>
+        <h3 className="text-ui font-heading">Open flags by reason</h3>
+        <Reasons summary={summary} />
+        <p className="text-muted-foreground text-meta mt-2 mb-3">
+          {summary.feedbackFlags} added to feedback
+        </p>
+        <Totals summary={summary} />
+      </div>
+    </div>
+  </details>
+);
+
 export const CohortOverview = ({ rows }: { rows: SubmissionRow[] }) => {
   const [chosen, setChosen] = useQueryState("assignment", parseAsString);
   const assignments = assignmentsOf(rows);
@@ -100,7 +209,6 @@ export const CohortOverview = ({ rows }: { rows: SubmissionRow[] }) => {
   const shown = rows.filter(({ assignmentId }) => assignmentId === selectedId);
   const selected = assignments.find(({ id }) => id === selectedId);
   const summary = cohortSummary(shown);
-  const [next] = shown;
 
   if (!selected) {
     return (
@@ -116,31 +224,13 @@ export const CohortOverview = ({ rows }: { rows: SubmissionRow[] }) => {
 
   return (
     <>
-      <section className="flex flex-wrap items-end gap-6 px-6 pt-5 max-md:px-4">
-        <div>
-          <h1 className="text-title font-semibold">{selected.title}</h1>
-          <p className="text-muted-foreground mt-1.75 flex flex-wrap items-center gap-2.5">
-            <span>
-              {summary.submissions}{" "}
-              {summary.submissions === 1 ? "submission" : "submissions"}
-            </span>
-            ·<span>Median {summary.medianSteps} steps</span>
-          </p>
-        </div>
-        <div className="ml-auto flex items-center gap-4 max-md:ml-0 max-md:w-full">
-          <div className="w-60 max-md:flex-1">
-            <ReviewProgress summary={summary} />
-          </div>
-          {next?.state === "flagged" ? (
-            <Link
-              className={buttonVariants()}
-              href={`/instructor/visualiser?project=${next.id}`}
-            >
-              Review next
-              <Icon name="right" />
-            </Link>
-          ) : null}
-        </div>
+      <section className="px-6 pt-5 max-md:px-4">
+        <h1 className="text-title font-semibold">{selected.title}</h1>
+        <p className="text-muted-foreground mt-1.75">
+          {summary.submissions}{" "}
+          {summary.submissions === 1 ? "submission" : "submissions"} ·{" "}
+          {summary.counts.clear} with nothing to review
+        </p>
       </section>
 
       {assignments.length > 1 ? (
@@ -168,63 +258,11 @@ export const CohortOverview = ({ rows }: { rows: SubmissionRow[] }) => {
         </div>
       ) : null}
 
-      <div className="grid gap-3.5 px-6 pt-4.5 max-md:px-4 lg:grid-cols-[minmax(0,1fr)_372px]">
-        <Card>
-          <CardContent>
-            <div className="flex flex-wrap items-baseline gap-x-2.5">
-              <h2 className="text-ui font-heading">Not from logged AI</h2>
-              <span className="text-muted-foreground text-meta">
-                Submissions by share of the final text
-                {summary.medianUnmatched === null
-                  ? ""
-                  : ` · median ${summary.medianUnmatched}%`}
-              </span>
-            </div>
-            <div className="mt-3">
-              <UnmatchedDistribution
-                bins={summary.distribution}
-                median={summary.medianUnmatched}
-              />
-            </div>
-            <p className="text-muted-foreground text-meta mt-3 text-pretty">
-              This is the share of the final text that matches none of the
-              logged AI answers. Paraphrased AI text and answers that were not
-              logged also count here, so a low or high share says nothing about
-              who wrote the essay.
-            </p>
-          </CardContent>
-        </Card>
+      <NeedsReview rows={shown} />
 
-        <Card>
-          <CardContent>
-            <div className="flex flex-wrap items-baseline gap-x-2.5">
-              <h2 className="text-ui font-heading">Look closer</h2>
-              <span className="text-muted-foreground text-meta">
-                Open flags from the reflection check
-              </span>
-            </div>
-            <Reasons summary={summary} />
-            <p className="text-muted-foreground text-meta mt-2">
-              <b className="text-foreground font-heading tabular-nums">
-                {summary.feedbackFlags}
-              </b>{" "}
-              added to feedback, not counted above
-            </p>
-            <p className="text-muted-foreground text-meta mt-3 mb-3 text-pretty">
-              Flags only ask you to look closer. They never change a grade, and
-              you can dismiss any of them.
-            </p>
-            <Totals summary={summary} />
-          </CardContent>
-        </Card>
-      </div>
-
-      <p className="text-muted-foreground text-meta max-w-prose px-6 pt-4 text-pretty max-md:px-4">
-        The table lists open flags first, then checks that failed or haven’t
-        finished, then the rest. The share not from logged AI is shown for
-        context and never changes the order.
-      </p>
       <SubmissionsTable rows={shown} />
+
+      <CohortDetails summary={summary} />
     </>
   );
 };
