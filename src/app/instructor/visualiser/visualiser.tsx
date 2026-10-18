@@ -55,22 +55,6 @@ const Summary = ({ detail }: { detail: SubmissionDetail }) => {
         </p>
       </div>
       <div className="flex flex-wrap gap-y-3 pt-0.5">
-        <Stat label="Not from logged AI">
-          {match.unmatchedPercent === null ? "—" : `${match.unmatchedPercent}%`}
-          {match.unmatchedPercent === null ? null : (
-            <CompositionBar
-              className="mt-2.25 w-42"
-              traced={1 - match.unmatchedPercent / 100}
-            />
-          )}
-        </Stat>
-        <Stat label="AI errors marked by student">{detail.markedErrors}</Stat>
-        <Stat label="Critique questions">
-          {detail.critiqueAverage.toFixed(1)}
-          <small className="text-faint text-control font-book ml-0.5 tracking-normal">
-            / {critiqueOrder.length}
-          </small>
-        </Stat>
         <Stat
           className={detail.openFlags > 0 ? "text-flag" : undefined}
           label="Open flags"
@@ -83,8 +67,20 @@ const Summary = ({ detail }: { detail: SubmissionDetail }) => {
             detail.openFlags
           )}
         </Stat>
-        <Stat label="Added to feedback">
-          {noResults ? "—" : detail.feedbackFlags}
+        <Stat label="Not from logged AI">
+          {match.unmatchedPercent === null ? "—" : `${match.unmatchedPercent}%`}
+          {match.unmatchedPercent === null ? null : (
+            <CompositionBar
+              className="mt-2.25 w-42"
+              traced={1 - match.unmatchedPercent / 100}
+            />
+          )}
+        </Stat>
+        <Stat label="Critique score">
+          {detail.critiqueAverage.toFixed(1)}
+          <small className="text-faint text-control font-book ml-0.5 tracking-normal">
+            / {critiqueOrder.length}
+          </small>
         </Stat>
       </div>
     </section>
@@ -172,35 +168,7 @@ export const Visualiser = ({ detail }: { detail: SubmissionDetail }) => {
 
         <CheckStatus detail={detail} />
 
-        <Card className="mx-6 max-md:mx-4">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3.5">
-            <h2 className="text-ui font-heading">Process</h2>
-            <ul className="text-muted-foreground flex flex-wrap gap-x-3.5 gap-y-1 text-xs">
-              {LEGEND.map(([swatch, label]) => (
-                <li className="flex items-center gap-1.5" key={label}>
-                  <i className={cn("block size-2.25", swatch)} />
-                  {label}
-                </li>
-              ))}
-            </ul>
-            <span className="text-faint ml-auto flex items-center gap-1.5 text-xs max-md:hidden">
-              <Kbd>←</Kbd>
-              <Kbd>→</Kbd>
-              step
-            </span>
-          </div>
-          <div className="px-4 pt-3 pb-2.5">
-            <ProcessChart
-              animate={animate}
-              onHover={setHovered}
-              onSelect={select}
-              selected={selected}
-              steps={steps}
-            />
-          </div>
-        </Card>
-
-        <div className="grid gap-3.5 px-6 pt-3.5 pb-6 max-md:px-4 lg:grid-cols-[minmax(0,1fr)_440px]">
+        <div className="grid gap-3.5 px-6 pb-3.5 max-md:px-4 lg:grid-cols-[minmax(0,1fr)_440px]">
           <EssayCard
             detail={detail}
             focus={hovered ?? selected}
@@ -208,21 +176,56 @@ export const Visualiser = ({ detail }: { detail: SubmissionDetail }) => {
             onTracedChange={setTraced}
             traced={traced}
           />
-          <StepCard
-            animate={animate}
-            index={selected}
-            onSelect={select}
-            step={step}
-          >
-            <StepNote
-              name={detail.name}
-              note={noteOf(step.id)}
-              number={selected + 1}
-              onSave={() => save(step.id)}
-              onWrite={(draft) => write(step.id, draft)}
-            />
-          </StepCard>
+          {/* On narrow screens the step card, which carries the open flag, comes before the essay. */}
+          <div className="max-lg:order-first">
+            <StepCard
+              animate={animate}
+              index={selected}
+              onSelect={select}
+              step={step}
+            >
+              <StepNote
+                name={detail.name}
+                note={noteOf(step.id)}
+                number={selected + 1}
+                onSave={() => save(step.id)}
+                onWrite={(draft) => write(step.id, draft)}
+              />
+            </StepCard>
+          </div>
         </div>
+        <details className="group mx-6 mb-6 max-md:mx-4">
+          <summary className="text-ui font-heading cursor-pointer py-2 select-none">
+            Process timeline ({steps.length}{" "}
+            {steps.length === 1 ? "step" : "steps"})
+          </summary>
+          <Card className="mt-2">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3.5">
+              <ul className="text-muted-foreground flex flex-wrap gap-x-3.5 gap-y-1 text-xs">
+                {LEGEND.map(([swatch, label]) => (
+                  <li className="flex items-center gap-1.5" key={label}>
+                    <i className={cn("block size-2.25", swatch)} />
+                    {label}
+                  </li>
+                ))}
+              </ul>
+              <span className="text-faint ml-auto flex items-center gap-1.5 text-xs max-md:hidden">
+                <Kbd>←</Kbd>
+                <Kbd>→</Kbd>
+                step
+              </span>
+            </div>
+            <div className="px-4 pt-3 pb-2.5">
+              <ProcessChart
+                animate={animate}
+                onHover={setHovered}
+                onSelect={select}
+                selected={selected}
+                steps={steps}
+              />
+            </div>
+          </Card>
+        </details>
       </div>
     </>
   );

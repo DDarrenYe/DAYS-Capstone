@@ -107,7 +107,7 @@ const analysisNote = (
       return "The check finished but saved no results for this submission.";
     }
     default: {
-      return `Finished ${analysis.finished} with ${analysis.model}, rubric ${analysis.rubricVersion}. It can miss thin critiques, so a step with no flag isn’t necessarily a good critique.`;
+      return `Finished ${analysis.finished}. A step with no flag isn’t necessarily a good critique.`;
     }
   }
 };

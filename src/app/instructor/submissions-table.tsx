@@ -61,7 +61,7 @@ const SORTABLE = [
 ] as const;
 
 const SORT_LABEL: Record<(typeof SORTABLE)[number], string> = {
-  critique: "Critique questions",
+  critique: "Critique score",
   review: "Review",
   steps: "Steps",
   student: "Student",
@@ -160,7 +160,7 @@ const columns = helper.columns([
         </span>
       </span>
     ),
-    header: "Critique questions",
+    header: "Critique score",
     id: "critique",
     sortFn: "basic",
   }),
@@ -322,13 +322,13 @@ export const SubmissionsTable = ({ rows: data }: { rows: SubmissionRow[] }) => {
                 size="sm"
                 variant="ghost"
               >
-                Look closer first
+                Needs review first
               </Button>
             </>
           ) : (
             <span className="flex items-center gap-1.5">
               <Icon name="sort" />
-              Look closer first
+              Needs review first
             </span>
           )}
         </span>
@@ -432,11 +432,8 @@ export const SubmissionsTable = ({ rows: data }: { rows: SubmissionRow[] }) => {
         </nav>
       ) : null}
       <p className="text-muted-foreground text-meta mt-3 max-w-prose text-pretty">
-        “Not from logged AI” is the share of final-essay words that match none
-        of the logged AI answers. It doesn’t say who wrote them: a paraphrase,
-        or an AI answer that wasn’t logged, counts as not matched. Use it to
-        decide where to look, not as a verdict. A submission whose check is
-        pending or failed shows that state in place of a flag count.
+        “Not from logged AI” is the share of the essay that matches no logged AI
+        answer. It shows where to look, not who wrote it.
       </p>
     </section>
   );

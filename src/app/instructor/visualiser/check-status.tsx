@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 const POLL_MS = 5000;
 const MAX_POLLS = 120;
+const FINISHED: ReadonlySet<string> = new Set(["flagged", "none", "reviewed"]);
 
 export const CheckStatus = ({ detail }: { detail: SubmissionDetail }) => {
   const router = useRouter();
@@ -42,6 +43,30 @@ export const CheckStatus = ({ detail }: { detail: SubmissionDetail }) => {
       { projectId: detail.id },
       { onSettled: () => router.refresh() }
     );
+
+  /* A finished check needs no attention, so it shrinks to one quiet line; anything else keeps the full card. */
+  if (FINISHED.has(check) && !reanalyse.error) {
+    return (
+      <p
+        aria-live="polite"
+        className="text-muted-foreground text-meta mx-6 mb-3.5 flex flex-wrap items-center gap-x-2 max-md:mx-4"
+      >
+        <i
+          aria-hidden="true"
+          className={cn("size-1.75 rounded-full", CHECK_STATE[check].dot)}
+        />
+        Reflection check: {analysis.note}
+        <Button
+          disabled={reanalyse.isPending}
+          onClick={start}
+          size="sm"
+          variant="ghost"
+        >
+          {reanalyse.isPending ? "Starting…" : idle}
+        </Button>
+      </p>
+    );
+  }
 
   return (
     <Card className="mx-6 mb-3.5 max-md:mx-4">
