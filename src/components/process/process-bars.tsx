@@ -58,8 +58,9 @@ export const ProcessBars = ({
           labels && (index === 0 || (index + 1) % labelEvery === 0);
         return (
           // oxlint-disable-next-line react/no-array-index-key -- steps are positional and never reorder
-          <g key={index}>
+          <g key={index} style={{ "--i": index }}>
             <rect
+              data-part="answer"
               fill="var(--ai-soft)"
               height={up}
               rx="2"
@@ -69,6 +70,7 @@ export const ProcessBars = ({
             />
             {step.carried > 0 ? (
               <rect
+                data-part="carried"
                 fill="var(--ai)"
                 height={step.carried * scale}
                 rx="2"
@@ -78,6 +80,7 @@ export const ProcessBars = ({
               />
             ) : null}
             <rect
+              data-part="critique"
               fill={step.flag ? "var(--flag)" : "var(--human)"}
               height={Math.min(
                 Math.max(step.critiqueWords * scale, 1.5),
