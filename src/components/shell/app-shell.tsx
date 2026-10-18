@@ -4,7 +4,10 @@ import type { ReactNode } from "react";
 import { AccountMenu } from "@/components/shell/account-menu";
 import { Brand } from "@/components/shell/brand";
 import { InstructorNav } from "@/components/shell/instructor-navigation";
-import { SidebarNav } from "@/components/shell/shell-navigation";
+import {
+  PageTransition,
+  SidebarNav,
+} from "@/components/shell/shell-navigation";
 import type { NavItem, UserRole } from "@/components/shell/shell-navigation";
 
 const navigation: Record<UserRole, NavItem[]> = {
@@ -30,7 +33,7 @@ export const AppShell = ({
   userRole: UserRole;
   children: ReactNode;
 }) => (
-  <div className="grid min-h-dvh md:h-dvh md:grid-cols-[236px_minmax(0,1fr)]">
+  <div className="grid min-h-dvh grid-cols-1 md:h-dvh md:grid-cols-[236px_minmax(0,1fr)]">
     <a
       className="bg-card shadow-pop fixed top-3 left-3 z-50 -translate-y-[200%] rounded-md px-3 py-2 focus:translate-y-0"
       href="#main-content"
@@ -67,7 +70,7 @@ export const AppShell = ({
       id="main-content"
       tabIndex={-1}
     >
-      {children}
+      <PageTransition>{children}</PageTransition>
     </main>
   </div>
 );

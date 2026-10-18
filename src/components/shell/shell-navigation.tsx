@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useSelectedLayoutSegment } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, ViewTransition } from "react";
+import type { ReactNode } from "react";
 
 import { signOut } from "@/app/actions";
 import { Icon } from "@/components/icon";
@@ -30,6 +31,22 @@ export interface NavItem {
   count?: number;
 }
 
+const SECTION = "section";
+
+export const PageTransition = ({ children }: { children: ReactNode }) => {
+  const segment = useSelectedLayoutSegment();
+  return (
+    <ViewTransition
+      default="none"
+      enter={{ [SECTION]: "page-in", default: "none" }}
+      exit={{ [SECTION]: "page-out", default: "none" }}
+      key={segment}
+    >
+      {children}
+    </ViewTransition>
+  );
+};
+
 export const SidebarNav = ({
   userRole,
   items,
@@ -38,19 +55,29 @@ export const SidebarNav = ({
   items: NavItem[];
 }) => {
   const segment = useSelectedLayoutSegment();
+  const index = items.findIndex((item) => item.segment === segment);
   return (
     <nav
       aria-label={`${userRole === "student" ? "Student" : "Instructor"} navigation`}
+      className="relative"
     >
-      <ul className="flex gap-px max-md:overflow-x-auto md:flex-col">
+      {index === -1 ? null : (
+        <span
+          aria-hidden="true"
+          className="nav-indicator bg-card shadow-raised absolute inset-x-0 top-0 h-7.5 rounded-md max-md:hidden"
+          style={{ "--index": index }}
+        />
+      )}
+      <ul className="relative flex gap-px max-md:overflow-x-auto md:flex-col">
         {items.map((item) => {
           const current = item.segment === segment;
           return (
             <li key={item.label}>
               <Link
                 aria-current={current ? "page" : undefined}
-                className="text-body hover:bg-foreground/4 aria-[current=page]:bg-card aria-[current=page]:text-foreground aria-[current=page]:shadow-raised [&_svg]:text-muted-foreground aria-[current=page]:[&_svg]:text-foreground font-book aria-[current=page]:icon-ai flex h-7.5 items-center gap-2.25 rounded-md px-2 whitespace-nowrap transition-colors duration-120"
+                className="text-body hover:bg-foreground/4 aria-[current=page]:text-foreground max-md:aria-[current=page]:bg-card max-md:aria-[current=page]:shadow-raised [&_svg]:text-muted-foreground aria-[current=page]:[&_svg]:text-foreground font-book aria-[current=page]:icon-ai flex h-7.5 items-center gap-2.25 rounded-md px-2 whitespace-nowrap transition-colors duration-120"
                 href={`/${userRole}${item.segment ? `/${item.segment}` : ""}`}
+                transitionTypes={[SECTION]}
               >
                 <Icon name={item.icon} />
                 {item.label}
@@ -95,7 +122,7 @@ export const UserMenu = ({
         render={
           <button
             aria-label={`Account menu for ${displayName}`}
-            className="hover:bg-foreground/4 aria-expanded:bg-foreground/4 flex w-full items-center gap-2.25 rounded-md p-1.5 text-left outline-none"
+            className="hover:bg-foreground/4 aria-expanded:bg-foreground/4 flex shrink-0 items-center gap-2.25 rounded-md p-1.5 text-left outline-none md:w-full"
             type="button"
           />
         }

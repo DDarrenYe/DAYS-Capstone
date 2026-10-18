@@ -150,13 +150,9 @@ const stages: {
 ];
 
 export const Stages = () => (
-  <ol className="grid gap-4 md:grid-cols-3">
+  <ol className="bg-card shadow-card grid overflow-clip rounded-xl max-md:divide-y md:grid-cols-3 md:divide-x">
     {stages.map(({ body, title, vignette }, index) => (
-      <li
-        className="bg-card shadow-card rise-on-scroll stage flex flex-col overflow-clip rounded-xl"
-        key={title}
-        style={{ "--i": index }}
-      >
+      <li className="stage flex flex-col" key={title}>
         <div
           aria-hidden="true"
           className="bg-muted flex h-48 flex-col justify-center border-b px-5"

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { ScrollTimelines } from "@/app/scroll-timelines";
 import { Icon } from "@/components/icon";
 import type { IconName } from "@/components/icon";
+import { RisingWords } from "@/components/rising-words";
 import { Brand } from "@/components/shell/brand";
 
 const sections: {
@@ -65,10 +67,17 @@ const sections: {
   },
 ];
 
-export const metadata: Metadata = { title: "Privacy and who sees what" };
+const TITLE = "Privacy and who sees what";
+
+export const metadata: Metadata = { title: TITLE };
 
 const PrivacyPage = () => (
   <div className="mx-auto w-full max-w-280 px-8 pb-20 max-md:px-5">
+    <span
+      aria-hidden="true"
+      className="reading-progress bg-foreground fixed inset-x-0 top-0 z-50 h-0.5 origin-left"
+    />
+    <ScrollTimelines />
     <header className="flex items-center justify-between gap-6 py-4">
       <Brand href="/" subtitle="AI-Interaction Analytics" />
       <Link
@@ -81,10 +90,10 @@ const PrivacyPage = () => (
     </header>
     <main className="grid gap-x-16 pt-12 lg:grid-cols-[200px_minmax(0,1fr)]">
       <div className="lg:col-start-2">
-        <h1 className="text-display animate-rise font-semibold text-balance">
-          Privacy and who sees what
+        <h1 className="text-display font-semibold text-balance">
+          <RisingWords text={TITLE} />
         </h1>
-        <p className="text-body animate-rise stagger text-lead mt-4 max-w-150 text-pretty [--i:1]">
+        <p className="text-body animate-rise stagger text-lead mt-4 max-w-150 text-pretty [--i:8]">
           Pentimento keeps a record of how you used AI on an assignment. This is
           what it stores, who can read it, and which text leaves the app.
           Sign-in uses accounts your instructor provides.
@@ -112,13 +121,12 @@ const PrivacyPage = () => (
         </ol>
       </nav>
       <div className="mt-10 max-w-170 border-t lg:col-start-2 lg:row-start-2">
-        {sections.map((section, index) => (
+        {sections.map((section) => (
           <section
             aria-labelledby={`${section.id}-title`}
-            className="animate-rise stagger grid scroll-mt-8 grid-cols-[32px_minmax(0,1fr)] gap-x-4 border-b py-7"
+            className="rise-on-scroll grid scroll-mt-8 grid-cols-[32px_minmax(0,1fr)] gap-x-4 border-b py-7"
             id={section.id}
             key={section.id}
-            style={{ "--i": index + 2 }}
           >
             <span className="bg-muted shadow-hairline icon-ai grid size-8 place-items-center rounded-lg">
               <Icon name={section.icon} />

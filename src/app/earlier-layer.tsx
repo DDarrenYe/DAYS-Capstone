@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { PointerEvent } from "react";
 
-import { Switch } from "@/components/ui/switch";
-import { essay, steps, student } from "@/lib/example-data";
+import { Icon } from "@/components/icon";
+import { essay, steps } from "@/lib/example-data";
 import { cn } from "@/lib/utils";
 
 const TEXT = "text-lg/relaxed flex flex-col gap-4 p-8 font-serif max-md:p-5";
@@ -40,66 +40,69 @@ const Essay = ({ under = false }: { under?: boolean }) =>
     </p>
   ));
 
-export const EarlierLayer = () => {
-  const area = useRef<HTMLDivElement>(null);
-  const [mode, setMode] = useState<"scan" | "track" | "rest">("scan");
-  const [whole, setWhole] = useState(false);
+const position = (event: PointerEvent<HTMLDivElement>) => {
+  const box = event.currentTarget.getBoundingClientRect();
+  const share = ((event.clientX - box.left) / box.width) * 100;
+  return Math.round(Math.min(Math.max(share, 0), 100));
+};
 
-  const follow = (event: PointerEvent<HTMLDivElement>) => {
-    if (whole || event.pointerType === "touch" || !area.current) {
-      return;
-    }
-    const box = area.current.getBoundingClientRect();
-    area.current.style.setProperty("--lens-x", `${event.clientX - box.left}px`);
-    area.current.style.setProperty("--lens-y", `${event.clientY - box.top}px`);
-    setMode("track");
-  };
+export const EarlierLayer = () => {
+  const [split, setSplit] = useState<number | null>(null);
+  const value = split ?? 50;
 
   return (
-    <div className="flex flex-col gap-3.5">
-      <figure className="bg-card shadow-card overflow-clip rounded-xl">
-        <figcaption className="text-muted-foreground text-label flex items-center gap-2 border-b px-4 py-2.5 font-mono">
-          {student.file}
-          <span aria-hidden="true">·</span>
-          {student.name}
-          <span className="ml-auto">Final essay</span>
-        </figcaption>
-        <div
-          className="text-reading lens-area relative"
-          data-lens={whole ? "open" : mode}
-          onPointerLeave={() =>
-            setMode((now) => (now === "track" ? "rest" : now))
+    <div className="bg-card shadow-card overflow-clip rounded-xl">
+      <div className="text-muted-foreground text-label font-emphasis flex justify-between border-b px-4 py-2.5">
+        <span>Finished essay</span>
+        <span className="text-ai-ink">Earlier layer</span>
+      </div>
+      <div
+        className="split-area text-reading relative cursor-ew-resize select-none"
+        data-split={split === null ? "auto" : undefined}
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          if (event.pointerType !== "touch") {
+            setSplit(position(event));
           }
-          onPointerMove={follow}
-          ref={area}
-        >
-          <div className={TEXT}>
-            <Essay />
-          </div>
-          <div
-            aria-hidden="true"
-            className="lens-ring bg-ai-line pointer-events-none absolute inset-0"
-          />
-          <div
-            aria-hidden="true"
-            className={cn(
-              TEXT,
-              "lens bg-ai-wash text-muted-foreground pointer-events-none absolute inset-0 select-none"
-            )}
-          >
-            <Essay under />
-          </div>
+        }}
+        onPointerMove={(event) => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            setSplit(position(event));
+          }
+        }}
+        style={split === null ? undefined : { "--split": `${split}%` }}
+      >
+        <div className={TEXT}>
+          <Essay />
         </div>
-      </figure>
-      <div className="text-muted-foreground text-meta flex flex-wrap items-center gap-x-4 gap-y-2">
-        {/* oxlint-disable-next-line jsx-a11y/label-has-associated-control -- Base UI Switch renders the control inside the label */}
-        <label className="text-body font-emphasis flex cursor-pointer items-center gap-2">
-          <Switch checked={whole} onCheckedChange={setWhole} />
-          Show the whole layer
-        </label>
-        <span className="max-sm:hidden">
-          or move over the essay to look through it
-        </span>
+        <div
+          aria-hidden="true"
+          className={cn(
+            TEXT,
+            "split-layer bg-ai-wash text-muted-foreground absolute inset-0"
+          )}
+        >
+          <Essay under />
+        </div>
+        <input
+          aria-label="Compare the finished essay with its earlier layer"
+          aria-valuetext={`${100 - value}% of the width shows the earlier layer`}
+          className="peer sr-only"
+          max={100}
+          min={0}
+          onChange={(event) => setSplit(Number(event.target.value))}
+          type="range"
+          value={value}
+        />
+        <div
+          aria-hidden="true"
+          className="bg-foreground peer-focus-visible:*:outline-ring pointer-events-none absolute inset-y-0 left-(--split) w-px peer-focus-visible:*:outline-2 peer-focus-visible:*:outline-offset-2"
+        >
+          <span className="bg-card shadow-pop text-body split-hint absolute top-1/2 left-1/2 flex h-8 -translate-1/2 items-center rounded-full px-1.5">
+            <Icon className="size-3.5" name="left" />
+            <Icon className="size-3.5" name="right" />
+          </span>
+        </div>
       </div>
     </div>
   );

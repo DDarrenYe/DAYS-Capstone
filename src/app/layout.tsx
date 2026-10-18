@@ -4,13 +4,14 @@ import { Geist_Mono, Inter, Newsreader } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
+  axes: ["opsz"],
   subsets: ["latin"],
   variable: "--font-inter",
 });
 
 const newsreader = Newsreader({
   subsets: ["latin"],
-  style: ["normal", "italic"],
+  style: ["normal"],
   variable: "--font-newsreader",
 });
 

@@ -4,16 +4,18 @@ import { Suspense } from "react";
 import type { ReactNode } from "react";
 
 import { EarlierLayer } from "@/app/earlier-layer";
-import { LandingPreview } from "@/app/landing-preview";
 import { Stages } from "@/app/landing-stages";
+import { LayerStack } from "@/app/layer-stack";
+import { PointerDepth } from "@/app/pointer-depth";
+import { ProcessFigure } from "@/app/process-figure";
+import { ScrollTimelines } from "@/app/scroll-timelines";
 import { SignInForm } from "@/app/sign-in-form";
 import { Icon } from "@/components/icon";
-import type { IconName } from "@/components/icon";
+import { RisingWords } from "@/components/rising-words";
 import { Brand } from "@/components/shell/brand";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { getAccount } from "@/lib/auth";
-import { student, summary } from "@/lib/example-data";
+import { assignmentName, steps, student, summary } from "@/lib/example-data";
 import { formatPercent } from "@/lib/process";
 import { cn } from "@/lib/utils";
 
@@ -25,43 +27,38 @@ const SignIn = async () => {
   return <SignInForm />;
 };
 
-const Marker = ({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) => (
-  <div
-    className={cn(
-      "before:bg-border-strong before:ring-background relative before:absolute before:top-1/2 before:-left-5.75 before:size-1.5 before:-translate-y-1/2 before:rounded-full before:ring-4 max-md:before:hidden",
-      className
-    )}
-  >
-    {children}
-  </div>
-);
+const FIRST_LINE = "See the thinking";
+const SECOND_LINE = "behind the work.";
 
 const SectionHeading = ({
   children,
   id,
   lead,
-  marker,
 }: {
   children: ReactNode;
   id: string;
   lead: string;
-  marker: string;
 }) => (
-  <div className="flex flex-col gap-3">
-    <Marker className="text-label text-muted-foreground font-emphasis">
-      {marker}
-    </Marker>
-    <h2 className="text-headline font-semibold text-balance" id={id}>
+  <div className="grid items-end gap-x-16 gap-y-4 lg:grid-cols-2">
+    <h2
+      className="text-headline rise-on-scroll font-semibold text-balance"
+      id={id}
+    >
       {children}
     </h2>
-    <p className="text-body text-lead max-w-140 text-pretty">{lead}</p>
+    <p
+      className="text-body text-lead rise-on-scroll max-w-140 text-pretty"
+      style={{ "--i": 1 }}
+    >
+      {lead}
+    </p>
   </div>
+);
+
+const Caption = ({ children }: { children: ReactNode }) => (
+  <figcaption className="text-muted-foreground text-meta max-w-160 text-pretty">
+    {children}
+  </figcaption>
 );
 
 const legend = [
@@ -73,21 +70,18 @@ const legend = [
   { label: "Not traced to logged AI", swatch: "bg-card shadow-strong-ring" },
 ];
 
-const rules: { body: ReactNode; icon: IconName; title: string }[] = [
+const rules: { body: ReactNode; title: string }[] = [
   {
     body: "A flag asks a grader to look closer. They can add it to feedback or dismiss it, and the grade stays theirs.",
-    icon: "flag",
-    title: "A flag never sets a grade",
+    title: "A flag never sets a grade.",
   },
   {
     body: "Text with no match isn't proof a student wrote it, and a match isn't proof they didn't. Both are for a person to judge.",
-    icon: "search",
-    title: "It isn't an AI detector",
+    title: "It isn't an AI detector.",
   },
   {
     body: "A log belongs to the student until they submit it. Other students can't read it at any point.",
-    icon: "lock",
-    title: "Drafts stay private",
+    title: "Drafts stay private.",
   },
   {
     body: (
@@ -102,17 +96,12 @@ const rules: { body: ReactNode; icon: IconName; title: string }[] = [
         says what is stored, who can read it and which text leaves the app.
       </>
     ),
-    icon: "eye",
-    title: "Students know what's kept",
+    title: "Students know what's kept.",
   },
 ];
 
 const Home = () => (
-  <div className="relative mx-auto flex min-h-dvh w-full max-w-310 flex-col px-8 max-md:px-5">
-    <span
-      aria-hidden="true"
-      className="bg-border pointer-events-none absolute inset-y-0 left-3 w-px max-md:hidden"
-    />
+  <div className="mx-auto flex min-h-dvh w-full max-w-310 flex-col px-8 max-md:px-5">
     <header className="header-settle bg-background/90 sticky top-0 z-40 -mx-8 flex items-center justify-between gap-6 border-b px-8 py-4 backdrop-blur max-md:-mx-5 max-md:px-5">
       <Brand href="/" subtitle="AI-Interaction Analytics" />
       <nav
@@ -139,96 +128,132 @@ const Home = () => (
     <main className="flex flex-1 flex-col">
       <section
         aria-labelledby="hero-title"
-        className="grid items-center gap-20 pt-10 pb-24 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]"
+        className="grid items-start gap-x-16 gap-y-12 pt-18 pb-20 max-md:pt-10 lg:grid-cols-[minmax(0,1fr)_360px]"
       >
-        <div className="flex flex-col items-start gap-5">
-          <Marker className="animate-rise before:bg-ai-line">
-            <Badge variant="ai">Built for Lane 2 assessment</Badge>
-          </Marker>
-          <h1 className="text-display font-semibold" id="hero-title">
-            <span className="line-mask">
-              <span className="line-up [--i:1]">See the thinking</span>
-            </span>{" "}
-            <span className="line-mask">
-              <span className="line-up [--i:2]">behind the work.</span>
+        <PointerDepth className="flex flex-col gap-8">
+          <h1 className="text-hero relative font-semibold" id="hero-title">
+            <span aria-hidden="true" className="pull-apart absolute inset-0">
+              <span className="underdrawing underdrawing-surface block">
+                <span className="block">{FIRST_LINE}</span>
+                <span className="block">{SECOND_LINE}</span>
+              </span>
+            </span>
+            <span className="relative block">
+              <span className="block">
+                <RisingWords text={FIRST_LINE} />
+              </span>
+              <span className="block">
+                <RisingWords
+                  from={FIRST_LINE.split(" ").length}
+                  text={SECOND_LINE}
+                />
+              </span>
             </span>
           </h1>
-          <p className="text-body animate-rise stagger text-lead text-pretty [--i:3]">
-            Students log every AI prompt and critique each answer. Graders see
-            the whole process at a glance, and exactly where a critique ran
-            thin.
+          <p className="text-body animate-rise stagger max-w-120 text-lg/relaxed text-pretty [--i:12]">
+            Built for Lane 2 assessment. Students log every AI prompt and
+            critique each answer. Graders see the whole process at a glance, and
+            exactly where a critique ran thin.
           </p>
-          <section
-            aria-labelledby="sign-in-title"
-            className="bg-card shadow-card animate-rise stagger mt-1 w-full scroll-mt-28 rounded-xl p-5 [--i:4]"
-            id="sign-in"
+        </PointerDepth>
+        <section
+          aria-labelledby="sign-in-title"
+          className="bg-card shadow-card animate-rise stagger w-full scroll-mt-28 rounded-xl p-5 [--i:14] max-lg:max-w-110 lg:mt-3"
+          id="sign-in"
+        >
+          <h2
+            className="text-ui font-heading tracking-snug mb-3.5"
+            id="sign-in-title"
           >
-            <h2
-              className="text-ui font-heading tracking-snug mb-3.5"
-              id="sign-in-title"
-            >
-              Sign in to your course
-            </h2>
-            <Suspense
-              fallback={
-                <div aria-busy="true" inert>
-                  <SignInForm />
-                </div>
-              }
-            >
-              <SignIn />
-            </Suspense>
-          </section>
-        </div>
-        <LandingPreview />
+            Sign in to your course
+          </h2>
+          <Suspense
+            fallback={
+              <div aria-busy="true" inert>
+                <SignInForm />
+              </div>
+            }
+          >
+            <SignIn />
+          </Suspense>
+        </section>
       </section>
+
+      <LayerStack />
 
       <section
         aria-labelledby="earlier-layer-title"
-        className="rise-on-scroll grid items-start gap-x-16 gap-y-10 border-t py-20 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]"
+        className="flex flex-col gap-10 border-t py-20"
       >
-        <div className="flex flex-col gap-8">
-          <SectionHeading
-            id="earlier-layer-title"
-            lead="A pentimento is an earlier idea that shows through a finished painting. In an essay, the earlier layer is the AI answers a student logged. Pentimento matches the final text against them, so a grader can see what came through and what the student wrote past."
-            marker="The earlier layer"
-          >
-            Every essay has an earlier layer.
-          </SectionHeading>
-          <ul className="text-body text-meta flex flex-col gap-2">
-            {legend.map(({ label, swatch }) => (
-              <li className="flex items-center gap-2.5" key={label}>
-                <i className={cn("block size-3 shrink-0 rounded-xs", swatch)} />
-                {label}
-              </li>
-            ))}
-          </ul>
-          <div className="border-t pt-5">
-            <span className="text-label text-muted-foreground font-emphasis block">
-              Not traced to logged AI
-            </span>
-            <b className="text-stat font-heading tabular-nums">
-              {formatPercent(summary.untraced)}
-            </b>
-            <p className="text-muted-foreground text-meta mt-2 max-w-80 text-pretty">
-              Across all {student.finalWords.toLocaleString("en")} words of the
-              final essay. A match is a prompt for judgement, not proof of who
-              wrote what.
-            </p>
+        <SectionHeading
+          id="earlier-layer-title"
+          lead="Drag the divider across the essay. Left of it is the finished text. Right of it is the layer underneath, with each passage marked by the answer it matched."
+        >
+          Look through it yourself.
+        </SectionHeading>
+        <div className="grid items-start gap-x-12 gap-y-8 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <figure className="flex flex-col gap-3.5">
+            <EarlierLayer />
+            <Caption>
+              Figure 1. {student.name}&rsquo;s final essay for {assignmentName}.
+              Drag across it, or use the arrow keys, to compare the finished
+              text with what showed through from logged AI.
+            </Caption>
+          </figure>
+          <div className="flex flex-col gap-8 lg:pt-12">
+            <ul className="text-body text-meta flex flex-col gap-2.5">
+              {legend.map(({ label, swatch }) => (
+                <li className="flex items-center gap-2.5" key={label}>
+                  <i
+                    className={cn("block size-3 shrink-0 rounded-xs", swatch)}
+                  />
+                  {label}
+                </li>
+              ))}
+            </ul>
+            <div className="border-t pt-5">
+              <span className="text-label text-muted-foreground font-emphasis block">
+                Not traced to logged AI
+              </span>
+              <b className="text-stat font-heading tabular-nums">
+                {formatPercent(summary.untraced)}
+              </b>
+              <p className="text-muted-foreground text-meta mt-2 text-pretty">
+                Across all {student.finalWords.toLocaleString("en")} words. A
+                match is a prompt for judgement, not proof of who wrote what.
+              </p>
+            </div>
           </div>
         </div>
-        <EarlierLayer />
+      </section>
+
+      <section
+        aria-labelledby="process-title"
+        className="flex flex-col gap-10 border-t py-20"
+      >
+        <SectionHeading
+          id="process-title"
+          lead="Each column is one prompt. The AI's answer rises above the line and the student's critique hangs below it on the same scale, so the step that needs a closer look stands out before anyone reads a word."
+        >
+          A thin critique looks thin.
+        </SectionHeading>
+        <figure className="flex flex-col gap-3.5">
+          <ProcessFigure />
+          <Caption>
+            Figure 2. The {steps.length} steps behind the same essay, from{" "}
+            {steps[0]?.day} to {steps.at(-1)?.day}, as a grader sees them.
+          </Caption>
+        </figure>
       </section>
 
       <section
         aria-labelledby="how-it-works-title"
-        className="flex scroll-mt-24 flex-col gap-12 border-t py-20"
+        className="flex scroll-mt-24 flex-col gap-10 border-t py-20"
         id="how-it-works"
       >
         <SectionHeading
           id="how-it-works-title"
           lead="Students keep the record while they work. Graders read it as a process, not a pile of chat transcripts."
-          marker="How it works"
         >
           From first prompt to final review.
         </SectionHeading>
@@ -237,44 +262,45 @@ const Home = () => (
 
       <section
         aria-labelledby="ground-rules-title"
-        className="flex flex-col gap-12 border-t py-20"
+        className="grid items-start gap-x-16 gap-y-10 border-t py-20 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]"
       >
-        <SectionHeading
-          id="ground-rules-title"
-          lead="Pentimento shows the evidence. What it means is for a grader to decide."
-          marker="Ground rules"
-        >
-          Judgement stays with people.
-        </SectionHeading>
-        <ul className="grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
-          {rules.map(({ body, icon, title }, index) => (
-            <li
-              className="rise-on-scroll flex flex-col gap-2.5"
+        <div className="flex flex-col gap-4 lg:sticky lg:top-28">
+          <h2
+            className="text-headline font-semibold text-balance"
+            id="ground-rules-title"
+          >
+            Judgement stays with people.
+          </h2>
+          <p className="text-body text-lead max-w-100 text-pretty">
+            Pentimento shows the evidence. What it means is for a grader to
+            decide.
+          </p>
+        </div>
+        <dl className="border-t">
+          {rules.map(({ body, title }) => (
+            <div
+              className="rule-in grid gap-x-10 gap-y-2 py-7 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]"
               key={title}
-              style={{ "--i": index }}
             >
-              <span className="bg-card shadow-strong-ring text-body grid size-8 place-items-center rounded-lg">
-                <Icon name={icon} />
-              </span>
-              <h3 className="font-heading tracking-snug text-lead">{title}</h3>
-              <p className="text-body text-pretty">{body}</p>
-            </li>
+              <dt className="text-title font-heading text-balance">{title}</dt>
+              <dd className="text-body text-lead text-pretty">{body}</dd>
+            </div>
           ))}
-        </ul>
+        </dl>
       </section>
 
       <section
         aria-labelledby="closing-title"
-        className="rise-on-scroll flex flex-col items-start gap-6 border-t py-24"
+        className="flex flex-col items-start gap-8 border-t py-24"
       >
-        <Marker className="text-label text-muted-foreground font-emphasis">
-          Lane 2, made legible
-        </Marker>
         <h2
           className="text-display relative max-w-200 font-semibold text-balance"
           id="closing-title"
         >
-          <span aria-hidden="true" className="underdrawing absolute inset-0">
+          <span
+            aria-hidden="true"
+            className="underdrawing underdrawing-settle absolute inset-0"
+          >
             Make the messy middle visible.
           </span>
           <span className="relative">Make the messy middle visible.</span>
@@ -293,6 +319,7 @@ const Home = () => (
         </div>
       </section>
     </main>
+    <ScrollTimelines />
     <footer className="text-muted-foreground flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t py-5 text-xs">
       <p className="flex items-center gap-2">
         <Icon name="lock" />
