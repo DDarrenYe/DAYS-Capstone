@@ -1,14 +1,16 @@
 # Project plan: AI-Interaction Analytics
 
-This is our INFOMGMT 399 capstone (Proposal 1). We have a proper prototype now. The next step is to build it into an app where students log their AI use and graders can see how they got to the final essay.
+This is our INFOMGMT 399 capstone (Proposal 1). It's an app where students log their AI use and graders can see how they got to the final essay.
 
 ## Where we are now
 
-The nine prototype screens, design tokens, screenshots and showcase film are in `design/`. We have the Next.js scaffold, shared Base UI components and TanStack Query setup. The home page still says “Sign in (coming soon)”. Sign-in, saving data, chat import, text matching, reflection checks, grader decisions and exports still need to be built.
+The app works from sign-in to export. Students import or paste chats, critique each step, save the final essay and submit. Graders get a review queue, the Visualiser, flag decisions, private notes and PDF or CSV reports. The reflection check runs on submit. It's deployed on Vercel at https://days-capstone.vercel.app with a hosted Supabase project. The nine prototype screens in `design/` set the scope, and the Pentimento design in `DESIGN.md` replaced their look.
 
-[issue-plan.json](issue-plan.json) lists the 45 GitHub issues. Keep the existing task keys, owners, sub-issues and blockers. The scaffold task is already closed. We can start independent tasks when their blockers are done; we don't need to finish a whole sprint first.
+What's left is mostly testing and handover: sessions with proxy students and graders (#37, #38), the security audit (#39), fixing what those find (#40), the automated student-to-grader test (#41), the demo rehearsal (#44), the release check (#45) and the Final Report (#43). The student Progress page still shows example data. [architecture.md](architecture.md) says what works today and what doesn't.
 
-We'll build and check everything with local Supabase first. Use the Docker-free runtime where supported, or the documented container fallback. Hosted Supabase and Vercel setup can wait until we're ready to deploy in the final milestone.
+[issue-plan.json](issue-plan.json) is the plan we made the 45 GitHub issues from. The issues have changed since (sign-in is by password, not a magic link, for one), so the GitHub tracker is the current list. Keep the existing owners, sub-issues and blockers there. We can start independent tasks when their blockers are done; we don't need to finish a whole sprint first.
+
+We build and check everything with local Supabase first, using the Docker-free runtime where supported or the documented container fallback. The deployed app is for the demo and the release check.
 
 ## What we're building
 
@@ -19,7 +21,7 @@ We'll build and check everything with local Supabase first. Use the Docker-free 
 - Students write the final essay or import a `.docx` that passes file checks. They review the extracted text and matches to their logged AI before submitting the saved version.
 - Graders get a queue showing what needs a closer look, a searchable submissions table, highlighted essay matches and a chart of AI words kept from each step. They can read the critiques, save private notes, dismiss flags or add them to feedback.
 - Graders can export the same information as PDF or step CSV. The PDF can include the full prompt history and grader notes.
-- We also need the Final Report, demo and handover docs. Reports 1 and 2 are already submitted. We're still waiting for the official Final Report requirements, presentation length and dates.
+- We also need the Final Report, the live presentation, the demo video and handover docs. Reports 1 and 2 are already submitted. [final-report/outline.md](final-report/outline.md) maps the course requirements to our evidence. The official documents don't give dates, so we still need those.
 
 We're not building automatic grading, misconduct verdicts, authorship detection or LMS integration. We won't capture private chats or add more chat providers without agreeing on that work first. Public-link import only supports formats we've checked and doesn't need a student's provider login.
 
@@ -36,15 +38,15 @@ The reflection check looks for evidence against the three questions and possible
 | Part | What we're using |
 | --- | --- |
 | App | Next.js 16 App Router, TypeScript and bun. Read the installed Next.js guides before writing code. |
-| UI | Tailwind 4, our existing shadcn/Base UI components and prototype tokens. Use accessible HTML/SVG; add a chart library only if we need it. |
+| UI | Tailwind 4, our shadcn/Base UI components and the Pentimento tokens in `src/app/globals.css`. We draw charts as accessible HTML/SVG and haven't needed a chart library. |
 | Data fetching | The existing TanStack Query provider and query-client helper, with access checked for each user. |
-| Database and sign-in | Drizzle ORM with Supabase Postgres, magic links and Row Level Security (RLS). |
+| Database and sign-in | Drizzle ORM with Supabase Postgres, password sign-in and Row Level Security (RLS). We planned magic links but built passwords. |
 | Reflection check | A server-only client using the Vercel AI SDK's OpenAI-compatible provider, with zod-validated responses and a versioned rubric. The base URL, key and model are server environment variables, and we plan to use GLM from Z.ai. Check which model is supported, and that it accepts structured output, when we build it. Use a normal Z.ai API key (the pay-as-you-go API, which has free Flash models), not a GLM Coding Plan key, because that plan only covers Z.ai's supported coding tools. |
 | Export | Server-side PDF and spreadsheet-safe CSV. Check the PDF renderer locally and on the hosted app before release. |
-| Hosting | Vercel previews and production, with separate settings and sign-in callback URLs. |
-| Checks | `bun run check`, `bun run typecheck` and `bun run build`. Add SQL, integration and Playwright checks as we build the related tasks. |
+| Hosting | Vercel previews and production, with separate settings. Sign-in is by password, so there are no callback URLs yet. |
+| Checks | `bun run check`, `bun run test`, `bun run typecheck` and `bun run build`, plus SQL and integration checks. The Playwright flow (#41) isn't written yet. |
 
-Reuse the scaffold, UI components and query setup. We don't need another lint setup. `design/mockups/generate.py` generates the prototype, and `design/mockups/style.css` has the design tokens. Keep the app usable with a keyboard, on smaller screens and with reduced motion. The notes still need to be readable.
+Reuse the scaffold, UI components and query setup. We don't need another lint setup. [DESIGN.md](../DESIGN.md) is the source of truth for how the app looks, and `design/mockups/` only shows which screens exist and what each one has to show. Keep the app usable with a keyboard, on smaller screens and with reduced motion. The notes still need to be readable.
 
 ## Data we need
 
@@ -60,13 +62,13 @@ Reuse the scaffold, UI components and query setup. We don't need another lint se
 | grader_notes / review decisions | Private notes and open/dismissed/added-to-feedback decisions, with the reviewer, time and previous decisions. |
 | usage accounting | Budget reserved before calls, actual token use and limited retries. |
 
-Save or calculate match results for the exact saved or submitted text, with a version attached. The schema task decides the table layout and constraints. The table definitions are in `src/db/schema.ts`; Drizzle generates SQL migrations under `supabase/migrations`. See `supabase/README.md` for constraints, inferred types and the migration workflow. Access policies and submission locking are still separate tasks. Choose what happens when a record is deleted instead of adding cascade deletion everywhere.
+Save or calculate match results for the exact saved or submitted text, with a version attached. The schema task decides the table layout and constraints. The table definitions are in `src/db/schema.ts`; Drizzle generates SQL migrations under `supabase/migrations`. See `supabase/README.md` for constraints, inferred types and the migration workflow. Access policies and submission locking are built and have SQL tests. We chose what happens when a record is deleted instead of adding cascade deletion everywhere.
 
 Check access in both RLS and server code, including views, privileged operations, import and export. Students can only access their own Lane 2 drafts for assignments they're enrolled in. They can't change submitted text. Instructors can only access their courses and can't edit student text. Flags, question results and grader notes are instructor-only. Keep analysis credentials out of browser code. Block Lane 1 logging on the server/database as well as in the UI.
 
 ## How the flow works
 
-1. The student or instructor signs in with a magic link. New profiles default to student, and the app sends each user to the right pages based on their role.
+1. The student or instructor signs in with their email and password. New profiles default to student, and the app sends each user to the right pages based on their role.
 2. An enrolled student opens a Lane 2 assignment. Opening it again reuses the same project.
 3. The student imports a supported share link or pastes manually, then checks the ordered steps. Restrict hosts and redirects, block private-network requests, and limit fetch size and time. Don't overwrite critiques or import the same saved steps twice.
 4. The student writes critiques, optionally marks errors, saves steps and reviews My log. They save or import the final essay. A failed save mustn't lose what they typed.
@@ -89,7 +91,7 @@ Check access in both RLS and server code, including views, privileged operations
 | `06b-flagged-step.html` | L1 rubric; L2 analysis; L3 review decisions |
 | `07-pdf-report.html` | L6 PDF/CSV and export options |
 
-Use the screenshots in `design/screenshots/` to compare the app with the prototype. Matching a screenshot doesn't prove that sign-in, saving or analysis works. If we change the design, update the generator rather than editing the generated HTML on its own.
+The prototype set the scope, but the app doesn't look like it any more. Compare screens with the Pentimento pages in `design/concept/`. Matching a screenshot doesn't prove that sign-in, saving or analysis works.
 
 ## Team and order
 
@@ -113,4 +115,4 @@ Follow the actual GitHub blockers. Once foundation tasks allow it, student featu
 - Run a student-to-grader flow in CI with Playwright and fixed analysis examples, including export downloads. Passing with mocked responses doesn't prove the live provider or hosted app works.
 - Test with proxy students and graders. Record who took part, what they tried, timing, confusion and retest results. A finished prototype doesn't mean we've tested with real university users.
 - Check third-party processing notices, secrets, text logging, import/file limits, exports and retention. Only promise deletion behaviour we've built and checked.
-- Get the actual course requirements and dates before calling the final submission ready. Check model support, accuracy and the release rather than assuming them.
+- Check the Final Report, presentation and demo against [final-report/outline.md](final-report/outline.md), and get the dates, before calling the final submission ready. Check model support, accuracy and the release rather than assuming them.
