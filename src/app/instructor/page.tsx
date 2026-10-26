@@ -9,7 +9,7 @@ import { buttonVariants } from "@/components/ui/button";
 
 const InstructorPage = () => (
   <>
-    <PageBar crumbs={[{ label: "Submissions" }]}>
+    <PageBar crumbs={[{ label: "Overview" }]}>
       <Link
         className={buttonVariants({ variant: "outline" })}
         href="/instructor/reports"

@@ -114,7 +114,7 @@ export const queueEmpty = ({
   }
   if (withoutResults === submissions) {
     return {
-      body: `${plural(submissions, "submission has", "submissions have")} no saved check result: the check is pending, running or failed. Open a submission in the Visualiser to see its state or run it again.`,
+      body: `${plural(submissions, "submission has", "submissions have")} no saved check result: the check is pending, running or failed. Open it under Submissions to see its state or run it again.`,
       title: "No check has finished yet",
     };
   }

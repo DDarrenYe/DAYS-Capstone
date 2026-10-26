@@ -15,7 +15,7 @@ export const PickSubmission = async ({
   page,
 }: {
   intro: string;
-  page: "Reports" | "Visualiser";
+  page: "Reports" | "Submissions";
 }) => {
   const rows = await loadSubmissionRows();
   if (rows.length === 0) {
@@ -34,10 +34,7 @@ export const PickSubmission = async ({
   return (
     <>
       <PageBar
-        crumbs={[
-          { href: "/instructor", label: "Submissions" },
-          { label: page },
-        ]}
+        crumbs={[{ href: "/instructor", label: "Overview" }, { label: page }]}
       />
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto flex w-full max-w-170 flex-col gap-5 px-6 py-10 max-md:px-4">

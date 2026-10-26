@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Suspense } from "react";
 import type { ReactNode } from "react";
 
@@ -12,8 +13,8 @@ import type { NavItem, UserRole } from "@/components/shell/shell-navigation";
 
 const navigation: Record<UserRole, NavItem[]> = {
   instructor: [
-    { icon: "submissions", label: "Submissions", segment: null },
-    { icon: "essay", label: "Visualiser", segment: "visualiser" },
+    { icon: "submissions", label: "Overview", segment: null },
+    { icon: "essay", label: "Submissions", segment: "visualiser" },
     { icon: "flag", label: "Flags", segment: "flags" },
     { icon: "report", label: "Reports", segment: "reports" },
     { icon: "book", label: "Courses", segment: "courses" },
@@ -41,6 +42,14 @@ export const AppShell = ({
       Skip to content
     </a>
     <aside className="bg-sidebar flex gap-4.5 px-2.5 py-3.5 max-md:sticky max-md:top-0 max-md:z-30 max-md:items-center max-md:gap-3 max-md:border-b max-md:py-2 md:flex-col md:pl-3">
+      <Image
+        alt="The University of Auckland"
+        className="mx-1.5 h-auto w-36 max-md:hidden"
+        height={213}
+        preload
+        src="/uoa-logo.png"
+        width={646}
+      />
       <Brand href={`/${userRole}`} />
       <div className="min-w-0 flex-1">
         {userRole === "instructor" ? (

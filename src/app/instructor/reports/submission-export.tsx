@@ -33,7 +33,7 @@ export const SubmissionExport = async ({
     <>
       <PageBar
         crumbs={[
-          { href: "/instructor", label: "Submissions" },
+          { href: "/instructor", label: "Overview" },
           {
             href: `/instructor/visualiser?project=${detail.id}`,
             label: detail.name,

@@ -107,7 +107,7 @@ const FlagItem = ({
             </details>
           </div>
           <Link
-            aria-label={`Open ${project.name} step ${step.number} in the Visualiser`}
+            aria-label={`Open ${project.name} step ${step.number} in Submissions`}
             className={buttonVariants({ size: "icon-sm", variant: "ghost" })}
             href={`/instructor/visualiser?project=${project.id}&step=${step.position}`}
           >

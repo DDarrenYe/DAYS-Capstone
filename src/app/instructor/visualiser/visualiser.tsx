@@ -136,7 +136,7 @@ export const Visualiser = ({ detail }: { detail: SubmissionDetail }) => {
     <>
       <PageBar
         crumbs={[
-          { href: "/instructor", label: "Submissions" },
+          { href: "/instructor", label: "Overview" },
           {
             href: `/instructor?assignment=${detail.assignment.id}`,
             label: detail.assignment.title,

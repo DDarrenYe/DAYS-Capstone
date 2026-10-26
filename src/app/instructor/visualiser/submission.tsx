@@ -14,7 +14,7 @@ export const Submission = async ({
     return (
       <PickSubmission
         intro="Open one to see every step, the critique beside it and where the final text came from."
-        page="Visualiser"
+        page="Submissions"
       />
     );
   }

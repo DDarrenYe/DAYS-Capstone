@@ -10,7 +10,7 @@ const VisualiserPage = ({
   <Suspense
     fallback={
       <div className="flex flex-col gap-3.5 p-6">
-        <output className="sr-only">Loading the Visualiser…</output>
+        <output className="sr-only">Loading submissions…</output>
         <div
           aria-hidden="true"
           className="bg-muted h-24 animate-pulse rounded-xl motion-reduce:animate-none"

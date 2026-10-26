@@ -7,14 +7,14 @@ import { buttonVariants } from "@/components/ui/button";
 
 export const NoSubmission = ({
   children,
-  page = "Visualiser",
+  page = "Submissions",
 }: {
   children: ReactNode;
   page?: string;
 }) => (
   <>
     <PageBar
-      crumbs={[{ href: "/instructor", label: "Submissions" }, { label: page }]}
+      crumbs={[{ href: "/instructor", label: "Overview" }, { label: page }]}
     />
     <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center max-md:px-4">
       <span className="bg-muted shadow-hairline text-body grid size-11 place-items-center rounded-xl">
