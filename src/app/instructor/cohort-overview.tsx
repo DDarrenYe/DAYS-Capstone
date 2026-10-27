@@ -3,26 +3,25 @@
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 
-import { CHECK_STATE } from "@/app/instructor/check-state";
 import { SubmissionsTable } from "@/app/instructor/submissions-table";
 import { UnmatchedDistribution } from "@/app/instructor/unmatched-distribution";
 import { Icon } from "@/components/icon";
-import { Badge } from "@/components/ui/badge";
+import { PageBar } from "@/components/shell/page-bar";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
-  ToggleGroup,
-  ToggleGroupItem,
-  ToggleGroupThumb,
-} from "@/components/ui/toggle-group";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   assignmentsOf,
   cohortSummary,
   flagKindLabel,
 } from "@/lib/cohort-summary";
 import type { CohortSummary } from "@/lib/cohort-summary";
-import { isUnfinished } from "@/lib/submission-rows";
 import type { SubmissionRow } from "@/lib/submission-rows";
+import { cn } from "@/lib/utils";
 
 const noOpenFlags = ({ counts, submissions }: CohortSummary) => {
   if (counts.unfinished === 0) {
@@ -93,76 +92,128 @@ const Totals = ({ summary }: { summary: CohortSummary }) => (
   </dl>
 );
 
-/* The grader's first question is "who needs me?", so open flags lead the page as one card each. */
+/* The grader's first question is "who needs me?", so each submission with open flags leads the page as one line. */
 const NeedsReview = ({ rows }: { rows: SubmissionRow[] }) => {
   const flagged = rows
     .filter(({ state }) => state === "flagged")
     .toSorted((first, second) => second.openFlags - first.openFlags);
-  const unfinished = rows.filter(isUnfinished);
+  if (flagged.length === 0) {
+    return null;
+  }
   return (
     <section aria-labelledby="needs-review" className="px-6 pt-5 max-md:px-4">
-      <div className="flex flex-wrap items-baseline gap-x-2.5">
-        <h2 className="text-ui font-heading" id="needs-review">
-          Needs your review
-        </h2>
-        <span className="text-muted-foreground text-meta">
-          {flagged.length === 0
-            ? "Nothing flagged right now"
-            : `${flagged.length} ${flagged.length === 1 ? "submission has" : "submissions have"} open flags`}
-        </span>
-      </div>
-      {flagged.length > 0 ? (
-        <ul className="mt-3 grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
-          {flagged.map((row) => (
-            <li key={row.id}>
-              <Card>
-                <CardContent>
-                  <div className="flex flex-col gap-2.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-heading">{row.name}</span>
-                      <Badge variant="flag">
-                        <Icon name="flag" />
-                        {row.openFlags} open
-                      </Badge>
-                    </div>
-                    <p className="text-pretty">
-                      {row.openKinds
-                        .map(({ kind }) => flagKindLabel(kind))
-                        .join(" · ")}
-                    </p>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="text-muted-foreground text-meta">
-                        {row.stepCount} {row.stepCount === 1 ? "step" : "steps"}
-                      </span>
-                      <Link
-                        className={buttonVariants()}
-                        href={`/instructor/visualiser?project=${row.id}`}
-                      >
-                        Review
-                        <Icon name="right" />
-                      </Link>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      {unfinished.length > 0 ? (
-        <p className="text-muted-foreground text-meta mt-3">
-          Also waiting:{" "}
-          {unfinished
-            .map(
-              (row) =>
-                `${row.name} (${CHECK_STATE[row.state].label.toLowerCase()})`
-            )
-            .join(" · ")}
-        </p>
-      ) : null}
+      <h2 className="sr-only" id="needs-review">
+        Needs your review
+      </h2>
+      <ul className="flex flex-col gap-2">
+        {flagged.map((row) => (
+          <li
+            className="bg-flag-soft flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl py-2.5 pr-2.5 pl-4"
+            key={row.id}
+          >
+            <Icon className="text-flag-ink" name="flag" />
+            <p className="min-w-0 flex-1 text-pretty">
+              <b className="font-heading">{row.name}</b> has {row.openFlags}{" "}
+              open {row.openFlags === 1 ? "flag" : "flags"}:{" "}
+              {row.openKinds.map(({ kind }) => flagKindLabel(kind)).join(" · ")}{" "}
+              · {row.stepCount} {row.stepCount === 1 ? "step" : "steps"}
+            </p>
+            <Link
+              className={buttonVariants()}
+              href={`/instructor/visualiser?project=${row.id}`}
+            >
+              Review
+              <Icon name="right" />
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 };
+
+/* Where the assignment stands at a glance; the same groups the table filters by. */
+const StatStrip = ({ summary }: { summary: CohortSummary }) => (
+  <dl className="mx-6 mt-5 grid grid-cols-2 overflow-hidden rounded-xl border max-md:mx-4 sm:grid-cols-3 lg:grid-cols-5">
+    {[
+      { label: "Submitted", value: summary.submissions },
+      {
+        label: "Needs review",
+        tone: "text-flag-ink",
+        value: summary.counts.flagged,
+      },
+      {
+        label: "Waiting on check",
+        tone: "text-review-ink",
+        value: summary.counts.unfinished,
+      },
+      { label: "Done", tone: "text-success", value: summary.counts.clear },
+      {
+        label: "Median not from logged AI",
+        value:
+          summary.medianUnmatched === null
+            ? "—"
+            : `${summary.medianUnmatched}%`,
+      },
+    ].map(({ label, tone, value }) => (
+      <div className="-mt-px -ml-px border-t border-l px-4 py-3" key={label}>
+        <dt className="text-muted-foreground text-meta">{label}</dt>
+        <dd
+          className={cn(
+            "text-stat font-heading tracking-title mt-0.5 tabular-nums",
+            tone
+          )}
+        >
+          {value}
+        </dd>
+      </div>
+    ))}
+  </dl>
+);
+
+const ExportLink = () => (
+  <Link
+    className={buttonVariants({ variant: "outline" })}
+    href="/instructor/reports"
+  >
+    <Icon name="export" />
+    Export
+  </Link>
+);
+
+const AssignmentPicker = ({
+  assignments,
+  onPick,
+  selectedId,
+}: {
+  assignments: ReturnType<typeof assignmentsOf>;
+  onPick: (id: string) => void;
+  selectedId: string;
+}) => (
+  <DropdownMenu modal={false}>
+    <DropdownMenuTrigger
+      render={
+        <button
+          aria-label="Choose an assignment"
+          className={buttonVariants({ variant: "outline" })}
+          type="button"
+        />
+      }
+    >
+      {assignments.find(({ id }) => id === selectedId)?.title}
+      <Icon className="text-muted-foreground" name="down" />
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end" className="min-w-64">
+      {assignments.map(({ id, submissions, title }) => (
+        <DropdownMenuItem key={id} onClick={() => onPick(id)}>
+          <Icon className={cn(id !== selectedId && "invisible")} name="check" />
+          <span className="flex-1">{title}</span>
+          <span className="text-faint tabular-nums">{submissions}</span>
+        </DropdownMenuItem>
+      ))}
+    </DropdownMenuContent>
+  </DropdownMenu>
+);
 
 /* Cohort-wide numbers help with context, not with the next action, so they start folded away. */
 const CohortDetails = ({ summary }: { summary: CohortSummary }) => (
@@ -212,73 +263,62 @@ export const CohortOverview = ({ rows }: { rows: SubmissionRow[] }) => {
 
   if (!selected) {
     return (
-      <section className="px-6 pt-5 max-md:px-4">
-        <h1 className="text-title font-semibold">No submissions yet</h1>
-        <p className="text-muted-foreground mt-1.5 max-w-160 text-pretty">
-          Submissions from your courses appear here once a student submits their
-          log. Drafts stay private to the student.
-        </p>
-      </section>
+      <>
+        <PageBar crumbs={[{ label: "Overview" }]}>
+          <ExportLink />
+        </PageBar>
+        <section className="px-6 pt-5 max-md:px-4">
+          <h1 className="text-title font-semibold">No submissions yet</h1>
+          <p className="text-muted-foreground mt-1.5 max-w-160 text-pretty">
+            Submissions from your courses appear here once a student submits
+            their log. Drafts stay private to the student.
+          </p>
+        </section>
+      </>
     );
   }
 
   return (
     <>
-      <section className="px-6 pt-5 max-md:px-4">
-        <h1 className="text-title font-semibold">{selected.title}</h1>
-        <p className="text-muted-foreground mt-1.75">
-          {summary.submissions}{" "}
-          {summary.submissions === 1 ? "submission" : "submissions"} ·{" "}
-          {summary.counts.clear} with nothing to review
-        </p>
-      </section>
+      <PageBar crumbs={[{ label: "Overview" }]}>
+        {assignments.length > 1 ? (
+          <AssignmentPicker
+            assignments={assignments}
+            onPick={setChosen}
+            selectedId={selected.id}
+          />
+        ) : null}
+        <ExportLink />
+      </PageBar>
+      <div className="flex-1 overflow-y-auto">
+        <section className="px-6 pt-6 max-md:px-4">
+          <h1 className="text-title font-semibold">{selected.title}</h1>
+        </section>
 
-      {assignments.length > 1 ? (
-        <div className="px-6 pt-4 max-md:px-4">
-          <ToggleGroup
-            aria-label="Assignment"
-            onValueChange={([id]) => {
-              if (id) {
-                void setChosen(id);
-              }
-            }}
-            value={[selected.id]}
-          >
-            <ToggleGroupThumb>
-              {assignments.map(({ id, submissions, title }) => (
-                <ToggleGroupItem key={id} tone="thumb" value={id}>
-                  {title}
-                  <span className="text-faint font-mono tabular-nums">
-                    {submissions}
-                  </span>
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroupThumb>
-          </ToggleGroup>
-        </div>
-      ) : null}
+        <StatStrip summary={summary} />
 
-      <NeedsReview rows={shown} />
+        <NeedsReview rows={shown} />
 
-      <SubmissionsTable rows={shown} />
+        <SubmissionsTable rows={shown} />
 
-      <CohortDetails summary={summary} />
+        <CohortDetails summary={summary} />
+      </div>
     </>
   );
 };
 
 export const OverviewSkeleton = () => (
   <>
+    <PageBar crumbs={[{ label: "Overview" }]}>
+      <ExportLink />
+    </PageBar>
     <output className="sr-only">Loading submissions…</output>
     <div
       aria-hidden="true"
-      className="flex flex-col gap-3.5 px-6 pt-5 pb-6 max-md:px-4"
+      className="flex flex-col gap-3.5 px-6 pt-6 pb-6 max-md:px-4"
     >
-      <div className="bg-muted shadow-hairline h-14 w-72 animate-pulse rounded-xl motion-reduce:animate-none" />
-      <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1fr)_372px]">
-        <div className="bg-muted shadow-hairline h-72 animate-pulse rounded-xl motion-reduce:animate-none" />
-        <div className="bg-muted shadow-hairline h-72 animate-pulse rounded-xl motion-reduce:animate-none" />
-      </div>
+      <div className="bg-muted shadow-hairline h-8 w-72 animate-pulse rounded-xl motion-reduce:animate-none" />
+      <div className="bg-muted shadow-hairline h-18 animate-pulse rounded-xl motion-reduce:animate-none" />
       <div className="bg-muted shadow-hairline h-96 animate-pulse rounded-xl motion-reduce:animate-none" />
     </div>
   </>

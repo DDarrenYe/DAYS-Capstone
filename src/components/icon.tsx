@@ -66,6 +66,29 @@ const TRASH =
 const PENCIL = "M13.2 3.8a1.9 1.9 0 0 1 2.7 2.7L7.4 15l-3.65 1.25L5 12.6z";
 
 const glyphs = {
+  /* Plain line icons for the instructor sidebar. */
+  overview: (
+    <>
+      <rect height="6.25" rx="1.25" width="6.25" x="2.5" y="2.5" />
+      <rect height="6.25" rx="1.25" width="6.25" x="11.25" y="2.5" />
+      <rect height="6.25" rx="1.25" width="6.25" x="2.5" y="11.25" />
+      <rect height="6.25" rx="1.25" width="6.25" x="11.25" y="11.25" />
+    </>
+  ),
+  page: <path d="M5 2.25h6.75l3.75 4v11.5H5z M8.25 10h5 M8.25 13.75h5" />,
+  pennant: <path d="M4.5 18V2.5 M4.5 3.25h10l-1.85 3.75 1.85 3.75h-10" />,
+  chart: (
+    <path d="M3.75 16.75h12.5 M6.25 13.75v-5 M10 13.75V5 M13.75 13.75V10" />
+  ),
+  info: (
+    <>
+      <path d="M10 16.75a6.75 6.75 0 1 0 0-13.5 6.75 6.75 0 0 0 0 13.5z M10 9.25v4" />
+      <Dot cx={10} cy={6.6} r={0.9} plain />
+    </>
+  ),
+  courses: (
+    <path d="M2.5 4.4c2.5-1.25 5-1.25 7.5.6 2.5-1.85 5-1.85 7.5-.6v11.25c-2.5-1.25-5-1.25-7.5.6-2.5-1.85-5-1.85-7.5-.6z M10 5v11.25" />
+  ),
   submissions: (
     <>
       <Tint d="M7 4.75V4.5a2 2 0 0 1 2-2h5.25a2 2 0 0 1 2 2V13a2 2 0 0 1-2 2H13.5V6.75a2 2 0 0 0-2-2z" />

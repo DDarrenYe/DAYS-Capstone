@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { clearLocalState } from "@/lib/local-state";
+import { cn } from "@/lib/utils";
 
 export type UserRole = "student" | "instructor";
 
@@ -64,7 +65,7 @@ export const SidebarNav = ({
       {index === -1 ? null : (
         <span
           aria-hidden="true"
-          className="nav-indicator bg-card shadow-raised absolute inset-x-0 top-0 h-7.5 rounded-md max-md:hidden"
+          className="nav-indicator bg-card shadow-raised absolute inset-x-0 top-0 h-9 rounded-md max-md:hidden"
           style={{ "--index": index }}
         />
       )}
@@ -75,14 +76,21 @@ export const SidebarNav = ({
             <li key={item.label}>
               <Link
                 aria-current={current ? "page" : undefined}
-                className="text-body hover:bg-foreground/4 aria-[current=page]:text-foreground max-md:aria-[current=page]:bg-card max-md:aria-[current=page]:shadow-raised [&_svg]:text-muted-foreground aria-[current=page]:[&_svg]:text-foreground font-book aria-[current=page]:icon-ai flex h-7.5 items-center gap-2.25 rounded-md px-2 whitespace-nowrap transition-colors duration-120"
+                className="text-body hover:bg-foreground/4 aria-[current=page]:text-foreground max-md:aria-[current=page]:bg-card max-md:aria-[current=page]:shadow-raised [&_svg]:text-muted-foreground aria-[current=page]:[&_svg]:text-foreground font-book aria-[current=page]:icon-ai flex h-9 items-center gap-2.25 rounded-md px-2 whitespace-nowrap transition-colors duration-120"
                 href={`/${userRole}${item.segment ? `/${item.segment}` : ""}`}
                 transitionTypes={[SECTION]}
               >
                 <Icon name={item.icon} />
                 {item.label}
                 {item.count === undefined ? null : (
-                  <span className="text-faint text-label ml-auto pl-3 tabular-nums">
+                  <span
+                    className={cn(
+                      "text-label ml-auto rounded-full px-1.75 tabular-nums",
+                      item.count > 0
+                        ? "bg-flag-soft text-flag-ink font-emphasis"
+                        : "text-faint"
+                    )}
+                  >
                     {item.count}
                   </span>
                 )}

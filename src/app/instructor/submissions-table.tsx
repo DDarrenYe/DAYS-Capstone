@@ -26,7 +26,7 @@ import { useId } from "react";
 
 import { CHECK_STATE } from "@/app/instructor/check-state";
 import { Icon } from "@/components/icon";
-import { CompositionBar, DepthMeter } from "@/components/process/metrics";
+import { CompositionBar } from "@/components/process/metrics";
 import { Avatar } from "@/components/shell/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,12 @@ import {
   ToggleGroupItem,
   ToggleGroupThumb,
 } from "@/components/ui/toggle-group";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { critiqueOrder } from "@/lib/process";
 import { attention, isUnfinished } from "@/lib/submission-rows";
 import type { SubmissionRow } from "@/lib/submission-rows";
@@ -62,7 +68,7 @@ const SORTABLE = [
 
 const SORT_LABEL: Record<(typeof SORTABLE)[number], string> = {
   critique: "Critique score",
-  review: "Review",
+  review: "Status",
   steps: "Steps",
   student: "Student",
   submitted: "Submitted",
@@ -72,7 +78,37 @@ const SORT_LABEL: Record<(typeof SORTABLE)[number], string> = {
 /* Columns whose values line up on the right. */
 const NUMERIC = new Set(["steps", "submitted"]);
 
-const SHOWN = ["flagged", "unfinished"] as const;
+const SHOWN = ["flagged", "unfinished", "clear"] as const;
+
+const shownIn = (show: (typeof SHOWN)[number], row: SubmissionRow) => {
+  if (show === "flagged") {
+    return row.state === "flagged";
+  }
+  if (show === "unfinished") {
+    return isUnfinished(row);
+  }
+  return row.state !== "flagged" && !isUnfinished(row);
+};
+
+const FILTERS = [
+  { label: "Needs review", value: "flagged" },
+  { label: "Waiting", value: "unfinished" },
+  { label: "Done", value: "clear" },
+] as const;
+
+const plural = (count: number, word: string) =>
+  `${count} ${word}${count === 1 ? "" : "s"}`;
+
+/* One pill per row: where the check stands, with the flags that still need a decision or went into feedback. */
+const statusText = (row: SubmissionRow) => {
+  const { label } = CHECK_STATE[row.state];
+  if (row.openFlags > 0) {
+    return `${label} · ${plural(row.openFlags, "flag")}`;
+  }
+  return row.feedbackFlags > 0
+    ? `${label} · ${row.feedbackFlags} in feedback`
+    : label;
+};
 
 const submittedFormat = new Intl.DateTimeFormat("en", {
   day: "numeric",
@@ -106,17 +142,13 @@ const columns = helper.columns([
     cell: ({ row }) => (
       <span className="flex items-center gap-2.5">
         <Avatar name={row.original.name} />
-        <span className="flex flex-col">
-          <Link
-            className="font-emphasis after:absolute after:inset-0 hover:underline"
-            href={`/instructor/visualiser?project=${row.original.id}`}
-          >
-            {row.original.name}
-          </Link>
-          <span className="text-faint text-label font-mono">
-            {row.original.email}
-          </span>
-        </span>
+        <Link
+          className="font-emphasis after:absolute after:inset-0 hover:underline"
+          href={`/instructor/visualiser?project=${row.original.id}`}
+          title={row.original.email}
+        >
+          {row.original.name}
+        </Link>
       </span>
     ),
     header: "Student",
@@ -152,12 +184,9 @@ const columns = helper.columns([
   }),
   helper.accessor("critiqueAverage", {
     cell: ({ row }) => (
-      <span className="flex items-center gap-2">
-        <DepthMeter depth={row.original.critiqueAverage} />
-        <span className="text-muted-foreground tabular-nums">
-          {row.original.critiqueAverage.toFixed(1)}
-          <span className="text-faint"> / {critiqueOrder.length}</span>
-        </span>
+      <span className="text-body tabular-nums">
+        {row.original.critiqueAverage.toFixed(1)}
+        <span className="text-faint"> / {critiqueOrder.length}</span>
       </span>
     ),
     header: "Critique score",
@@ -165,31 +194,13 @@ const columns = helper.columns([
     sortFn: "basic",
   }),
   helper.accessor(attention, {
-    cell: ({ row }) => {
-      const { label, dot } = CHECK_STATE[row.original.state];
-      return (
-        <span className="text-body text-meta flex items-center gap-1.75">
-          <i className={cn("block size-1.5 rounded-full", dot)} />
-          {label}
-          {row.original.openFlags > 0 ? (
-            <Badge variant="flag">
-              <Icon name="flag" />
-              {row.original.openFlags}
-            </Badge>
-          ) : null}
-          {row.original.feedbackFlags > 0 ? (
-            <Badge variant="review">
-              {row.original.feedbackFlags} in feedback
-            </Badge>
-          ) : null}
-        </span>
-      );
-    },
-    filterFn: (row, _columnId, show) =>
-      show === "flagged"
-        ? row.original.state === "flagged"
-        : isUnfinished(row.original),
-    header: "Review",
+    cell: ({ row }) => (
+      <Badge variant={CHECK_STATE[row.original.state].tone}>
+        {statusText(row.original)}
+      </Badge>
+    ),
+    filterFn: (row, _columnId, show) => shownIn(show, row.original),
+    header: "Status",
     id: "review",
     sortDescFirst: true,
     sortFn: "basic",
@@ -197,7 +208,7 @@ const columns = helper.columns([
   helper.accessor((row) => Date.parse(row.submittedAt), {
     cell: ({ row }) => (
       <time
-        className="text-muted-foreground text-label font-mono"
+        className="text-muted-foreground"
         dateTime={row.original.submittedAt}
         suppressHydrationWarning
       >
@@ -246,8 +257,9 @@ export const SubmissionsTable = ({ rows: data }: { rows: SubmissionRow[] }) => {
   const page = Math.min(Math.max(view.page, 1), pageCount);
   const first = (page - 1) * PAGE_SIZE;
   const visible = rows.slice(first, first + PAGE_SIZE);
-  const flagged = data.filter(({ state }) => state === "flagged").length;
-  const unfinished = data.filter(isUnfinished).length;
+  const counts = Object.fromEntries(
+    SHOWN.map((show) => [show, data.filter((row) => shownIn(show, row)).length])
+  );
   const goTo = (target: number) => {
     setView({ page: target > 1 ? target : null });
     document.querySelector("#submissions")?.scrollIntoView();
@@ -282,28 +294,27 @@ export const SubmissionsTable = ({ rows: data }: { rows: SubmissionRow[] }) => {
         </div>
         <ToggleGroup
           aria-label="Show submissions"
-          onValueChange={([next]) =>
-            setView({
-              page: null,
-              show: SHOWN.find((shown) => shown === next) ?? null,
-            })
-          }
-          value={view.show ? [view.show] : []}
+          onValueChange={([next]) => {
+            if (next) {
+              setView({
+                page: null,
+                show: SHOWN.find((shown) => shown === next) ?? null,
+              });
+            }
+          }}
+          value={[view.show ?? "all"]}
         >
           <ToggleGroupThumb>
-            <ToggleGroupItem tone="thumb" value="flagged">
-              <Icon name="flag" />
-              Flagged
-              <span className="text-faint font-mono tabular-nums">
-                {flagged}
-              </span>
+            <ToggleGroupItem tone="thumb" value="all">
+              All
+              <span className="text-faint tabular-nums">{data.length}</span>
             </ToggleGroupItem>
-            <ToggleGroupItem tone="thumb" value="unfinished">
-              Check not finished
-              <span className="text-faint font-mono tabular-nums">
-                {unfinished}
-              </span>
-            </ToggleGroupItem>
+            {FILTERS.map(({ label, value }) => (
+              <ToggleGroupItem key={value} tone="thumb" value={value}>
+                {label}
+                <span className="text-faint tabular-nums">{counts[value]}</span>
+              </ToggleGroupItem>
+            ))}
           </ToggleGroupThumb>
         </ToggleGroup>
         <span
@@ -333,61 +344,83 @@ export const SubmissionsTable = ({ rows: data }: { rows: SubmissionRow[] }) => {
           )}
         </span>
       </div>
-      <Table className="min-w-230">
-        <TableHeader>
-          {table.getHeaderGroups().map((group) => (
-            <TableRow key={group.id}>
-              {group.headers.map((header) => {
-                const sorted = header.column.getIsSorted();
-                const numeric = NUMERIC.has(header.column.id);
-                return (
-                  <TableHead
-                    aria-sort={(sorted && `${sorted}ending`) || "none"}
-                    className={numeric ? "text-right" : undefined}
-                    key={header.id}
-                  >
-                    <button
-                      className={cn(
-                        "hover:text-foreground -mx-1 inline-flex items-center gap-1 rounded-sm px-1",
-                        sorted && "text-foreground",
-                        numeric && "flex-row-reverse"
-                      )}
-                      onClick={header.column.getToggleSortingHandler()}
-                      type="button"
+      <TooltipProvider>
+        <Table className="min-w-230">
+          <TableHeader>
+            {table.getHeaderGroups().map((group) => (
+              <TableRow key={group.id}>
+                {group.headers.map((header) => {
+                  const sorted = header.column.getIsSorted();
+                  const numeric = NUMERIC.has(header.column.id);
+                  return (
+                    <TableHead
+                      aria-sort={(sorted && `${sorted}ending`) || "none"}
+                      className={numeric ? "text-right" : undefined}
+                      key={header.id}
                     >
-                      <table.FlexRender header={header} />
-                      <Icon
+                      <button
                         className={cn(
-                          "size-3.5",
-                          !sorted && "invisible",
-                          sorted === "asc" && "rotate-180"
+                          "hover:text-foreground -mx-1 inline-flex items-center gap-1 rounded-sm px-1",
+                          sorted && "text-foreground",
+                          numeric && "flex-row-reverse"
                         )}
-                        name="down"
-                      />
-                    </button>
-                  </TableHead>
-                );
-              })}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {visible.map((row) => (
-            <TableRow className="relative" key={row.id}>
-              {row.getAllCells().map((cell) => (
-                <TableCell
-                  className={
-                    NUMERIC.has(cell.column.id) ? "text-right" : undefined
-                  }
-                  key={cell.id}
-                >
-                  <table.FlexRender cell={cell} />
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                        onClick={header.column.getToggleSortingHandler()}
+                        type="button"
+                      >
+                        <table.FlexRender header={header} />
+                        <Icon
+                          className={cn(
+                            "size-3.5",
+                            !sorted && "invisible",
+                            sorted === "asc" && "rotate-180"
+                          )}
+                          name="down"
+                        />
+                      </button>
+                      {header.column.id === "unmatched" ? (
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                aria-label="What “not from logged AI” means"
+                                className="-my-1 ml-0.5 align-middle"
+                                size="icon-sm"
+                                variant="ghost"
+                              />
+                            }
+                          >
+                            <Icon className="size-3.5" name="info" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-64">
+                            The share of the essay that matches no logged AI
+                            answer. It shows where to look, not who wrote it.
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : null}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {visible.map((row) => (
+              <TableRow className="relative" key={row.id}>
+                {row.getAllCells().map((cell) => (
+                  <TableCell
+                    className={
+                      NUMERIC.has(cell.column.id) ? "text-right" : undefined
+                    }
+                    key={cell.id}
+                  >
+                    <table.FlexRender cell={cell} />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TooltipProvider>
       {rows.length === 0 ? (
         <div className="text-muted-foreground flex flex-col items-center gap-2 py-8">
           <p>No submissions match this view.</p>
@@ -431,10 +464,6 @@ export const SubmissionsTable = ({ rows: data }: { rows: SubmissionRow[] }) => {
           </Button>
         </nav>
       ) : null}
-      <p className="text-muted-foreground text-meta mt-3 max-w-prose text-pretty">
-        “Not from logged AI” is the share of the essay that matches no logged AI
-        answer. It shows where to look, not who wrote it.
-      </p>
     </section>
   );
 };

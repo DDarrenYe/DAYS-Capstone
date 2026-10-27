@@ -13,11 +13,11 @@ import type { NavItem, UserRole } from "@/components/shell/shell-navigation";
 
 const navigation: Record<UserRole, NavItem[]> = {
   instructor: [
-    { icon: "submissions", label: "Overview", segment: null },
-    { icon: "essay", label: "Submissions", segment: "visualiser" },
-    { icon: "flag", label: "Flags", segment: "flags" },
-    { icon: "report", label: "Reports", segment: "reports" },
-    { icon: "book", label: "Courses", segment: "courses" },
+    { icon: "overview", label: "Overview", segment: null },
+    { icon: "page", label: "Submissions", segment: "visualiser" },
+    { icon: "pennant", label: "Flags", segment: "flags" },
+    { icon: "chart", label: "Reports", segment: "reports" },
+    { icon: "courses", label: "Courses", segment: "courses" },
   ],
   student: [
     { icon: "book", label: "Assignments", segment: null },
@@ -42,14 +42,6 @@ export const AppShell = ({
       Skip to content
     </a>
     <aside className="bg-sidebar flex gap-4.5 px-2.5 py-3.5 max-md:sticky max-md:top-0 max-md:z-30 max-md:items-center max-md:gap-3 max-md:border-b max-md:py-2 md:flex-col md:pl-3">
-      <Image
-        alt="The University of Auckland"
-        className="mx-1.5 h-auto w-36 max-md:hidden"
-        height={213}
-        preload
-        src="/uoa-logo.png"
-        width={646}
-      />
       <Brand href={`/${userRole}`} />
       <div className="min-w-0 flex-1">
         {userRole === "instructor" ? (
@@ -64,15 +56,24 @@ export const AppShell = ({
           <SidebarNav items={navigation.student} userRole={userRole} />
         )}
       </div>
-      <Suspense
-        fallback={
-          <output className="text-muted-foreground p-1.5 text-xs">
-            Loading account…
-          </output>
-        }
-      >
-        <AccountMenu userRole={userRole} />
-      </Suspense>
+      <Image
+        alt="The University of Auckland"
+        className="mx-1.5 h-auto w-28 max-md:hidden"
+        height={213}
+        src="/uoa-logo.png"
+        width={646}
+      />
+      <div className="md:-mt-1.5 md:border-t md:pt-2">
+        <Suspense
+          fallback={
+            <output className="text-muted-foreground p-1.5 text-xs">
+              Loading account…
+            </output>
+          }
+        >
+          <AccountMenu userRole={userRole} />
+        </Suspense>
+      </div>
     </aside>
     <main
       className="bg-card shadow-card flex min-h-0 min-w-0 flex-col overflow-hidden outline-none md:my-2 md:mr-2 md:rounded-xl"
